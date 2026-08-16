@@ -23,6 +23,7 @@ import { createStore } from "./db.mjs";
 import { loadOrBuildCapabilityManifest } from "./build_capabilities.mjs";
 import { agnesProvider } from "./providers/agnes.mjs";
 import { createInemaimgProvider } from "./providers/inemaimg.mjs";
+import { kieProvider } from "./providers/kie.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -698,6 +699,17 @@ function publicProviderError(error, context = "generation") {
   if (/\b422\b/.test(lower)) {
     return "This model could not accept one of the selected settings. Review the model controls and try again.";
   }
+  // Antes, tudo que não casasse com os casos acima virava "a geração não pôde
+  // ser iniciada, tente de novo". Isso escondeu dois bugs reais nesta sessão
+  // (`flux2-klein/edit` -> 404 e `agnes-image-2.1-flash/edit` -> model_not_found):
+  // a tela dizia "tente de novo" para um erro que nunca ia melhorar tentando.
+  // Os adapters escrevem mensagens específicas de propósito — repassá-las é o
+  // ponto. Só a chave é redigida, porque ela nunca deve sair daqui.
+  const safe = raw
+    .replace(/(Key|Bearer)\s+[A-Za-z0-9._:-]{8,}/gi, "$1 [redigida]")
+    .replace(/([?&](api_?key|token|key)=)[^&\s]+/gi, "$1[redigida]")
+    .trim();
+  if (safe) return safe.slice(0, 400);
   return context === "upload"
     ? "The reference could not be uploaded. Please try again."
     : "The generation could not be started. Please try again.";
@@ -773,6 +785,7 @@ const PROVIDERS = {
   agnes: agnesProvider,
   // Local: grava o PNG direto em OUTPUTS, por isso precisa saber onde é.
   inemaimg: createInemaimgProvider({ outputsDir: OUTPUTS }),
+  kie: kieProvider,
 };
 
 const DEFAULT_PROVIDER = "fal";

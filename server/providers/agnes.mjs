@@ -87,6 +87,26 @@ function translateError(error) {
   return new Error(`Agnes recusou o pedido (400): ${String(detail).slice(0, 300)}.${hint}`);
 }
 
+// `agnes/agnes-image-2.1-flash/edit` e `agnes/agnes-video-v2.0/i2v` são, na API,
+// os MESMOS modelos de `.../agnes-image-2.1-flash` e `.../agnes-video-v2.0`. Os
+// sufixos existem só para o registry poder declarar as lanes i2i e i2v com slot
+// de referência — o que muda é o payload, não o modelo. Mandar o sufixo devolve
+//   503 model_not_found: No available channel for model agnes-image-2.1-flash/edit
+// Este é o mesmo erro que o inemaimg deu com /edit; aqui ele passou despercebido
+// porque só os caminhos t2i e t2v tinham sido testados.
+function apiModel(modelId) {
+  return modelId.replace(/^agnes\//, "").replace(/\/(edit|i2v)$/, "");
+}
+
+// Um 503 normalmente É transitório na Agnes (~34% das chamadas), e por isso o
+// retry existe. Mas `model_not_found` vem embrulhado em 503 e nunca vai melhorar
+// tentando de novo: insistir só gasta minutos de backoff antes de dar o mesmo
+// erro. Separar os dois casos é a diferença entre um retry útil e uma espera inútil.
+function isPermanent(error) {
+  return error instanceof AgnesHttpError
+    && /model_not_found|invalid_request|unsupported/i.test(error.body);
+}
+
 // Agnes: num_frames segue 8n+1, teto 441 (18,4s @24fps).
 export function framesFor(seconds) {
   const n = Math.round((Number(seconds || 3.4) * FPS - 1) / 8);
@@ -119,7 +139,7 @@ function refsFrom(input) {
 async function submitImage(modelId, input) {
   const refs = refsFrom(input);
   const body = {
-    model: modelId.replace(/^agnes\//, ""),
+    model: apiModel(modelId),
     prompt: input.prompt,
     size: String(input.size ?? "1312x736"),
     extra_body: { response_format: "url" },
@@ -135,7 +155,7 @@ async function submitImage(modelId, input) {
       return { request_id: `agnes-img-${Date.now()}-${attempt}`, inline: { images: [{ url, content_type: "image/png" }] } };
     } catch (error) {
       last = translateError(error);
-      if (error instanceof AgnesHttpError && error.status === 400) throw last;
+      if (isPermanent(error) || (error instanceof AgnesHttpError && error.status === 400)) throw last;
       await sleep(4000 * attempt);
     }
   }
@@ -148,7 +168,7 @@ async function submitVideo(modelId, input) {
   const refs = refsFrom(input);
   const { width, height } = dimensions(input.size ?? "1312x736");
   const body = {
-    model: modelId.replace(/^agnes\//, ""),
+    model: apiModel(modelId),
     prompt: input.prompt,
     num_frames: framesFor(input.duration),
     frame_rate: FPS,
@@ -178,7 +198,7 @@ async function submitVideo(modelId, input) {
       return { request_id: id };
     } catch (error) {
       last = translateError(error);
-      if (error instanceof AgnesHttpError && error.status === 400) throw last;
+      if (isPermanent(error) || (error instanceof AgnesHttpError && error.status === 400)) throw last;
       // Rate limit de criação é 5/min: recuar 70s é o que funciona, não 6s.
       await sleep(error instanceof AgnesHttpError && error.status === 429 ? 70000 : 6000 * attempt);
     }

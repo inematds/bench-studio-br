@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-16T22:28:34.118Z",
+  "generated_at": "2026-08-16T23:24:35.137Z",
   "schema_generated_at": "2026-08-12T18:57:37.821Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
@@ -1546,6 +1546,116 @@
       ],
       "primary_image_field": "images",
       "image_arity": "multiple",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kie/z-image",
+      "label": "Z-Image (kie)",
+      "vendor": "Alibaba",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kie/nano-banana-pro",
+      "label": "Nano Banana Pro (kie)",
+      "vendor": "Google",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kie/nano-banana-pro/edit",
+      "label": "Nano Banana Pro edit (kie)",
+      "vendor": "Google",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image_urls",
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": true,
+          "description": "Ate 2 referencias. PRECISA ser URL publica — o kie.ai nao aceita data URI nem caminho local (nota de campo medida). O anexo enviado pela UI do Bench vira URL publica no storage do fal, entao funciona.",
+          "accepted_type": "array",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image_urls",
+      "image_arity": "multiple",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kie/veo3_fast",
+      "label": "Veo 3 fast (kie)",
+      "vendor": "Google",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image_urls",
+          "modality": "image",
+          "role": "start-frame",
+          "arity": "multiple",
+          "required": false,
+          "description": "Um frame de partida, como URL publica. Sem referencia, roda como text-to-video.",
+          "accepted_type": "array",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image_urls",
+      "image_arity": "single",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
