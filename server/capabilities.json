@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-16T23:24:35.137Z",
+  "generated_at": "2026-08-16T23:38:20.629Z",
   "schema_generated_at": "2026-08-12T18:57:37.821Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
@@ -1655,6 +1655,556 @@
         "image"
       ],
       "primary_image_field": "image_urls",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-video-v2_5",
+      "label": "Kling v2.5",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "t2v",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-video-v2_6",
+      "label": "Kling v2.6",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "t2v",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-video-o1",
+      "label": "Kling o1",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "t2v",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-video-v3_0_omni",
+      "label": "Kling v3.0.omni",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "t2v",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-video-v3_0",
+      "label": "Kling v3.0",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "t2v",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-video-v3_0_turbo",
+      "label": "Kling v3.0.turbo",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "t2v",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-video-v2_5/i2v",
+      "label": "Kling v2.5 i2v",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-video-v2_6/i2v",
+      "label": "Kling v2.6 i2v",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-video-o1/i2v",
+      "label": "Kling o1 i2v",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-video-v3_0_omni/i2v",
+      "label": "Kling v3.0.omni i2v",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-video-v3_0/i2v",
+      "label": "Kling v3.0 i2v",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-video-v3_0_turbo/i2v",
+      "label": "Kling v3.0.turbo i2v",
+      "vendor": "Kuaishou",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-image-v3_0_omni",
+      "label": "Kling v3.0.omni",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-image-o1",
+      "label": "Kling o1",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-image-v3_0",
+      "label": "Kling v3.0",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-image-v2_1",
+      "label": "Kling v2.1",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/kling-image-v3_0_omni/edit",
+      "label": "Kling v3.0.omni edit",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-image-o1/edit",
+      "label": "Kling o1 edit",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-image-v3_0/edit",
+      "label": "Kling v3.0 edit",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/kling-image-v2_1/edit",
+      "label": "Kling v2.1 edit",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
       "image_arity": "single",
       "prompt_profile": false,
       "researched_input_evidence": null,

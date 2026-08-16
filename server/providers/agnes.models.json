@@ -23,7 +23,9 @@
       "media_inputs": [],
       "accepts_image": null,
       "image_param": null,
-      "required": ["prompt"],
+      "required": [
+        "prompt"
+      ],
       "params": {
         "size": {
           "name": "size",
@@ -31,7 +33,15 @@
           "title": "Size",
           "description": "Tamanho em PIXELS EXPLICITOS. Medido: `ratio` e ignorado em img2img (pedir 1K+16:9 com referencia devolve 1024x1024), entao o pixel exato e o unico controle confiavel. 1K sai em ~32s; 4K leva ~150s, falha muito e nao serve como referencia depois (teto de 10 MB por imagem de entrada).",
           "default": "1312x736",
-          "enum": ["1312x736", "736x1312", "1024x1024", "1456x816", "816x1456", "1248x832", "832x1248"]
+          "enum": [
+            "1312x736",
+            "736x1312",
+            "1024x1024",
+            "1456x816",
+            "816x1456",
+            "1248x832",
+            "832x1248"
+          ]
         }
       }
     },
@@ -45,8 +55,14 @@
       "tier": "free",
       "category": "image-editing",
       "thumbnail": null,
-      "image_input": { "name": "image", "arity": "multiple", "required": true },
-      "image_inputs": ["image"],
+      "image_input": {
+        "name": "image",
+        "arity": "multiple",
+        "required": true
+      },
+      "image_inputs": [
+        "image"
+      ],
       "media_inputs": [
         {
           "name": "image",
@@ -57,12 +73,17 @@
           "role": "reference",
           "arity": "multiple",
           "required": true,
-          "limits": { "max_items": 2 }
+          "limits": {
+            "max_items": 2
+          }
         }
       ],
       "accepts_image": "multiple",
       "image_param": "image",
-      "required": ["prompt", "image"],
+      "required": [
+        "prompt",
+        "image"
+      ],
       "params": {
         "size": {
           "name": "size",
@@ -70,7 +91,15 @@
           "title": "Size",
           "description": "Pixels explicitos. Em img2img o `ratio` e ignorado — sem isto a saida volta 1024x1024 independente do que foi pedido.",
           "default": "1312x736",
-          "enum": ["1312x736", "736x1312", "1024x1024", "1456x816", "816x1456", "1248x832", "832x1248"]
+          "enum": [
+            "1312x736",
+            "736x1312",
+            "1024x1024",
+            "1456x816",
+            "816x1456",
+            "1248x832",
+            "832x1248"
+          ]
         }
       }
     },
@@ -90,16 +119,24 @@
       "media_inputs": [],
       "accepts_image": null,
       "image_param": null,
-      "required": ["prompt"],
+      "required": [
+        "prompt"
+      ],
       "params": {
         "duration": {
           "name": "duration",
-          "type": "number",
-          "title": "Duration (s)",
-          "description": "Convertido para num_frames seguindo a regra 8n+1, teto 441 (18,4s @24fps). O ponto doce medido e ~3,4s: esticar para 18s e onde o morph desmorona.",
-          "default": 3.4,
-          "min": 0.4,
-          "max": 18.4
+          "type": "string",
+          "title": "Duration",
+          "description": "Duracoes que caem EXATAMENTE na regra 8n+1 @24fps, sem arredondamento silencioso: 3.375s=81f, 5.042s=121f, 7.042s=169f, 10.042s=241f, 13.375s=321f, 18.375s=441f (o teto). Ponto doce medido: ~3.4s — esticar para 18s e onde o morph desmorona.",
+          "default": "3.375",
+          "enum": [
+            "3.375",
+            "5.042",
+            "7.042",
+            "10.042",
+            "13.375",
+            "18.375"
+          ]
         },
         "size": {
           "name": "size",
@@ -107,7 +144,11 @@
           "title": "Size",
           "description": "Pixels explicitos. AVISO MEDIDO: o `size` da resposta mente — pede 1312x736 e entrega 1280x704. Medir com ffprobe se o enquadramento importar.",
           "default": "1312x736",
-          "enum": ["1312x736", "736x1312", "1024x1024"]
+          "enum": [
+            "1312x736",
+            "736x1312",
+            "1024x1024"
+          ]
         },
         "seed": {
           "name": "seed",
@@ -133,8 +174,14 @@
       "tier": "free",
       "category": "image-to-video",
       "thumbnail": null,
-      "image_input": { "name": "image", "arity": "multiple", "required": true },
-      "image_inputs": ["image"],
+      "image_input": {
+        "name": "image",
+        "arity": "multiple",
+        "required": true
+      },
+      "image_inputs": [
+        "image"
+      ],
       "media_inputs": [
         {
           "name": "image",
@@ -145,21 +192,32 @@
           "role": "reference",
           "arity": "multiple",
           "required": true,
-          "limits": { "max_items": 2 }
+          "limits": {
+            "max_items": 2
+          }
         }
       ],
       "accepts_image": "multiple",
       "image_param": "image",
-      "required": ["prompt", "image"],
+      "required": [
+        "prompt",
+        "image"
+      ],
       "params": {
         "duration": {
           "name": "duration",
-          "type": "number",
-          "title": "Duration (s)",
-          "description": "8n+1, teto 441 frames (18,4s @24fps). Ponto doce ~3,4s.",
-          "default": 3.4,
-          "min": 0.4,
-          "max": 18.4
+          "type": "string",
+          "title": "Duration",
+          "description": "Duracoes que caem EXATAMENTE na regra 8n+1 @24fps, sem arredondamento silencioso: 3.375s=81f, 5.042s=121f, 7.042s=169f, 10.042s=241f, 13.375s=321f, 18.375s=441f (o teto). Ponto doce medido: ~3.4s — esticar para 18s e onde o morph desmorona.",
+          "default": "3.375",
+          "enum": [
+            "3.375",
+            "5.042",
+            "7.042",
+            "10.042",
+            "13.375",
+            "18.375"
+          ]
         },
         "size": {
           "name": "size",
@@ -167,9 +225,18 @@
           "title": "Size",
           "description": "Pixels explicitos. O `size` da resposta mente — medir com ffprobe.",
           "default": "1312x736",
-          "enum": ["1312x736", "736x1312", "1024x1024"]
+          "enum": [
+            "1312x736",
+            "736x1312",
+            "1024x1024"
+          ]
         },
-        "seed": { "name": "seed", "type": "integer", "title": "Seed", "description": "Existe no video." },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "Existe no video."
+        },
         "negative_prompt": {
           "name": "negative_prompt",
           "type": "string",

@@ -24,6 +24,7 @@ import { loadOrBuildCapabilityManifest } from "./build_capabilities.mjs";
 import { agnesProvider } from "./providers/agnes.mjs";
 import { createInemaimgProvider } from "./providers/inemaimg.mjs";
 import { kieProvider } from "./providers/kie.mjs";
+import { createKlingProvider } from "./providers/kling.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -786,6 +787,9 @@ const PROVIDERS = {
   // Local: grava o PNG direto em OUTPUTS, por isso precisa saber onde é.
   inemaimg: createInemaimgProvider({ outputsDir: OUTPUTS }),
   kie: kieProvider,
+  // O adapter precisa saber quais params o modelo declara: mandar flag que o
+  // modelo nao declara faz o CLI recusar.
+  kling: createKlingProvider({ modelById: (id) => byId.get(id) }),
 };
 
 const DEFAULT_PROVIDER = "fal";
