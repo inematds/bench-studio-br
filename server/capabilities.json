@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-16T21:02:52.305Z",
+  "generated_at": "2026-08-16T22:28:34.118Z",
   "schema_generated_at": "2026-08-12T18:57:37.821Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
@@ -1395,8 +1395,8 @@
       "modalities": [],
       "primary_image_field": null,
       "image_arity": null,
-      "prompt_profile": false,
-      "researched_input_evidence": null,
+      "prompt_profile": true,
+      "researched_input_evidence": "Referências preservam estilo e composição, mas NÃO travam identidade de personagem com uma única imagem (o rosto muda). Com duas, a identidade melhora muito. Teto útil: 2 (com 5 a saída vira confete de pixels e o prompt é ignorado). Limite de 10 MB por imagem de entrada, então uma saída 4K não serve como referência depois.",
       "confidence": "schema-reports-no-media-input"
     },
     {
@@ -1436,8 +1436,8 @@
       ],
       "primary_image_field": "image",
       "image_arity": "multiple",
-      "prompt_profile": false,
-      "researched_input_evidence": null,
+      "prompt_profile": true,
+      "researched_input_evidence": "Idem ao modelo t2i: 2 referências é o teto útil; identidade só fica estável com duas.",
       "confidence": "schema-supported"
     },
     {
@@ -1450,7 +1450,7 @@
       "modalities": [],
       "primary_image_field": null,
       "image_arity": null,
-      "prompt_profile": false,
+      "prompt_profile": true,
       "researched_input_evidence": null,
       "confidence": "schema-reports-no-media-input"
     },
@@ -1490,6 +1490,61 @@
         "image"
       ],
       "primary_image_field": "image",
+      "image_arity": "multiple",
+      "prompt_profile": true,
+      "researched_input_evidence": "1 imagem = vídeo de imagem única (movimento sutil, deriva menos). 2 imagens = modo keyframes A->B. Base64 funciona apesar de a doc afirmar que exige URL pública.",
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "inemaimg/flux2-klein",
+      "label": "FLUX.2 klein (local)",
+      "vendor": "INEMA / DGX",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "inemaimg/flux2-klein/edit",
+      "label": "FLUX.2 klein edit (local)",
+      "vendor": "INEMA / DGX",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "images",
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": true,
+          "description": "Ate 4 referencias, aceitas NATIVAMENTE pelo flux2-klein (nao exige troca de modelo). O adapter converte URL ou data URI para base64 cru, que e o que o servidor espera.",
+          "accepted_type": "array",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "images",
       "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,

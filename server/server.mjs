@@ -22,6 +22,7 @@ import { readCatalogSync, syncFalCatalog } from "./catalog_sync.mjs";
 import { createStore } from "./db.mjs";
 import { loadOrBuildCapabilityManifest } from "./build_capabilities.mjs";
 import { agnesProvider } from "./providers/agnes.mjs";
+import { createInemaimgProvider } from "./providers/inemaimg.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -770,6 +771,8 @@ const PROVIDERS = {
     actual: (modelId, billableUnits) => actualCost(modelId, billableUnits),
   },
   agnes: agnesProvider,
+  // Local: grava o PNG direto em OUTPUTS, por isso precisa saber onde é.
+  inemaimg: createInemaimgProvider({ outputsDir: OUTPUTS }),
 };
 
 const DEFAULT_PROVIDER = "fal";
@@ -863,6 +866,10 @@ async function mirrorOutputs(outputs, requestId) {
   const mirrored = [];
   for (let index = 0; index < outputs.length; index++) {
     const output = outputs[index];
+    // Provider local (inemaimg e afins) já escreve o arquivo em disco: não há
+    // nada remoto para espelhar. Espelhar mesmo assim faria o servidor baixar
+    // de si próprio e guardar uma segunda cópia do mesmo PNG.
+    if (output.local_path) { mirrored.push({ ...output, remote_url: output.remote_url ?? null }); continue; }
     try {
       const local = await mirrorRemoteAsset(output.url, requestId, index);
       mirrored.push({ ...output, ...local, remote_url: output.url });
@@ -1366,7 +1373,15 @@ function extractUrls(result) {
   const walk = (v) => {
     if (!v || typeof v !== "object") return;
     if (Array.isArray(v)) return v.forEach(walk);
-    if (typeof v.url === "string") urls.push({ url: v.url, content_type: v.content_type ?? null, width: v.width ?? null, height: v.height ?? null });
+    if (typeof v.url === "string") urls.push({
+      url: v.url,
+      content_type: v.content_type ?? null,
+      width: v.width ?? null,
+      height: v.height ?? null,
+      // Provider local já entrega o arquivo gravado. Sem carregar isto adiante,
+      // mirrorOutputs trataria a saída como remota e tentaria baixá-la.
+      ...(v.local_path ? { local_path: v.local_path, local_url: v.local_url ?? null } : {}),
+    });
     Object.values(v).forEach(walk);
   };
   walk(result);
