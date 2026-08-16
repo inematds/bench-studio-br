@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-12T19:02:00.482Z",
+  "generated_at": "2026-08-16T21:02:52.305Z",
   "schema_generated_at": "2026-08-12T18:57:37.821Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
@@ -1383,6 +1383,116 @@
       "image_arity": "multiple",
       "prompt_profile": true,
       "researched_input_evidence": "reference_image_urls is an array of up to 7 image URLs, addressed in the prompt as @Image1, @Image2 ... in array order. They act as style and content references that influence the generation without being forced as the first frame. xAI's own framing is that each reference locks one element (a face, a product, a location), which lets you hold one and vary the others. This is the multi-subject compositing tool of the set; it is not a pixel-faithful first-frame animator.",
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "agnes/agnes-image-2.1-flash",
+      "label": "Agnes Image 2.1 flash",
+      "vendor": "Agnes AI",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "agnes/agnes-image-2.1-flash/edit",
+      "label": "Agnes Image 2.1 edit",
+      "vendor": "Agnes AI",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": true,
+          "description": "Ate 2 referencias (URL publica ou data URI base64). MEDIDO: 2 e o teto util — 5 destroem a saida (confete de pixels) e o prompt passa a ser ignorado. Preserva estilo e composicao; com 1 ref a identidade do personagem NAO trava (o rosto muda), com 2 melhora muito.",
+          "accepted_type": "array",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "multiple",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "agnes/agnes-video-v2.0",
+      "label": "Agnes Video 2.0",
+      "vendor": "Agnes AI",
+      "output": "video",
+      "lane": "t2v",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "agnes/agnes-video-v2.0/i2v",
+      "label": "Agnes Video 2.0 (keyframes)",
+      "vendor": "Agnes AI",
+      "output": "video",
+      "lane": "i2v",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": true,
+          "description": "1 imagem = video de imagem unica (o parametro `mode` e OMITIDO; medido contra a API viva em 2026-08-16 — a doc antiga falava em `ti2vid`, que hoje devolve 400). 2 imagens = modo `keyframes` A->B, que interpola de verdade e mantem o personagem consistente no movimento. Base64 funciona (a doc afirma exigir URL publica — medido como falso).",
+          "accepted_type": "array",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "multiple",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
       "confidence": "schema-supported"
     }
   ]

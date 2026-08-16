@@ -21,6 +21,8 @@ import { spawn } from "node:child_process";
 import { readCatalogSync, syncFalCatalog } from "./catalog_sync.mjs";
 import { createStore } from "./db.mjs";
 import { loadOrBuildCapabilityManifest } from "./build_capabilities.mjs";
+import { agnesProvider } from "./providers/agnes.mjs";
+import { mergeProviderModels } from "./providers/registry_merge.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = resolve(process.env.BENCH_DATA_DIR || join(HERE, "..", "data"));
@@ -70,6 +72,12 @@ if (migratedRows) console.log(`migrated ${migratedRows} legacy ledger rows into 
 // ---------------------------------------------------------------- registry + profiles + pricing
 
 const registry = JSON.parse(readFileSync(join(HERE, "registry.json"), "utf8"));
+
+// Modelos de providers não-fal entram aqui — antes do byId e antes do manifesto
+// de capabilities, senão a validação de referências de /api/generate rejeita
+// todos os anexos desses modelos.
+mergeProviderModels(registry);
+
 const byId = new Map(registry.models.map((m) => [m.id, m]));
 let CATALOG_SYNC = readCatalogSync(CATALOG_CACHE);
 let catalogSyncPromise = null;
@@ -761,6 +769,7 @@ const PROVIDERS = {
     quote: (modelId, input) => estimateCost(modelId, input),
     actual: (modelId, billableUnits) => actualCost(modelId, billableUnits),
   },
+  agnes: agnesProvider,
 };
 
 const DEFAULT_PROVIDER = "fal";
@@ -1114,7 +1123,10 @@ app.get("/api/fal/billing", async (req, res) => {
 app.post("/api/quote", (req, res) => {
   const { modelId, params = {} } = req.body ?? {};
   if (!byId.has(modelId)) return res.status(400).json({ error: `unknown model ${modelId}` });
-  res.json(estimateCost(modelId, params));
+  // Pelo adapter, não por estimateCost: este último só sabe consultar a tabela
+  // de preços do fal, e responderia "no pricing available" para um provider
+  // gratuito — o oposto do que o ledger precisa mostrar.
+  res.json(adapterFor(byId.get(modelId)).quote(modelId, params));
 });
 
 app.get("/api/ledger", (_req, res) => {

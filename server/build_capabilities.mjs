@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { mergeProviderModels } from "./providers/registry_merge.mjs";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 function readProfiles(dir) {
@@ -102,7 +104,12 @@ export function loadOrBuildCapabilityManifest({ registry, profiles, path }) {
   if (existsSync(path)) {
     try {
       const current = JSON.parse(readFileSync(path, "utf8"));
-      if (current.schema_generated_at === registry.generated_at) return current;
+      // generated_at só reflete o schema do fal. Modelos escritos à mão por
+      // provider entram sem mexer nele, então o total também precisa bater —
+      // senão um manifesto velho esconde o provider novo e a validação de
+      // anexos rejeita tudo que ele aceita.
+      if (current.schema_generated_at === registry.generated_at
+          && current.models?.length === registry.models.length) return current;
     } catch {}
   }
   const manifest = buildCapabilityManifest(registry, profiles);
@@ -112,7 +119,7 @@ export function loadOrBuildCapabilityManifest({ registry, profiles, path }) {
 
 const isCli = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isCli) {
-  const registry = JSON.parse(readFileSync(join(HERE, "registry.json"), "utf8"));
+  const registry = mergeProviderModels(JSON.parse(readFileSync(join(HERE, "registry.json"), "utf8")));
   const profiles = readProfiles(join(HERE, "profiles"));
   const manifest = buildCapabilityManifest(registry, profiles);
   writeFileSync(join(HERE, "capabilities.json"), JSON.stringify(manifest, null, 2));
