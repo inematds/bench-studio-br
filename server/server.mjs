@@ -76,7 +76,9 @@ let catalogSyncPromise = null;
 
 async function refreshCatalogDiscovery() {
   if (catalogSyncPromise) return catalogSyncPromise;
-  catalogSyncPromise = syncFalCatalog({ key: FAL_KEY, registry, cachePath: CATALOG_CACHE })
+  // Only the fal roster is compared against fal's live catalog. Agnes/local
+  // models are not fal endpoints, so their absence there is not staleness.
+  catalogSyncPromise = syncFalCatalog({ key: FAL_KEY, registry: { ...registry, models: falModels() }, cachePath: CATALOG_CACHE })
     .then((result) => {
       CATALOG_SYNC = result;
       store.recordCatalogSync(result);
@@ -729,6 +731,51 @@ async function falPoll(modelId, requestId, { onUpdate } = {}) {
   throw new Error("timed out after 12 minutes");
 }
 
+// ---------------------------------------------------------------- providers
+//
+// One interface, N backends. Ported from ~/projetos/videoanima-skill/provedores.py,
+// which already runs this exact shape in production (agnes | inemaimg | kie).
+// Its rule holds here too:
+//
+//   "As armadilhas MEDIDAS de cada API moram no adaptador dela, nunca no
+//    nucleo -- sao especificas do provedor."
+//
+// So retries, poll spacing, param quirks and auth live inside an adapter.
+// Everything the core does -- input validation, the ledger, mirroring outputs
+// -- stays provider-agnostic and is written exactly once.
+//
+// Contract, per adapter:
+//   submit(modelId, input)            -> { request_id, ... }   provider-specific handle
+//   poll(modelId, handle, {onUpdate}) -> { result, billableUnits }
+//   quote(modelId, input)             -> { cost, confidence, basis, ... } | before the run
+//   actual(modelId, billableUnits)    -> same shape | null     | after the run
+//
+// A model declares its backend with `provider` in the registry. Absent means
+// "fal", so the 37 curated fal routes keep working with no registry change.
+
+const PROVIDERS = {
+  fal: {
+    label: "fal.ai",
+    submit: (modelId, input) => falSubmit(modelId, input),
+    poll: (modelId, handle, opts) => falPoll(modelId, handle.request_id, opts),
+    quote: (modelId, input) => estimateCost(modelId, input),
+    actual: (modelId, billableUnits) => actualCost(modelId, billableUnits),
+  },
+};
+
+const DEFAULT_PROVIDER = "fal";
+const providerOf = (model) => model?.provider ?? DEFAULT_PROVIDER;
+function adapterFor(model) {
+  const name = providerOf(model);
+  const adapter = PROVIDERS[name];
+  if (!adapter) throw new Error(`unknown provider ${name} for ${model?.id}`);
+  return adapter;
+}
+// fal-only chores (live pricing, catalog staleness) must never be handed a
+// foreign model id, or fal answers "unknown endpoint" for something that was
+// never its endpoint to begin with.
+const falModels = () => registry.models.filter((m) => providerOf(m) === "fal");
+
 async function falUpload(buffer, filename, contentType) {
   // fal's storage: ask for a signed upload URL, PUT the bytes, get back a
   // public file_url you can hand to any model as image_url.
@@ -1240,9 +1287,10 @@ app.post("/api/generate", async (req, res) => {
       if (input[k] === "" || input[k] === null || input[k] === undefined) delete input[k];
     }
 
-    const pre = estimateCost(modelId, input);
-    send({ phase: "submitting", input, estimate: pre });
-    const q = await falSubmit(modelId, input);
+    const adapter = adapterFor(model);
+    const pre = adapter.quote(modelId, input);
+    send({ phase: "submitting", input, estimate: pre, provider: providerOf(model) });
+    const q = await adapter.submit(modelId, input);
     for (const field of new Set(normalizedAssets.map((asset) => asset.field))) {
       store.recordCapabilityCheck({
         model_id: modelId,
@@ -1256,19 +1304,22 @@ app.post("/api/generate", async (req, res) => {
     }
     send({ phase: "queued", request_id: q.request_id });
 
-    const { result, billableUnits } = await falPoll(modelId, q.request_id, {
+    const { result, billableUnits } = await adapter.poll(modelId, q, {
       onUpdate: (s) => send({ phase: "status", status: s.status, queue_position: s.queue_position ?? null }),
     });
 
-    // Prefer what fal actually billed. Fall back to the estimate when the model
-    // does not set the header.
-    const priced = actualCost(modelId, billableUnits) ?? pre;
+    // Prefer what the provider actually billed. Fall back to the estimate when
+    // it does not report a billed quantity.
+    const priced = adapter.actual(modelId, billableUnits) ?? pre;
     const { cost, confidence, basis } = priced;
     const outputs = await mirrorOutputs(extractUrls(result), q.request_id);
     const row = {
       ts: new Date().toISOString(),
       model: modelId,
       label: model.label,
+      // Which backend actually ran and billed this. The same model can exist on
+      // more than one route (fal vs direct), so the receipt has to say which.
+      provider: providerOf(model),
       vendor: model.vendor,
       kind: model.kind,
       lane: model.lane,
@@ -1322,14 +1373,16 @@ app.listen(PORT, () => {
   console.log(`studio server on http://localhost:${PORT}`);
   console.log(`  ${registry.models.length} models, ${Object.keys(PROFILES).length} prompt profiles`);
   console.log(`  API-derived image inputs: ${registry.models.filter((model) => imageInputForModel(model)).length}/${registry.models.length}`);
-  console.log(`  cached prices: ${cachedPriced}/${registry.models.length}; refreshing in background`);
+  console.log(`  cached prices: ${cachedPriced}/${falModels().length} fal models; refreshing in background`);
+  const byProvider = registry.models.reduce((acc, m) => { const p = providerOf(m); acc[p] = (acc[p] ?? 0) + 1; return acc; }, {});
+  console.log(`  providers: ${Object.entries(byProvider).map(([p, n]) => `${p}=${n}`).join(", ")}`);
   console.log(`  spend: $${s.all_time} all time, $${s.month} this month, ${s.total_generations} generations`);
 });
 
-fetchLivePrices(registry.models.map((m) => m.id))
+fetchLivePrices(falModels().map((m) => m.id))
   .then((prices) => {
     LIVE_PRICES = prices;
-    console.log(`pricing refresh complete: ${Object.keys(LIVE_PRICES).length}/${registry.models.length}`);
+    console.log(`pricing refresh complete: ${Object.keys(LIVE_PRICES).length}/${falModels().length} fal models`);
   })
   .catch((e) => console.warn(`pricing refresh failed: ${e.message}`));
 
