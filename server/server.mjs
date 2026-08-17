@@ -844,10 +844,21 @@ function mediaTypeFor(contentType = "") {
   return "file";
 }
 
+// Extensões que realmente identificam mídia. Aceitar qualquer coisa que "pareça
+// extensão" faz o arquivo herdar sufixo inventado pelo provider: a URL do Kling
+// termina em `.origin`, e um PNG de 1.3 MB era gravado como `.origin` — o
+// sistema operacional, o navegador e o preview passam a não saber o que é.
+// O content-type da resposta é a fonte melhor quando a URL não ajuda.
+const KNOWN_EXTENSIONS = new Set(Object.values(CONTENT_EXTENSIONS));
+
 function safeExtension(filename, contentType) {
   const extension = extname(filename ?? "").toLowerCase();
+  if (KNOWN_EXTENSIONS.has(extension)) return extension;
+  if (CONTENT_EXTENSIONS[contentType]) return CONTENT_EXTENSIONS[contentType];
+  // Sem pista nenhuma: preserva a extensão da URL se for plausível, em vez de
+  // esconder tudo atrás de .bin.
   if (/^\.[a-z0-9]{1,6}$/.test(extension)) return extension;
-  return CONTENT_EXTENSIONS[contentType] ?? ".bin";
+  return ".bin";
 }
 
 function localUploadCopy(file) {
@@ -950,6 +961,11 @@ app.get("/api/models", (_req, res) => {
     formats: Object.entries(FORMATS).map(([id, f]) => ({ id, label: f.label })),
     models: registry.models.map((m) => ({
       ...m,
+      // Explícito, nunca implícito: a mesma família de modelo existe por mais de
+      // uma rota (gpt-image e gemini estão no fal E no Kling), com contas e
+      // cobranças diferentes. Sem este campo, escolher a rota vira adivinhação.
+      provider: providerOf(m),
+      provider_label: PROVIDERS[providerOf(m)]?.label ?? providerOf(m),
       capabilities: capabilityById.get(m.id) ?? null,
       has_profile: Boolean(findProfile(m.id)),
       // live from fal, so a price change shows up without a code change

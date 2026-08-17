@@ -1,11 +1,11 @@
 {
   "_meta": {
     "provider": "kling",
-    "generated_at": "2026-08-16T23:37:31.213Z",
+    "generated_at": "2026-08-17T00:48:13.541Z",
     "source": "kling who_am_i (CLI oficial @klingai/cli-global)",
     "account": "userId 3422648",
     "regenerate": "node server/providers/kling_sync.mjs",
-    "skipped": "modelos gemini-* e gpt-image-* que o Kling revende: o Bench ja os tem via fal",
+    "revendidos": "gemini-* e gpt-image-* aparecem TAMBEM aqui, alem da rota fal: e a escolha de rota (dolar no fal x credito do plano no Kling) que o estudio existe para tornar visivel. O label traz `via Kling`.",
     "note": "Defaults de resolucao forcados para 720p/1k conforme ~/projetos/klingai-nei/README.md — resolucao alta multiplica creditos."
   },
   "models": [
@@ -14,7 +14,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "t2v",
-      "label": "Kling v2.5",
+      "label": "Kling v2.5 · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-video",
       "thumbnail": null,
@@ -117,7 +118,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "t2v",
-      "label": "Kling v2.6",
+      "label": "Kling v2.6 · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-video",
       "thumbnail": null,
@@ -197,7 +199,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "t2v",
-      "label": "Kling o1",
+      "label": "Kling o1 · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-video",
       "thumbnail": null,
@@ -266,7 +269,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "t2v",
-      "label": "Kling v3.0.omni",
+      "label": "Kling v3.0.omni · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-video",
       "thumbnail": null,
@@ -369,7 +373,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "t2v",
-      "label": "Kling v3.0",
+      "label": "Kling v3.0 · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-video",
       "thumbnail": null,
@@ -472,7 +477,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "t2v",
-      "label": "Kling v3.0.turbo",
+      "label": "Kling v3.0.turbo · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-video",
       "thumbnail": null,
@@ -552,7 +558,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "i2v",
-      "label": "Kling v2.5 i2v",
+      "label": "Kling v2.5 i2v · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-to-video",
       "thumbnail": null,
@@ -660,7 +667,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "i2v",
-      "label": "Kling v2.6 i2v",
+      "label": "Kling v2.6 i2v · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-to-video",
       "thumbnail": null,
@@ -745,7 +753,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "i2v",
-      "label": "Kling o1 i2v",
+      "label": "Kling o1 i2v · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-to-video",
       "thumbnail": null,
@@ -837,7 +846,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "i2v",
-      "label": "Kling v3.0.omni i2v",
+      "label": "Kling v3.0.omni i2v · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-to-video",
       "thumbnail": null,
@@ -957,7 +967,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "i2v",
-      "label": "Kling v3.0 i2v",
+      "label": "Kling v3.0 i2v · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-to-video",
       "thumbnail": null,
@@ -1065,7 +1076,8 @@
       "provider": "kling",
       "kind": "video",
       "lane": "i2v",
-      "label": "Kling v3.0.turbo i2v",
+      "label": "Kling v3.0.turbo i2v · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-to-video",
       "thumbnail": null,
@@ -1146,11 +1158,245 @@
       }
     },
     {
+      "id": "kling/gemini-3.1-flash-image",
+      "provider": "kling",
+      "kind": "image",
+      "lane": "t2i",
+      "label": "gemini-3.1-flash-image · via Kling",
+      "resold": true,
+      "vendor": "Kuaishou",
+      "category": "text-to-image",
+      "thumbnail": null,
+      "alias": "Nano Banana 2",
+      "description": "Nano Banana 2 Flash (Gemini 3.1 Flash) text-to-image generation.",
+      "image_input": null,
+      "image_inputs": [],
+      "media_inputs": [],
+      "accepts_image": null,
+      "image_param": null,
+      "required": [
+        "prompt"
+      ],
+      "params": {
+        "img_resolution": {
+          "name": "img_resolution",
+          "type": "string",
+          "title": "Img Resolution",
+          "description": "Output resolution. (default do Bench forçado para 1k: resolução alta multiplica o consumo de créditos; subir é decisão explícita)",
+          "enum": [
+            "0.5k",
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "default": "1k"
+        },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. Omit to keep the reference image ratio (auto).",
+          "enum": [
+            "1:1",
+            "1:4",
+            "1:8",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "default": "16:9"
+        },
+        "imageCount": {
+          "name": "imageCount",
+          "type": "string",
+          "title": "ImageCount",
+          "description": "Number of images per request (max 9).",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "default": "1"
+        }
+      }
+    },
+    {
+      "id": "kling/gpt-image-2",
+      "provider": "kling",
+      "kind": "image",
+      "lane": "t2i",
+      "label": "gpt-image-2 · via Kling",
+      "resold": true,
+      "vendor": "Kuaishou",
+      "category": "text-to-image",
+      "thumbnail": null,
+      "alias": "GPT-Image-2",
+      "description": "GPT-Image-2 text-to-image generation.",
+      "image_input": null,
+      "image_inputs": [],
+      "media_inputs": [],
+      "accepts_image": null,
+      "image_param": null,
+      "required": [
+        "prompt"
+      ],
+      "params": {
+        "img_resolution": {
+          "name": "img_resolution",
+          "type": "string",
+          "title": "Img Resolution",
+          "description": "Output resolution. (default do Bench forçado para 1k: resolução alta multiplica o consumo de créditos; subir é decisão explícita)",
+          "enum": [
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "default": "1k"
+        },
+        "quality": {
+          "name": "quality",
+          "type": "string",
+          "title": "Quality",
+          "description": "Image quality tier; affects pricing.",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "medium"
+        },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio.",
+          "enum": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "default": "1:1"
+        },
+        "imageCount": {
+          "name": "imageCount",
+          "type": "string",
+          "title": "ImageCount",
+          "description": "Number of images per request (max 9).",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "default": "1"
+        }
+      }
+    },
+    {
+      "id": "kling/gemini-3-pro-image",
+      "provider": "kling",
+      "kind": "image",
+      "lane": "t2i",
+      "label": "gemini-3-pro-image · via Kling",
+      "resold": true,
+      "vendor": "Kuaishou",
+      "category": "text-to-image",
+      "thumbnail": null,
+      "alias": "Nano Banana Pro, Gemini 3 Pro Image",
+      "description": "Google Gemini 3 Pro image model (Nano Banana Pro). Higher fidelity and complex-scene/text rendering. Supports up to 4K.",
+      "image_input": null,
+      "image_inputs": [],
+      "media_inputs": [],
+      "accepts_image": null,
+      "image_param": null,
+      "required": [
+        "prompt"
+      ],
+      "params": {
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "Output image aspect ratio.",
+          "enum": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "default": "1:1"
+        },
+        "img_resolution": {
+          "name": "img_resolution",
+          "type": "string",
+          "title": "Img Resolution",
+          "description": "Output resolution tier (up to 4K). (default do Bench forçado para 1k: resolução alta multiplica o consumo de créditos; subir é decisão explícita)",
+          "enum": [
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "default": "1k"
+        },
+        "image_count": {
+          "name": "image_count",
+          "type": "string",
+          "title": "Image Count",
+          "description": "Number of images to generate (1-9).",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "default": "1"
+        }
+      }
+    },
+    {
       "id": "kling/kling-image-v3_0_omni",
       "provider": "kling",
       "kind": "image",
       "lane": "t2i",
-      "label": "Kling v3.0.omni",
+      "label": "Kling v3.0.omni · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-image",
       "thumbnail": null,
@@ -1220,7 +1466,8 @@
       "provider": "kling",
       "kind": "image",
       "lane": "t2i",
-      "label": "Kling o1",
+      "label": "Kling o1 · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-image",
       "thumbnail": null,
@@ -1288,7 +1535,8 @@
       "provider": "kling",
       "kind": "image",
       "lane": "t2i",
-      "label": "Kling v3.0",
+      "label": "Kling v3.0 · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-image",
       "thumbnail": null,
@@ -1356,7 +1604,8 @@
       "provider": "kling",
       "kind": "image",
       "lane": "t2i",
-      "label": "Kling v2.1",
+      "label": "Kling v2.1 · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "text-to-image",
       "thumbnail": null,
@@ -1420,11 +1669,296 @@
       }
     },
     {
+      "id": "kling/gemini-3.1-flash-image/edit",
+      "provider": "kling",
+      "kind": "image",
+      "lane": "i2i",
+      "label": "gemini-3.1-flash-image edit · via Kling",
+      "resold": true,
+      "vendor": "Kuaishou",
+      "category": "image-editing",
+      "thumbnail": null,
+      "alias": "Nano Banana 2",
+      "description": "Nano Banana 2 Flash (Gemini 3.1 Flash) image-to-image; single or multi-image reference (up to 10 via URL).",
+      "image_input": {
+        "name": "image",
+        "arity": "single",
+        "required": true
+      },
+      "image_inputs": [
+        "image"
+      ],
+      "media_inputs": [
+        {
+          "name": "image",
+          "type": "string",
+          "title": "Imagem",
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true
+        }
+      ],
+      "accepts_image": "single",
+      "image_param": "image",
+      "required": [
+        "image"
+      ],
+      "params": {
+        "img_resolution": {
+          "name": "img_resolution",
+          "type": "string",
+          "title": "Img Resolution",
+          "description": "Output resolution. max to 4k (default do Bench forçado para 1k: resolução alta multiplica o consumo de créditos; subir é decisão explícita)",
+          "enum": [
+            "0.5k",
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "default": "1k"
+        },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. Omit to keep the reference image ratio (auto).",
+          "enum": [
+            "1:1",
+            "1:4",
+            "1:8",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "default": "1:1"
+        },
+        "imageCount": {
+          "name": "imageCount",
+          "type": "string",
+          "title": "ImageCount",
+          "description": "Number of images per request (max 9).",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "default": "1"
+        }
+      }
+    },
+    {
+      "id": "kling/gpt-image2/edit",
+      "provider": "kling",
+      "kind": "image",
+      "lane": "i2i",
+      "label": "gpt-image2 edit · via Kling",
+      "resold": true,
+      "vendor": "Kuaishou",
+      "category": "image-editing",
+      "thumbnail": null,
+      "alias": "GPT-Image2",
+      "description": "GPT-Image2 image-to-image; single or multi-image reference (up to 10, total ≤ 50 MB).",
+      "image_input": {
+        "name": "image",
+        "arity": "single",
+        "required": true
+      },
+      "image_inputs": [
+        "image"
+      ],
+      "media_inputs": [
+        {
+          "name": "image",
+          "type": "string",
+          "title": "Imagem",
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true
+        }
+      ],
+      "accepts_image": "single",
+      "image_param": "image",
+      "required": [
+        "image"
+      ],
+      "params": {
+        "img_resolution": {
+          "name": "img_resolution",
+          "type": "string",
+          "title": "Img Resolution",
+          "description": "Output resolution. (default do Bench forçado para 1k: resolução alta multiplica o consumo de créditos; subir é decisão explícita)",
+          "enum": [
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "default": "1k"
+        },
+        "quality": {
+          "name": "quality",
+          "type": "string",
+          "title": "Quality",
+          "description": "Image quality tier; affects pricing.",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "medium"
+        },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio.",
+          "enum": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "default": "1:1"
+        },
+        "imageCount": {
+          "name": "imageCount",
+          "type": "string",
+          "title": "ImageCount",
+          "description": "Number of images per request (max 9).",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "default": "1"
+        }
+      }
+    },
+    {
+      "id": "kling/gemini-3-pro-image/edit",
+      "provider": "kling",
+      "kind": "image",
+      "lane": "i2i",
+      "label": "gemini-3-pro-image edit · via Kling",
+      "resold": true,
+      "vendor": "Kuaishou",
+      "category": "image-editing",
+      "thumbnail": null,
+      "alias": "Nano Banana Pro, Gemini 3 Pro Image",
+      "description": "Higher-fidelity edit / blend / restyle from reference images with Gemini 3 Pro (Nano Banana Pro). Supports up to 4K.",
+      "image_input": {
+        "name": "image",
+        "arity": "single",
+        "required": true
+      },
+      "image_inputs": [
+        "image"
+      ],
+      "media_inputs": [
+        {
+          "name": "image",
+          "type": "string",
+          "title": "Imagem",
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true
+        }
+      ],
+      "accepts_image": "single",
+      "image_param": "image",
+      "required": [
+        "image"
+      ],
+      "params": {
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "Output aspect ratio. Omit to keep the reference image ratio (auto).",
+          "enum": [
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "default": "16:9"
+        },
+        "img_resolution": {
+          "name": "img_resolution",
+          "type": "string",
+          "title": "Img Resolution",
+          "description": "Output resolution tier (up to 4K). (default do Bench forçado para 1k: resolução alta multiplica o consumo de créditos; subir é decisão explícita)",
+          "enum": [
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "default": "1k"
+        },
+        "image_count": {
+          "name": "image_count",
+          "type": "string",
+          "title": "Image Count",
+          "description": "Number of images to generate (1-9).",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "default": "1"
+        }
+      }
+    },
+    {
       "id": "kling/kling-image-v3_0_omni/edit",
       "provider": "kling",
       "kind": "image",
       "lane": "i2i",
-      "label": "Kling v3.0.omni edit",
+      "label": "Kling v3.0.omni edit · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-editing",
       "thumbnail": null,
@@ -1523,7 +2057,8 @@
       "provider": "kling",
       "kind": "image",
       "lane": "i2i",
-      "label": "Kling o1 edit",
+      "label": "Kling o1 edit · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-editing",
       "thumbnail": null,
@@ -1609,7 +2144,8 @@
       "provider": "kling",
       "kind": "image",
       "lane": "i2i",
-      "label": "Kling v3.0 edit",
+      "label": "Kling v3.0 edit · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-editing",
       "thumbnail": null,
@@ -1695,7 +2231,8 @@
       "provider": "kling",
       "kind": "image",
       "lane": "i2i",
-      "label": "Kling v2.1 edit",
+      "label": "Kling v2.1 edit · via Kling",
+      "resold": null,
       "vendor": "Kuaishou",
       "category": "image-editing",
       "thumbnail": null,

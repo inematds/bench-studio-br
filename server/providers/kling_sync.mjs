@@ -37,10 +37,13 @@ const TOOL_LANE = {
   image_to_image: { kind: "image", lane: "i2i", category: "image-editing", suffix: "/edit" },
 };
 
-// Modelos de terceiros que o Kling revende e que o Bench JÁ tem por outra rota
-// (fal). Registrá-los aqui criaria duas entradas para a mesma coisa, com preços
-// diferentes e sem nada que explique a diferença ao usuário.
-const SKIP = /^(gemini|gpt-image)/i;
+// Modelos de terceiros que o Kling revende e que o Bench também tem via fal
+// (gemini-*, gpt-image-*). Eles ENTRAM de propósito: a mesma família por duas
+// rotas com contas e cobranças diferentes é justamente a escolha que o estudio
+// existe para deixar visivel — fal cobra em dolar com preço ao vivo, Kling
+// consome credito do plano Pro. O label diz a rota para nao haver ambiguidade
+// na hora de escolher.
+const RESOLD = /^(gemini|gpt-image)/i;
 
 // Defaults do Nei (~/projetos/klingai-nei/README.md), aplicados quando o modelo
 // permite: 720p sempre, porque resolução alta multiplica o consumo de créditos e
@@ -94,14 +97,14 @@ const models = [];
 
 for (const [tool, meta] of Object.entries(TOOL_LANE)) {
   for (const m of body.availableModels?.[tool]?.models ?? []) {
-    if (SKIP.test(m.model)) continue;
     const wantsImage = meta.lane === "i2v" || meta.lane === "i2i";
     models.push({
       id: `kling/${m.model}${meta.suffix}`,
       provider: "kling",
       kind: meta.kind,
       lane: meta.lane,
-      label: `${m.model.replace(/^kling-(video|image)-/, "Kling ").replace(/_/g, ".")}${wantsImage ? (meta.lane === "i2v" ? " i2v" : " edit") : ""}`,
+      label: `${m.model.replace(/^kling-(video|image)-/, "Kling ").replace(/_/g, ".")}${wantsImage ? (meta.lane === "i2v" ? " i2v" : " edit") : ""} · via Kling`,
+      resold: RESOLD.test(m.model) || null,
       vendor: "Kuaishou",
       category: meta.category,
       thumbnail: null,
@@ -125,7 +128,7 @@ const out = {
     source: "kling who_am_i (CLI oficial @klingai/cli-global)",
     account: `userId ${body.user?.userId ?? "?"}`,
     regenerate: "node server/providers/kling_sync.mjs",
-    skipped: "modelos gemini-* e gpt-image-* que o Kling revende: o Bench ja os tem via fal",
+    revendidos: "gemini-* e gpt-image-* aparecem TAMBEM aqui, alem da rota fal: e a escolha de rota (dolar no fal x credito do plano no Kling) que o estudio existe para tornar visivel. O label traz `via Kling`.",
     note: "Defaults de resolucao forcados para 720p/1k conforme ~/projetos/klingai-nei/README.md — resolucao alta multiplica creditos.",
   },
   models,

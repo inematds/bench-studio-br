@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-08-16T23:38:20.629Z",
+  "generated_at": "2026-08-17T00:48:24.142Z",
   "schema_generated_at": "2026-08-12T18:57:37.821Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
@@ -1662,7 +1662,7 @@
     },
     {
       "model_id": "kling/kling-video-v2_5",
-      "label": "Kling v2.5",
+      "label": "Kling v2.5 · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
@@ -1676,7 +1676,7 @@
     },
     {
       "model_id": "kling/kling-video-v2_6",
-      "label": "Kling v2.6",
+      "label": "Kling v2.6 · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
@@ -1690,7 +1690,7 @@
     },
     {
       "model_id": "kling/kling-video-o1",
-      "label": "Kling o1",
+      "label": "Kling o1 · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
@@ -1704,7 +1704,7 @@
     },
     {
       "model_id": "kling/kling-video-v3_0_omni",
-      "label": "Kling v3.0.omni",
+      "label": "Kling v3.0.omni · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
@@ -1718,7 +1718,7 @@
     },
     {
       "model_id": "kling/kling-video-v3_0",
-      "label": "Kling v3.0",
+      "label": "Kling v3.0 · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
@@ -1732,7 +1732,7 @@
     },
     {
       "model_id": "kling/kling-video-v3_0_turbo",
-      "label": "Kling v3.0.turbo",
+      "label": "Kling v3.0.turbo · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
@@ -1746,7 +1746,7 @@
     },
     {
       "model_id": "kling/kling-video-v2_5/i2v",
-      "label": "Kling v2.5 i2v",
+      "label": "Kling v2.5 i2v · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "i2v",
@@ -1787,7 +1787,7 @@
     },
     {
       "model_id": "kling/kling-video-v2_6/i2v",
-      "label": "Kling v2.6 i2v",
+      "label": "Kling v2.6 i2v · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "i2v",
@@ -1828,7 +1828,7 @@
     },
     {
       "model_id": "kling/kling-video-o1/i2v",
-      "label": "Kling o1 i2v",
+      "label": "Kling o1 i2v · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "i2v",
@@ -1869,7 +1869,7 @@
     },
     {
       "model_id": "kling/kling-video-v3_0_omni/i2v",
-      "label": "Kling v3.0.omni i2v",
+      "label": "Kling v3.0.omni i2v · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "i2v",
@@ -1910,7 +1910,7 @@
     },
     {
       "model_id": "kling/kling-video-v3_0/i2v",
-      "label": "Kling v3.0 i2v",
+      "label": "Kling v3.0 i2v · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "i2v",
@@ -1951,7 +1951,7 @@
     },
     {
       "model_id": "kling/kling-video-v3_0_turbo/i2v",
-      "label": "Kling v3.0.turbo i2v",
+      "label": "Kling v3.0.turbo i2v · via Kling",
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "i2v",
@@ -1991,8 +1991,50 @@
       "confidence": "schema-supported"
     },
     {
+      "model_id": "kling/gemini-3.1-flash-image",
+      "label": "gemini-3.1-flash-image · via Kling",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/gpt-image-2",
+      "label": "gpt-image-2 · via Kling",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
+      "model_id": "kling/gemini-3-pro-image",
+      "label": "gemini-3-pro-image · via Kling",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "t2i",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
+    },
+    {
       "model_id": "kling/kling-image-v3_0_omni",
-      "label": "Kling v3.0.omni",
+      "label": "Kling v3.0.omni · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "t2i",
@@ -2006,7 +2048,7 @@
     },
     {
       "model_id": "kling/kling-image-o1",
-      "label": "Kling o1",
+      "label": "Kling o1 · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "t2i",
@@ -2020,7 +2062,7 @@
     },
     {
       "model_id": "kling/kling-image-v3_0",
-      "label": "Kling v3.0",
+      "label": "Kling v3.0 · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "t2i",
@@ -2034,7 +2076,7 @@
     },
     {
       "model_id": "kling/kling-image-v2_1",
-      "label": "Kling v2.1",
+      "label": "Kling v2.1 · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "t2i",
@@ -2047,8 +2089,131 @@
       "confidence": "schema-reports-no-media-input"
     },
     {
+      "model_id": "kling/gemini-3.1-flash-image/edit",
+      "label": "gemini-3.1-flash-image edit · via Kling",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/gpt-image2/edit",
+      "label": "gpt-image2 edit · via Kling",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "kling/gemini-3-pro-image/edit",
+      "label": "gemini-3-pro-image edit · via Kling",
+      "vendor": "Kuaishou",
+      "output": "image",
+      "lane": "i2i",
+      "inputs": [
+        {
+          "field": "image",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-12T18:57:37.821Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image"
+      ],
+      "primary_image_field": "image",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
       "model_id": "kling/kling-image-v3_0_omni/edit",
-      "label": "Kling v3.0.omni edit",
+      "label": "Kling v3.0.omni edit · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "i2i",
@@ -2089,7 +2254,7 @@
     },
     {
       "model_id": "kling/kling-image-o1/edit",
-      "label": "Kling o1 edit",
+      "label": "Kling o1 edit · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "i2i",
@@ -2130,7 +2295,7 @@
     },
     {
       "model_id": "kling/kling-image-v3_0/edit",
-      "label": "Kling v3.0 edit",
+      "label": "Kling v3.0 edit · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "i2i",
@@ -2171,7 +2336,7 @@
     },
     {
       "model_id": "kling/kling-image-v2_1/edit",
-      "label": "Kling v2.1 edit",
+      "label": "Kling v2.1 edit · via Kling",
       "vendor": "Kuaishou",
       "output": "image",
       "lane": "i2i",
