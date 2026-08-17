@@ -12,9 +12,22 @@ const GROUPS = [
   { lane: "r2v", head: "Reference video", note: "Keep a look consistent" },
 ];
 
-export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk }) {
+export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, onRefresh, settings, onSettings }) {
   const [curating, setCurating] = useState(false);
   const [showUnavailable, setShowUnavailable] = useState(false);
+
+  const [provider, setProvider] = useState("all");
+  const [output, setOutput] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [query, setQuery] = useState("");
+
+  // As opcoes saem do proprio catalogo, com contagem — provedor que voce nao tem
+  // nao ocupa espaco na barra.
+  const providerOptions = useMemo(() => {
+    const counts = new Map();
+    for (const m of catalog?.models ?? []) counts.set(m.provider, (counts.get(m.provider) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [catalog]);
 
   const stats = useMemo(() => {
     const models = catalog?.models ?? [];
@@ -29,6 +42,21 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk }
 
   // "Gratuito" aqui e fato apurado, nao rotulo: provedor local ou provedor cujo
   // preco medido e zero. Serve para o atalho de ligar so o que nao cobra.
+  // O recorte vale para TODOS os grupos, e e o mesmo conjunto que os atalhos de
+  // curadoria enxergam — senao "so os gratuitos" ignoraria o filtro na tela e a
+  // pessoa veria um resultado diferente do que pediu.
+  const matches = (m) =>
+    (provider === "all" || m.provider === provider)
+    && (output === "all" || m.kind === output)
+    && (status === "all"
+      || (status === "on" && m.enabled !== false && m.available !== false)
+      || (status === "off" && m.enabled === false)
+      || (status === "unavailable" && m.available === false))
+    && (!query.trim() || `${m.label} ${m.vendor} ${m.id}`.toLowerCase().includes(query.trim().toLowerCase()));
+
+  const visiveis = (catalog.models ?? []).filter(matches);
+  const filtrando = provider !== "all" || output !== "all" || status !== "all" || query.trim();
+
   const freeIds = (catalog.models ?? [])
     .filter((m) => ["agnes", "inemaimg"].includes(m.provider))
     .map((m) => m.id);
@@ -36,9 +64,45 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk }
 
   return (
     <div className="wall model-wall">
+      <div className="catalog-filters" role="group" aria-label="Filtrar catálogo">
+        <label className="results-filter">
+          <span>Provedor</span>
+          <select value={provider} onChange={(e) => setProvider(e.target.value)}>
+            <option value="all">Todos ({stats.total})</option>
+            {providerOptions.map(([id, count]) => <option key={id} value={id}>{id} ({count})</option>)}
+          </select>
+        </label>
+        <label className="results-filter">
+          <span>Saída</span>
+          <select value={output} onChange={(e) => setOutput(e.target.value)}>
+            <option value="all">Tudo</option>
+            <option value="image">Imagem</option>
+            <option value="video">Vídeo</option>
+          </select>
+        </label>
+        <label className="results-filter">
+          <span>Estado</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="all">Todos</option>
+            <option value="on">Ligados</option>
+            <option value="off">Desligados ({stats.off})</option>
+            <option value="unavailable">Indisponíveis ({stats.unavailable})</option>
+          </select>
+        </label>
+        <label className="results-filter wide">
+          <span>Buscar</span>
+          <input value={query} placeholder="nome, fabricante ou id" onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        {filtrando && (
+          <button type="button" className="results-filter-clear" onClick={() => { setProvider("all"); setOutput("all"); setStatus("all"); setQuery(""); }}>
+            Limpar
+          </button>
+        )}
+      </div>
+
       <div className="catalog-toolbar">
         <div>
-          <strong>{stats.total} modelos</strong>
+          <strong>{filtrando ? `${visiveis.length} de ${stats.total}` : stats.total} modelos</strong>
           {stats.unavailable > 0 && <span>{stats.unavailable} indisponíveis</span>}
           {stats.off > 0 && <span>{stats.off} desligados por você</span>}
         </div>
@@ -49,6 +113,26 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk }
               Mostrar indisponíveis
             </label>
           )}
+          {onRefresh && (
+            <button type="button" onClick={() => onRefresh()} title="Descobre modelos novos, repuxa os precos ao vivo e reconfere as chaves">
+              Atualizar catálogo
+            </button>
+          )}
+          {onSettings && (
+            <label className="catalog-switch-inline" title="Com que frequência o catálogo se atualiza sozinho">
+              auto
+              <select
+                value={String(settings?.catalog_refresh_hours ?? 6)}
+                onChange={(e) => onSettings({ catalog_refresh_hours: Number(e.target.value) })}
+              >
+                <option value="0">só manual</option>
+                <option value="1">1h</option>
+                <option value="6">6h</option>
+                <option value="24">24h</option>
+                <option value="168">semanal</option>
+              </select>
+            </label>
+          )}
           {onToggle && (
             <button type="button" className={curating ? "on" : ""} onClick={() => setCurating((v) => !v)}>
               {curating ? "Concluir curadoria" : "Escolher modelos"}
@@ -56,6 +140,12 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk }
           )}
           {curating && onBulk && (
             <>
+              {filtrando && (
+                <>
+                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), true)}>Ligar os {visiveis.length} filtrados</button>
+                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), false)}>Desligar os {visiveis.length}</button>
+                </>
+              )}
               <button type="button" onClick={() => onBulk({ only: freeIds })}>Só os gratuitos</button>
               <button type="button" onClick={() => onBulk({ only: localIds })}>Só os locais</button>
               <button type="button" onClick={() => onBulk({ reset: true })}>Ligar tudo</button>
@@ -64,7 +154,7 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk }
         </div>
       </div>
       {GROUPS.map((g) => {
-        const models = sortModels(catalog.models.filter((m) => m.lane === g.lane))
+        const models = sortModels(visiveis.filter((m) => m.lane === g.lane))
           // Fora da curadoria, some o que voce desligou; indisponivel so aparece
           // se voce pedir — mas NUNCA some sem dizer por que (ver a barra acima).
           .filter((m) => curating || (m.enabled !== false && (m.available !== false || showUnavailable)));

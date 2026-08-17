@@ -255,6 +255,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [syncingCatalog, setSyncingCatalog] = useState(false);
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     const syncView = () => {
@@ -320,6 +321,7 @@ export default function App() {
     }
 
     loadCatalog();
+    readJson("/api/settings").then(setSettings).catch(() => {});
     refreshLedger();
     refreshBilling();
     // Criar um modo na aba Modes muda o catalogo, mas trocar de aba e so uma
@@ -651,15 +653,38 @@ export default function App() {
   // Curadoria do catalogo: preferencia, nao disponibilidade. Depois de gravar,
   // o catalogo e relido para a tela refletir a verdade do servidor, e nao um
   // palpite otimista do cliente.
+  // Aceita um id ou uma lista: o mesmo gesto serve para um card e para "ligar
+  // os 12 filtrados", sem duplicar caminho.
   async function toggleModel(id, enabled) {
     try {
       await readJson("/api/catalog/enabled", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [id], enabled }),
+        body: JSON.stringify({ ids: Array.isArray(id) ? id : [id], enabled }),
       });
       const fresh = await readJson("/api/models");
       setCatalog(fresh);
     } catch (e) { setError(String(e.message ?? e)); }
+  }
+
+  async function refreshCatalog() {
+    setSyncingCatalog(true);
+    try {
+      const r = await readJson("/api/catalog/refresh", { method: "POST" });
+      setCatalog(await readJson("/api/models"));
+      // Relatorio honesto: as tres partes podem falhar em separado, e dizer
+      // "atualizado" quando o preco nao veio seria mentira confortavel.
+      const partes = [
+        r.discovery?.ok ? `${r.discovery.relevant} endpoints vistos` : `descoberta falhou (${r.discovery?.error ?? "?"})`,
+        r.pricing?.ok ? `precos ${r.pricing.priced}/${r.pricing.of}` : `precos falharam (${r.pricing?.error ?? "?"})`,
+      ];
+      setError(`Catalogo atualizado — ${partes.join(" · ")}`);
+    } catch (e) { setError(String(e.message ?? e)); }
+    finally { setSyncingCatalog(false); }
+  }
+
+  async function saveSettings(patch) {
+    try { setSettings(await readJson("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })); }
+    catch (e) { setError(String(e.message ?? e)); }
   }
 
   async function bulkCatalog(payload) {
@@ -797,6 +822,9 @@ export default function App() {
                     modelId={modelId}
                     onToggle={toggleModel}
                     onBulk={bulkCatalog}
+                    onRefresh={refreshCatalog}
+                    settings={settings}
+                    onSettings={saveSettings}
                     onPick={(nextId) => {
                       pickModel(nextId);
                       openView("create");

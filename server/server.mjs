@@ -200,6 +200,38 @@ const DEFAULT_ENGINE_MODEL = {
   openrouter: process.env.OPENROUTER_MODEL_DEFAULT || "google/gemini-2.5-flash",
 };
 
+
+// Ajustes que a pessoa controla pela tela. Mesmo padrao dos modos e da curadoria:
+// arquivo proprio em data/, so o que difere do padrao, apagavel sem quebrar nada.
+const SETTINGS_FILE = join(DATA, "settings.json");
+const SETTINGS_DEFAULTS = { catalog_refresh_hours: 6 };
+
+function readSettings() {
+  if (!existsSync(SETTINGS_FILE)) return { ...SETTINGS_DEFAULTS };
+  try { return { ...SETTINGS_DEFAULTS, ...JSON.parse(readFileSync(SETTINGS_FILE, "utf8")) }; }
+  catch (error) { console.warn(`settings.json ilegivel (${error.message})`); return { ...SETTINGS_DEFAULTS }; }
+}
+
+function writeSettings(patch) {
+  const next = { ...readSettings(), ...patch };
+  writeFileSync(SETTINGS_FILE, JSON.stringify(next, null, 2));
+  scheduleCatalogRefresh(next.catalog_refresh_hours);
+  return next;
+}
+
+// O intervalo era fixo em 6h no codigo. Agora e ajustavel, e 0 significa
+// "so quando eu mandar" — util para quem paga por chamada ou trabalha offline.
+let catalogTimer = null;
+function scheduleCatalogRefresh(hours) {
+  if (catalogTimer) clearInterval(catalogTimer);
+  catalogTimer = null;
+  if (!hours || hours <= 0) return;
+  catalogTimer = setInterval(() => {
+    refreshCatalogDiscovery().catch((error) => console.warn(`catalog sync failed: ${error.message}`));
+  }, hours * 60 * 60 * 1000);
+  catalogTimer.unref();
+}
+
 function projectSlug(value) {
   return String(value || "untitled")
     .toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "untitled";
@@ -1626,6 +1658,41 @@ app.get("/api/catalog/status", (_req, res) => {
   });
 });
 
+app.get("/api/settings", (_req, res) => res.json(readSettings()));
+
+app.post("/api/settings", (req, res) => {
+  const patch = {};
+  if (req.body?.catalog_refresh_hours !== undefined) {
+    const hours = Number(req.body.catalog_refresh_hours);
+    if (!Number.isFinite(hours) || hours < 0 || hours > 24 * 7) {
+      return res.status(400).json({ error: "Intervalo invalido (0 = so manual, ate 168h)." });
+    }
+    patch.catalog_refresh_hours = hours;
+  }
+  res.json(writeSettings(patch));
+});
+
+// Atualizacao FORCADA e completa: descobrir endpoints novos, repuxar precos ao
+// vivo e reconferir disponibilidade dos provedores. Sao tres coisas distintas
+// que antes so aconteciam em momentos diferentes (sync a cada 6h, precos so no
+// boot, disponibilidade com cache de 1 min) — e nenhuma delas dava para pedir.
+app.post("/api/catalog/refresh", async (_req, res) => {
+  const resultado = { started_at: new Date().toISOString() };
+  const [discovery, prices, availability] = await Promise.allSettled([
+    refreshCatalogDiscovery(),
+    fetchLivePrices(falModels().map((m) => m.id)).then((p) => { LIVE_PRICES = p; return Object.keys(p).length; }),
+    providerAvailability({ force: true }),
+  ]);
+  resultado.discovery = discovery.status === "fulfilled"
+    ? { ok: true, relevant: discovery.value?.relevant_active_endpoints ?? null, new: discovery.value?.new_endpoint_count ?? null }
+    : { ok: false, error: String(discovery.reason?.message ?? discovery.reason).slice(0, 200) };
+  resultado.pricing = prices.status === "fulfilled"
+    ? { ok: true, priced: prices.value, of: falModels().length }
+    : { ok: false, error: String(prices.reason?.message ?? prices.reason).slice(0, 200) };
+  resultado.providers = availability.status === "fulfilled" ? availability.value : { error: "falhou" };
+  res.json(resultado);
+});
+
 app.post("/api/catalog/sync", async (_req, res) => {
   try { res.json(await refreshCatalogDiscovery()); }
   catch (error) { res.status(502).json({ error: String(error.message ?? error) }); }
@@ -1969,6 +2036,4 @@ fetchLivePrices(falModels().map((m) => m.id))
 // silently replace a working production model.
 refreshCatalogDiscovery().catch((error) => console.warn(`catalog sync failed: ${error.message}`));
 backfillMediaMirrors().catch((error) => console.warn(`media backfill failed: ${error.message}`));
-setInterval(() => {
-  refreshCatalogDiscovery().catch((error) => console.warn(`catalog sync failed: ${error.message}`));
-}, 6 * 60 * 60 * 1000).unref();
+scheduleCatalogRefresh(readSettings().catalog_refresh_hours);
