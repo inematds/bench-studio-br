@@ -167,6 +167,8 @@ export function createKlingProvider({ modelById } = {}) {
 
   return {
     label: "Kling (CLI oficial)",
+    // O CLI recebe caminho local e faz o upload sozinho.
+    accepts: { localPath: true },
     submit,
     poll,
     quote,

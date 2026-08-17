@@ -149,6 +149,8 @@ export function createInemaimgProvider({ outputsDir, mediaUrlBase = "/media" }) 
 
   return {
     label: "inemaimg (local, DGX)",
+    // O adapter converte para base64 cru antes de enviar.
+    accepts: { dataUri: true },
     submit,
     // Síncrono: quando submit volta, a imagem já está gravada.
     poll: (_modelId, handle) => Promise.resolve({ result: handle.inline, billableUnits: null }),

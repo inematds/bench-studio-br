@@ -1308,3 +1308,21 @@ p { text-wrap: pretty; }
   background: transparent; color: inherit; font: inherit; font-size: 12.5px; cursor: pointer;
 }
 .project-delete-confirm .danger { border-color: rgba(255, 120, 120, .45); color: #ff9d8a; }
+
+/* Pedir alteracao por texto no proprio projeto. */
+.project-revise { display: grid; gap: 8px; margin-bottom: 12px; }
+.project-revise label { font-size: 12.5px; opacity: .75; }
+.project-revise textarea {
+  width: 100%; padding: 10px 12px; border-radius: 10px; resize: vertical;
+  border: 1px solid var(--line, rgba(255,255,255,.14));
+  background: rgba(255,255,255,.03); color: inherit; font: inherit; line-height: 1.5;
+}
+.project-revise-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.project-revise-actions button {
+  padding: 7px 12px; border-radius: 9px; border: 1px solid var(--line, rgba(255,255,255,.16));
+  background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.project-revise-send { background: var(--accent, #6D7CFF) !important; border-color: transparent !important; color: #fff; }
+.project-revise-send:disabled { opacity: .5; cursor: default; }
+.project-revise-actions span { font-size: 12px; opacity: .55; }
+.project-file-download { text-decoration: none; }

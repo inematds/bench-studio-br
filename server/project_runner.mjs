@@ -54,7 +54,27 @@ const requiredFiles = isWebsite
   ? "Create index.html, styles.css, and app.js. Everything must run as a static site with no build step and no external network dependency."
   : "Create document.html as a complete print-ready A4 document. Use CSS @page, explicit page sections, and local/system fonts only. Every text block must fit its column: use min-width:0 in grids, size display type to its actual measure, and use overflow-wrap as a safety net. No heading, label, or paragraph may have scrollWidth greater than clientWidth.";
 
-const prompt = `You are the production engine inside Bench Studio. Build a polished ${isWebsite ? "website" : "PDF document"} directly in the current working directory.
+const isRevision = request.mode === "revise" && String(request.instruction ?? "").trim();
+
+// Revisão é diferente de construção: já existe um resultado bom o bastante para
+// a pessoa querer mexer nele, e o pedido dela é cirúrgico. O maior risco aqui
+// não é gerar pouco, é reescrever tudo e perder o que já estava certo.
+const revisionPrompt = `You are editing an EXISTING ${isWebsite ? "website" : "document"} inside Bench Studio, in the current working directory.
+
+REQUESTED CHANGE (from the person who owns this project, may be in Portuguese):
+${request.instruction}
+
+RULES
+- Apply ONLY what was asked. Everything not mentioned must stay exactly as it is.
+- Preserve the existing art direction, structure, copy, class names and file names unless the request explicitly asks to change them.
+- Never delete a file. Never rename a file. Never introduce a new external dependency.
+- If the request is ambiguous, choose the smallest change that satisfies it.
+- ${isWebsite ? "Keep index.html, styles.css and app.js consistent with each other: if you add markup that the CSS hides until revealed, make sure the JS reveals it." : "Keep the document print-safe: every text block must still fit its column."}
+- Do not read credentials, touch files outside this project, browse the web, install packages, or call external APIs.
+
+When complete, reply with a short factual summary of what changed.`;
+
+const buildPrompt = `You are the production engine inside Bench Studio. Build a polished ${isWebsite ? "website" : "PDF document"} directly in the current working directory.
 
 This is a bounded build. Do not read skills, search for additional instructions, or attempt to render the PDF yourself. Bench owns final rendering and visual QA after your turn. Inspect only the named craft reference and the files you create here.
 
@@ -77,14 +97,16 @@ REQUIREMENTS
 
 When complete, reply with a short factual summary. The files, not the reply, are the deliverable.`;
 
-stage(8, "Preparing the creative brief");
+const prompt = isRevision ? revisionPrompt : buildPrompt;
+
+stage(8, isRevision ? "Lendo os arquivos atuais" : "Preparing the creative brief");
 const eventsPath = join(outputDir, "codex-events.jsonl");
-await writeFile(eventsPath, "");
+if (!isRevision) await writeFile(eventsPath, "");
 
 const engineName = request.engine || "codex";
 const engine = ENGINES[engineName];
 if (!engine) throw new Error(`Motor desconhecido: ${engineName}. Disponíveis: ${Object.keys(ENGINES).join(", ")}`);
-await engine.run({ prompt, outputDir, request, stage, eventsPath, isWebsite });
+await engine.run({ prompt, outputDir, request, stage, eventsPath, isWebsite, isRevision });
 
 if (isWebsite) {
   const entry = join(outputDir, "index.html");

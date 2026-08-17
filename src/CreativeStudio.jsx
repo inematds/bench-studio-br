@@ -62,6 +62,20 @@ export default function CreativeStudio({ kind }) {
   const completed = useMemo(() => projects.filter((project) => project.status === "complete"), [projects]);
   const failed = useMemo(() => projects.filter((project) => project.status === "failed"), [projects]);
 
+  async function reviseProject(id, instruction) {
+    try {
+      const project = await json(`/api/projects/${id}/revise`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ instruction }) });
+      setProjects((rows) => rows.map((row) => row.id === id ? project : row));
+    } catch (e) { setError(String(e.message ?? e)); }
+  }
+
+  async function revertProject(id) {
+    try {
+      const project = await json(`/api/projects/${id}/revert`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      setProjects((rows) => rows.map((row) => row.id === id ? project : row));
+    } catch (e) { setError(String(e.message ?? e)); }
+  }
+
   async function removeProject(id) {
     try {
       const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
@@ -205,13 +219,13 @@ export default function CreativeStudio({ kind }) {
         ) : (
           <div className="project-grid">
             {kind === "website" && reference?.preview_url && <WebsiteReferenceCard reference={reference} />}
-            {completed.map((project) => <ProjectCard key={project.id} project={project} onDelete={removeProject} />)}
+            {completed.map((project) => <ProjectCard key={project.id} project={project} onDelete={removeProject} onRevise={reviseProject} onRevert={revertProject} />)}
           </div>
         )}
 
         {failed.length > 0 && (
           <div className="project-failed-list">
-            {failed.map((project) => <FailedCard key={project.id} project={project} onDelete={removeProject} />)}
+            {failed.map((project) => <FailedCard key={project.id} project={project} onDelete={removeProject} onRevise={reviseProject} onRevert={revertProject} />)}
           </div>
         )}
 
@@ -240,10 +254,12 @@ export default function CreativeStudio({ kind }) {
 // build que falhou: nos dois casos o que esta em disco e a unica verdade, e
 // poder corrigir a mao evita refazer (e repagar) a geracao inteira por causa de
 // um detalhe.
-function ProjectFiles({ project }) {
+function ProjectFiles({ project, onRevise, onRevert }) {
   const [editing, setEditing] = useState(null);
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("");
+  const [instruction, setInstruction] = useState("");
+  const [sending, setSending] = useState(false);
   const produced = (project.files ?? []).filter((f) => !f.internal);
   const logs = (project.files ?? []).filter((f) => f.internal);
 
@@ -272,14 +288,49 @@ function ProjectFiles({ project }) {
     } catch (e) { setStatus(String(e.message ?? e)); }
   }
 
+  async function revise() {
+    if (instruction.trim().length < 4) return;
+    setSending(true);
+    try { await onRevise(project.id, instruction.trim()); setInstruction(""); }
+    finally { setSending(false); }
+  }
+
   return (
     <div className="project-files">
+      {onRevise && (
+        <div className="project-revise">
+          <label htmlFor={`revise-${project.id}`}>Pedir uma alteração</label>
+          <textarea
+            id={`revise-${project.id}`}
+            rows={2}
+            value={instruction}
+            placeholder="Ex.: deixe o fundo mais escuro e aumente o título da primeira seção"
+            onChange={(e) => setInstruction(e.target.value)}
+          />
+          <div className="project-revise-actions">
+            <button type="button" className="project-revise-send" onClick={revise} disabled={sending || instruction.trim().length < 4}>
+              {sending ? "Enviando…" : "Aplicar alteração"}
+            </button>
+            {project.snapshots?.length > 0 && onRevert && (
+              <button type="button" onClick={() => onRevert(project.id)} title={`Volta ao estado de ${relativeTime(project.snapshots[0].at)}`}>
+                Desfazer última ({project.snapshots.length})
+              </button>
+            )}
+            <span>Os arquivos atuais são copiados antes de qualquer alteração.</span>
+          </div>
+        </div>
+      )}
             {!produced.length && <p className="modes-hint">Nenhum arquivo foi produzido — a build parou antes de escrever.</p>}
             {produced.map((f) => (
               <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)} disabled={!f.editable}>
                 <b>{f.name}</b><small>{(f.size_bytes / 1024).toFixed(1)} kB</small>
               </button>
             ))}
+            {project.bundle_url && (
+              <a className="project-file project-file-download" href={`${project.bundle_url}?download=1`}>
+                <b>Baixar tudo (.zip)</b><small>{produced.length} arquivos</small>
+              </a>
+            )}
             {logs.length > 0 && (
               <details className="project-logs">
                 <summary>Diário da build ({logs.length})</summary>
@@ -307,7 +358,7 @@ function ProjectFiles({ project }) {
   );
 }
 
-function FailedCard({ project, onDelete }) {
+function FailedCard({ project, onDelete, onRevise, onRevert }) {
   const [open, setOpen] = useState(false);
   const produced = (project.files ?? []).filter((f) => !f.internal);
   return (
@@ -325,7 +376,7 @@ function FailedCard({ project, onDelete }) {
           )}
           {onDelete && <DeleteProject project={project} onDelete={onDelete} />}
         </div>
-        {open && <ProjectFiles project={project} />}
+        {open && <ProjectFiles project={project} onRevise={onRevise} onRevert={onRevert} />}
       </div>
     </article>
   );
@@ -381,7 +432,7 @@ function BuildProgress({ project, onCancel }) {
   );
 }
 
-function ProjectCard({ project, onDelete }) {
+function ProjectCard({ project, onDelete, onRevise, onRevert }) {
   const [showFiles, setShowFiles] = useState(false);
   const complete = project.status === "complete";
   const isWebsite = project.kind === "website";
@@ -404,18 +455,17 @@ function ProjectCard({ project, onDelete }) {
         <p>{project.prompt}</p>
         <div className="project-actions">
           {complete && resultUrl && <a className="project-open" href={resultUrl} target="_blank" rel="noreferrer">{isWebsite ? "Open site" : "Open PDF"}</a>}
-          {complete && isWebsite && project.bundle_url && <a href={`${project.bundle_url}?download=1`}>Source</a>}
           {complete && !isWebsite && project.artifact_file && <a href={project.artifact_file} download>Download</a>}
           {complete && !isWebsite && project.preview_url && <a href={project.preview_url} target="_blank" rel="noreferrer">Editable HTML</a>}
           {complete && (
             <button type="button" onClick={() => setShowFiles((v) => !v)}>
-              {showFiles ? "Hide files" : `Edit files (${(project.files ?? []).filter((f) => !f.internal).length})`}
+              {showFiles ? "Fechar source" : `Source (${(project.files ?? []).filter((f) => !f.internal).length})`}
             </button>
           )}
           {onDelete && <DeleteProject project={project} onDelete={onDelete} />}
           {project.status === "failed" && <span title={project.error}>Build failed</span>}
         </div>
-        {showFiles && <ProjectFiles project={project} />}
+        {showFiles && <ProjectFiles project={project} onRevise={onRevise} onRevert={onRevert} />}
       </div>
     </article>
   );

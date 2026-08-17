@@ -240,6 +240,8 @@ const isVideo = (modelId) => modelId.includes("video");
 
 export const agnesProvider = {
   label: "Agnes AI",
+  // Aceita base64 (medido: a doc afirma exigir URL publica, e falso).
+  accepts: { dataUri: true },
   submit: (modelId, input) => (isVideo(modelId) ? submitVideo(modelId, input) : submitImage(modelId, input)),
   poll: (modelId, handle, opts) =>
     isVideo(modelId) ? pollVideo(modelId, handle, opts) : Promise.resolve({ result: handle.inline, billableUnits: null }),

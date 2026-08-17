@@ -10,7 +10,7 @@
 
 import express from "express";
 import multer from "multer";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, createWriteStream, unlinkSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync, createWriteStream, unlinkSync, rmSync } from "node:fs";
 import { basename, dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
@@ -223,10 +223,37 @@ function publicProject(project) {
     output_dir: undefined,
     error: storedError,
     files: projectFiles(project),
+    snapshots: projectSnapshots(project),
     entry_file: entryName ? `/projects/${project.id}/${entryName}` : null,
     artifact_file: artifactName ? `/projects/${project.id}/${artifactName}` : null,
     bundle_url: bundleUrl,
   };
+}
+
+// Um pedido em linguagem natural pode estragar um site que ja estava bom, e o
+// arquivo sobrescrito nao volta sozinho. Cada revisao guarda o estado anterior
+// antes de tocar em nada — sem isso, "escurece o fundo" mal interpretado custa
+// a build inteira.
+function snapshotProject(project) {
+  const dir = join(project.output_dir, "history", String(Date.now()));
+  mkdirSync(dir, { recursive: true });
+  let copied = 0;
+  for (const entry of readdirSync(project.output_dir, { withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (["request.json", "result.json", "codex-events.jsonl"].includes(entry.name)) continue;
+    copyFileSync(join(project.output_dir, entry.name), join(dir, entry.name));
+    copied++;
+  }
+  return { dir, copied };
+}
+
+function projectSnapshots(project) {
+  const root = join(project.output_dir, "history");
+  if (!existsSync(root)) return [];
+  return readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({ id: entry.name, at: new Date(Number(entry.name)).toISOString() }))
+    .sort((a, b) => Number(b.id) - Number(a.id));
 }
 
 function startProjectBuild(project) {
@@ -241,6 +268,8 @@ function startProjectBuild(project) {
     model: project.model,
     reasoning: project.reasoning,
     engine: project.metadata?.engine_id || "codex",
+    mode: project.metadata?.mode || "build",
+    instruction: project.metadata?.instruction || null,
     output_dir: project.output_dir,
     reference_path: CREATIVE_REFERENCES[project.kind] && existsSync(CREATIVE_REFERENCES[project.kind])
       ? CREATIVE_REFERENCES[project.kind]
@@ -998,6 +1027,8 @@ async function falPoll(modelId, requestId, { onUpdate } = {}) {
 const PROVIDERS = {
   fal: {
     label: "fal.ai",
+    // A fila do fal so aceita URL publica.
+    accepts: { dataUri: false },
     submit: (modelId, input) => falSubmit(modelId, input),
     poll: (modelId, handle, opts) => falPoll(modelId, handle.request_id, opts),
     quote: (modelId, input) => estimateCost(modelId, input),
@@ -1070,6 +1101,9 @@ function mediaTypeFor(contentType = "") {
 // sistema operacional, o navegador e o preview passam a não saber o que é.
 // O content-type da resposta é a fonte melhor quando a URL não ajuda.
 const KNOWN_EXTENSIONS = new Set(Object.values(CONTENT_EXTENSIONS));
+const CONTENT_EXTENSIONS_REVERSE = Object.fromEntries(
+  Object.entries(CONTENT_EXTENSIONS).map(([mime, ext]) => [ext, mime]),
+);
 
 function safeExtension(filename, contentType) {
   const extension = extname(filename ?? "").toLowerCase();
@@ -1096,6 +1130,48 @@ function localUploadCopy(file) {
     local_url: `/inputs/${filename}`,
     created_at: new Date().toISOString(),
   };
+}
+
+
+// Referencia que aponta para um arquivo NOSSO (/media/... ou /inputs/...) e um
+// caminho relativo: so este servidor sabe resolve-lo. Mandado assim para um
+// provedor remoto, ele responde o obvio —
+//   "image must be a public http(s) URL or valid base64 image data"
+// — que foi exatamente o que aconteceu quando o Redo recarregou uma referencia
+// vinda do arquivo local.
+//
+// Cada provedor aceita uma coisa: a Agnes aceita base64, o CLI do Kling aceita
+// caminho local, o kie e o fal exigem URL publica. Entao o nucleo resolve o
+// arquivo e entrega no formato que AQUELE provedor entende.
+const LOCAL_URL_ROOTS = { "/media/": () => OUTPUTS, "/inputs/": () => INPUTS };
+
+function localFileFor(url) {
+  for (const [prefix, dirOf] of Object.entries(LOCAL_URL_ROOTS)) {
+    if (!String(url).startsWith(prefix)) continue;
+    const name = basename(decodeURIComponent(String(url).slice(prefix.length)));
+    const full = join(dirOf(), name);
+    return existsSync(full) ? full : null;
+  }
+  return null;
+}
+
+async function resolveAssetForProvider(url, adapter) {
+  if (typeof url !== "string" || !url) return url;
+  if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
+  const local = localFileFor(url);
+  if (!local) return url;
+
+  if (adapter?.accepts?.localPath) return local;
+  if (adapter?.accepts?.dataUri !== false) {
+    const bytes = readFileSync(local);
+    const type = CONTENT_EXTENSIONS_REVERSE[extname(local).toLowerCase()] ?? "image/png";
+    return `data:${type};base64,${bytes.toString("base64")}`;
+  }
+  // Sobrou quem exige URL publica: sobe para o storage do fal, que ja e o
+  // caminho normal dos anexos da interface.
+  const bytes = readFileSync(local);
+  const type = CONTENT_EXTENSIONS_REVERSE[extname(local).toLowerCase()] ?? "application/octet-stream";
+  return falUpload(bytes, basename(local), type);
 }
 
 async function mirrorRemoteAsset(remoteUrl, identity, position = 0) {
@@ -1330,6 +1406,50 @@ app.post("/api/projects", (req, res) => {
   });
   startProjectBuild(project);
   res.status(202).json(publicProject(store.getProject(id)));
+});
+
+// Revisar: um pedido em linguagem natural aplicado sobre os arquivos que ja
+// existem, pelo mesmo motor que construiu (ou outro, se a pessoa preferir).
+app.post("/api/projects/:id/revise", (req, res) => {
+  const project = store.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (["queued", "running"].includes(project.status)) return res.status(409).json({ error: "Esta build ainda esta rodando." });
+  const instruction = String(req.body?.instruction ?? "").trim();
+  if (instruction.length < 4) return res.status(400).json({ error: "Diga o que mudar." });
+  const engine = req.body?.engine || project.metadata?.engine_id || "codex";
+  if (!ENGINES[engine]) return res.status(400).json({ error: `Motor desconhecido. Disponiveis: ${Object.keys(ENGINES).join(", ")}` });
+  if (projectProcesses.size >= 2) return res.status(429).json({ error: "Duas builds ja estao rodando. Espere uma terminar." });
+
+  const snapshot = snapshotProject(project);
+  const updated = store.updateProject(project.id, {
+    status: "queued", stage: "Revisao na fila", progress: 0, error: null,
+    metadata: {
+      ...(project.metadata ?? {}),
+      engine_id: engine,
+      engine: ENGINES[engine].label,
+      mode: "revise",
+      instruction,
+      last_snapshot: snapshot.dir.split("/").at(-1),
+    },
+  });
+  startProjectBuild(store.getProject(project.id));
+  res.status(202).json(publicProject(store.getProject(project.id)));
+});
+
+// Voltar para o estado anterior a uma revisao.
+app.post("/api/projects/:id/revert", (req, res) => {
+  const project = store.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  const snapshots = projectSnapshots(project);
+  const target = req.body?.snapshot || snapshots[0]?.id;
+  if (!target) return res.status(404).json({ error: "Nao ha versao anterior guardada." });
+  const dir = join(project.output_dir, "history", String(target));
+  if (!existsSync(dir)) return res.status(404).json({ error: "Versao nao encontrada." });
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isFile()) copyFileSync(join(dir, entry.name), join(project.output_dir, entry.name));
+  }
+  const updated = store.updateProject(project.id, { status: "complete", stage: "Revertido", progress: 100, error: null });
+  res.json(publicProject(updated));
 });
 
 app.delete("/api/projects/:id", (req, res) => {
@@ -1630,6 +1750,9 @@ app.post("/api/generate", async (req, res) => {
   const send = (o) => res.write(JSON.stringify(o) + "\n");
 
   try {
+    // Precisa vir antes de resolver os anexos: e o adapter que diz se aquele
+    // provedor aceita data URI, caminho local ou so URL publica.
+    const adapter = adapterFor(model);
     const directionLines = shotDirectionLines(shotSettings);
     const promptWithDirection = directionLines.length && format !== "none"
       ? `${prompt}\n\nCreative direction: ${directionLines.join("; ")}.`
@@ -1644,7 +1767,10 @@ app.post("/api/generate", async (req, res) => {
       input.enable_prompt_expansion = false;
     }
     for (const spec of inputSpecs.values()) {
-      const values = normalizedAssets.filter((asset) => asset.field === spec.field).map((asset) => asset.url);
+      const values = [];
+      for (const asset of normalizedAssets.filter((item) => item.field === spec.field)) {
+        values.push(await resolveAssetForProvider(asset.url, adapter));
+      }
       if (values.length) input[spec.field] = spec.arity === "multiple" ? values : values[0];
     }
     // never submit empty-string params, fal validates strictly
@@ -1652,7 +1778,6 @@ app.post("/api/generate", async (req, res) => {
       if (input[k] === "" || input[k] === null || input[k] === undefined) delete input[k];
     }
 
-    const adapter = adapterFor(model);
     const pre = adapter.quote(modelId, input);
     send({ phase: "submitting", input, estimate: pre, provider: providerOf(model) });
     const q = await adapter.submit(modelId, input);

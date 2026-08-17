@@ -161,6 +161,8 @@ function priceOf(modelId) {
 
 export const kieProvider = {
   label: "kie.ai",
+  // NAO aceita data URI (nota de campo medida): exige URL publica.
+  accepts: { dataUri: false },
   submit,
   poll,
   quote: (modelId) => {

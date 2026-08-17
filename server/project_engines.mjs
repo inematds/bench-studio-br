@@ -15,7 +15,7 @@
 // runner (stage/result.json) não muda.
 
 import { spawn } from "node:child_process";
-import { appendFile, readFile, writeFile } from "node:fs/promises";
+import { appendFile, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const MAX_FILE_BYTES = 400_000;
@@ -120,6 +120,21 @@ export async function runClaude({ prompt, outputDir, request, stage, eventsPath,
 // nada dentro do arquivo precisa ser escapado.
 const FILE_MARK = "=== FILE:";
 
+// Agente lê os arquivos sozinho; um modelo puro não. Numa revisão, ele precisa
+// receber o conteúdo atual junto com o pedido — senão "deixe o resto como está"
+// é uma instrução que ele não tem como cumprir, porque não sabe como está.
+async function currentFiles(outputDir) {
+  const names = (await readdir(outputDir))
+    .filter((name) => /\.(html?|css|js|mjs|json|svg|md)$/i.test(name))
+    .filter((name) => !["codex-events.jsonl", "request.json", "result.json"].includes(name));
+  const parts = [];
+  for (const name of names) {
+    const content = await readFile(join(outputDir, name), "utf8");
+    parts.push(`${FILE_MARK} ${name} ===\n${content}`);
+  }
+  return { names, text: parts.join("\n\n") };
+}
+
 function fileContract(isWebsite) {
   const names = isWebsite ? "index.html, styles.css, app.js" : "document.html";
   return `
@@ -208,10 +223,11 @@ async function writeModelFiles(files, outputDir, isWebsite) {
   return written;
 }
 
-export async function runOllama({ prompt, outputDir, request, stage, eventsPath, isWebsite }) {
+export async function runOllama({ prompt, outputDir, request, stage, eventsPath, isWebsite, isRevision }) {
   const base = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
   const model = request.model || "qwen3.6:35b-a3b";
-  stage(18, `${model} (local) está escrevendo o ${isWebsite ? "site" : "documento"}`);
+  stage(18, `${model} (local) está ${isRevision ? "revisando" : "escrevendo"} o ${isWebsite ? "site" : "documento"}`);
+  const contexto = isRevision ? await revisionContext(outputDir) : "";
 
   let response;
   try {
@@ -222,7 +238,7 @@ export async function runOllama({ prompt, outputDir, request, stage, eventsPath,
         model,
         stream: false,
         options: { temperature: 0.7, num_ctx: 16384 },
-        messages: [{ role: "user", content: prompt + fileContract(isWebsite) }],
+        messages: [{ role: "user", content: prompt + contexto + fileContract(isWebsite) }],
       }),
       signal: AbortSignal.timeout(14 * 60_000),
     });
@@ -238,11 +254,12 @@ export async function runOllama({ prompt, outputDir, request, stage, eventsPath,
   await writeModelFiles(parseFiles(text), outputDir, isWebsite);
 }
 
-export async function runOpenRouter({ prompt, outputDir, request, stage, eventsPath, isWebsite }) {
+export async function runOpenRouter({ prompt, outputDir, request, stage, eventsPath, isWebsite, isRevision }) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new Error("OPENROUTER_API_KEY ausente.");
   const model = request.model || process.env.OPENROUTER_MODEL_DEFAULT || "google/gemini-2.5-flash";
-  stage(18, `${model} está escrevendo o ${isWebsite ? "site" : "documento"}`);
+  stage(18, `${model} está ${isRevision ? "revisando" : "escrevendo"} o ${isWebsite ? "site" : "documento"}`);
+  const contexto = isRevision ? await revisionContext(outputDir) : "";
 
   const response = await fetch(`${process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"}/chat/completions`, {
     method: "POST",
@@ -253,7 +270,7 @@ export async function runOpenRouter({ prompt, outputDir, request, stage, eventsP
       // Teto explícito: sem ele o OpenRouter reserva 65535 tokens e recusa a
       // conta com 402 quando o saldo é baixo (medido em 2026-08-16).
       max_tokens: 32000,
-      messages: [{ role: "user", content: prompt + fileContract(isWebsite) }],
+      messages: [{ role: "user", content: prompt + contexto + fileContract(isWebsite) }],
     }),
     signal: AbortSignal.timeout(14 * 60_000),
   });
@@ -264,6 +281,16 @@ export async function runOpenRouter({ prompt, outputDir, request, stage, eventsP
   await appendFile(eventsPath, `${JSON.stringify({ type: "model.response", engine: "openrouter", model, chars: text.length })}\n`);
   stage(70, "Gravando os arquivos");
   await writeModelFiles(parseFiles(text), outputDir, isWebsite);
+}
+
+export async function revisionContext(outputDir) {
+  const { names, text } = await currentFiles(outputDir);
+  return `
+
+ARQUIVOS ATUAIS (${names.join(", ")}) — reescreva APENAS os que precisam mudar, e devolva-os inteiros:
+
+${text}
+`;
 }
 
 export const ENGINES = {
