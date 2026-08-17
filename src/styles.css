@@ -1376,7 +1376,7 @@ p { text-wrap: pretty; }
   background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer;
 }
 .catalog-toolbar-actions button:hover { background: rgba(255,255,255,.06); }
-.catalog-toolbar-actions button.on { background: var(--accent, #6D7CFF); border-color: transparent; color: #fff; }
+.catalog-toolbar-actions button.on { background: var(--accent, #6D7CFF); border-color: transparent; color: #0d1020; font-weight: 600; }
 .catalog-switch-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; opacity: .8; }
 
 .card.unavailable { opacity: .42; }
@@ -1394,7 +1394,7 @@ p { text-wrap: pretty; }
   background: rgba(0,0,0,.68); border: 1px solid rgba(255,255,255,.22);
 }
 .card-switch:hover { border-color: rgba(255,255,255,.45); }
-.card-switch.on { background: var(--accent, #6D7CFF); border-color: transparent; color: #fff; }
+.card-switch.on { background: var(--accent, #6D7CFF); border-color: transparent; color: #0d1020; font-weight: 600; }
 .card-unavailable { display: grid; gap: 2px; margin-top: 6px; }
 .card-unavailable b { color: #ff9d8a; font-size: 12px; }
 .card-unavailable small { opacity: .65; font-size: 11px; line-height: 1.4; }
@@ -1446,7 +1446,10 @@ p { text-wrap: pretty; }
   font: inherit; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
 }
 .provider-switch:hover { background: rgba(255,255,255,.08); }
-.provider-switch.on { background: var(--accent, #6D7CFF); color: #fff; }
+/* Branco sobre o roxo do accent da 3,05:1 — reprovado no WCAG AA (4,5:1). O
+   texto do interruptor e minusculo (10,5px), entao e justamente onde contraste
+   importa mais. Texto escuro sobre o mesmo roxo resolve sem mudar a identidade. */
+.provider-switch.on { background: var(--accent, #6D7CFF); color: #0d1020; font-weight: 600; }
 
 /* Rota (provedor) ao lado do nome do modelo: o mesmo modelo existe em mais de
    um provedor, com cobrancas diferentes. */
@@ -1488,3 +1491,40 @@ p { text-wrap: pretty; }
 }
 .reference-config-actions span { font-size: 11.5px; opacity: .6; }
 .reference-config-form p { margin: 0; font-size: 11.5px; line-height: 1.5; opacity: .55; }
+
+/* ---------------------------------------------------------------- config */
+/* A tela e mais larga que o Ledger porque cada linha carrega chave, origem,
+   efeito e o campo de edicao — apertar isso vira sopa de letrinha. */
+.config-sheet { width: min(820px, 96vw); }
+.config-group { margin-bottom: 26px; }
+.config-group h4 { margin: 0 0 4px; color: var(--text); font-size: 14px; }
+.config-note { margin: 0 0 12px; color: var(--text-3); font-size: 12px; line-height: 1.6; }
+.config-note code { font-size: 11.5px; }
+.config-alert { margin: 8px 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-soft); color: var(--text-2); font-size: 12px; line-height: 1.6; }
+.config-alert.danger { border-color: #6d3535; background: rgba(120,45,45,0.18); color: #ffbfbf; }
+
+.config-field { margin-bottom: 12px; padding: 12px 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel-soft); }
+.config-field.missing { border-style: dashed; }
+.config-field.shadowed { border-color: #6d5a35; }
+.config-field-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.config-field-head strong { color: var(--text); font-size: 13.5px; }
+.config-field-head code { color: var(--text-3); font-size: 11px; }
+.config-field-head .spacer { flex: 1; }
+
+.config-badge { padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; }
+.config-badge.on { border-color: #3c5a3c; background: rgba(60,110,60,0.18); color: #b8e6b8; }
+.config-badge.off { color: var(--text-3); }
+
+.config-field-edit { display: flex; align-items: center; gap: 9px; margin-top: 9px; }
+.config-field-edit input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #0f1115; color: var(--text); font-family: inherit; font-size: 12.5px; }
+.config-field-edit input:disabled { opacity: .5; }
+.config-field-edit a { color: var(--text-3); font-size: 11.5px; white-space: nowrap; }
+.ghost-btn.small { padding: 3px 9px; font-size: 11.5px; }
+
+.config-actions { position: sticky; bottom: 0; display: flex; gap: 9px; padding: 12px 0; background: linear-gradient(to top, #15171c 70%, transparent); }
+
+/* Cartao do error boundary: um workspace quebrado nao pode mais apagar o app. */
+.error-card { max-width: 640px; padding: 22px; border: 1px solid #6d3535; border-radius: 13px; background: rgba(120,45,45,0.12); }
+.error-card h2 { margin: 0 0 8px; font-size: 18px; }
+.error-card p { margin: 0 0 12px; color: var(--text-2); font-size: 13px; line-height: 1.6; }
+.error-card pre { overflow-x: auto; margin: 0 0 14px; padding: 11px; border-radius: 8px; background: #0f1115; color: #ffbfbf; font-size: 12px; }

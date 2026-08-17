@@ -7,6 +7,8 @@ import Ledger from "./Ledger.jsx";
 import Tooling from "./Tooling.jsx";
 import Modes from "./Modes.jsx";
 import CreativeStudio from "./CreativeStudio.jsx";
+import Config from "./Config.jsx";
+import ErrorBoundary from "./ErrorBoundary.jsx";
 import { assignInputFields, imageInputFor, mediaInputsFor, mediaTypeForFile, pairedImageModel, retainCompatibleAssets, sortModels } from "./modelCatalog.js";
 
 function viewFromHash() {
@@ -249,6 +251,7 @@ export default function App() {
   const [ledger, setLedger] = useState({ rows: [], summary: null });
   const [showLedger, setShowLedger] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
   const [billing, setBilling] = useState(null);
   const [refreshingBilling, setRefreshingBilling] = useState(false);
   const [falLocked, setFalLocked] = useState(false);
@@ -727,10 +730,12 @@ export default function App() {
         summary={ledger.summary}
         activeView={activeView}
         version={health?.version}
-        onLedger={() => { setShowCredits(false); setShowLedger((v) => !v); }}
+        onConfig={() => { setShowCredits(false); setShowLedger(false); setShowConfig((v) => !v); }}
+        configOpen={showConfig}
+        onLedger={() => { setShowCredits(false); setShowConfig(false); setShowLedger((v) => !v); }}
         ledgerOpen={showLedger}
         billing={billing}
-        onCredits={() => { setShowLedger(false); setShowCredits((value) => !value); }}
+        onCredits={() => { setShowLedger(false); setShowConfig(false); setShowCredits((value) => !value); }}
         creditsOpen={showCredits}
       />
 
@@ -807,7 +812,7 @@ export default function App() {
                     <a className="view-action" href="#create">Create another</a>
                   </div>
                   {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
-                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onReuse={reuseShot} />
+                  <ErrorBoundary name="Results"><Work job={job} shots={shots} standalone onDelete={deleteResult} onReuse={reuseShot} /></ErrorBoundary>
                 </section>
               )}
 
@@ -820,7 +825,7 @@ export default function App() {
                       <p>Compare output type, accepted inputs, speed, and pricing before you commit to a run.</p>
                     </div>
                   </div>
-                  <ModelWall
+                  <ErrorBoundary name="Model catalog"><ModelWall
                     catalog={catalog}
                     modelId={modelId}
                     onToggle={toggleModel}
@@ -832,18 +837,26 @@ export default function App() {
                       pickModel(nextId);
                       openView("create");
                     }}
-                  />
+                  /></ErrorBoundary>
                 </section>
               )}
-              {activeView === "modes" && <Modes />}
-              {activeView === "connect" && <Tooling />}
-              {activeView === "websites" && <CreativeStudio kind="website" />}
-              {activeView === "documents" && <CreativeStudio kind="document" />}
+              {activeView === "modes" && <ErrorBoundary name="Modes"><Modes /></ErrorBoundary>}
+              {activeView === "connect" && <ErrorBoundary name="Connect"><Tooling /></ErrorBoundary>}
+              {activeView === "websites" && <ErrorBoundary name="Websites"><CreativeStudio kind="website" /></ErrorBoundary>}
+              {activeView === "documents" && <ErrorBoundary name="Documents"><CreativeStudio kind="document" /></ErrorBoundary>}
             </div>
           </main>
         </div>
       </div>
 
+      {showConfig && (
+        <>
+          <div className="modal-scrim" onClick={() => setShowConfig(false)} />
+          <ErrorBoundary name="Configuration">
+            <Config onClose={() => setShowConfig(false)} />
+          </ErrorBoundary>
+        </>
+      )}
       {showLedger && (
         <>
           <div className="modal-scrim" onClick={() => setShowLedger(false)} />

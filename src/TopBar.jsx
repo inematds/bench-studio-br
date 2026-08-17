@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen, version }) {
+export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen, version, onConfig, configOpen }) {
   const month = summary?.month ?? 0;
   const all = summary?.all_time ?? 0;
   const gens = summary?.total_generations ?? 0;
@@ -45,6 +45,17 @@ export default function TopBar({ summary, activeView, onLedger, ledgerOpen, bill
         {billing?.available && billing.current_balance != null
           ? `${currency(billing.current_balance, billing.currency)} credits`
           : "Add credits"}
+      </button>
+
+      {/* Config fica no grupo da direita, com Usage e Ledger: e ferramenta de
+          conta e de maquina, nao um workspace de trabalho como as abas. */}
+      <button
+        type="button"
+        className={`ghost-btn${configOpen ? " on" : ""}`}
+        onClick={onConfig}
+        title="API keys, local models, and security"
+      >
+        Config
       </button>
 
       <button type="button" className={`ghost-btn${ledgerOpen ? " on" : ""}`} onClick={onLedger}>

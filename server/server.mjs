@@ -29,8 +29,34 @@ import { createModesStore } from "./modes_store.mjs";
 import { createCatalogPrefs } from "./catalog_prefs.mjs";
 import { ENGINES } from "./project_engines.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
+import { describeConfig, validatePatch, writeConfig, isLoopback } from "./config_store.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// ---------------------------------------------------------------- env
+//
+// Isto roda ANTES de qualquer constante derivada de env. Antes vinha depois, e
+// por isso BENCH_DATA_DIR num arquivo era ignorado em silêncio: quando o valor
+// era lido, DATA já tinha sido resolvido.
+//
+// Precedência: o que o shell já exportou vence, depois o .env DO PROJETO, e por
+// último ~/.env. O .env do projeto é o que a aba Config grava e o que
+// `.env.example` sempre documentou — só que ninguém o lia, então copiar o
+// exemplo para .env não fazia efeito nenhum.
+function loadEnvFile(p) {
+  if (!existsSync(p)) return;
+  for (const line of readFileSync(p, "utf8").split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith("#") || !t.includes("=")) continue;
+    const i = t.indexOf("=");
+    const k = t.slice(0, i).trim();
+    const v = t.slice(i + 1).trim().replace(/^["']|["']$/g, "");
+    if (!process.env[k]) process.env[k] = v;
+  }
+}
+loadEnvFile(join(HERE, "..", ".env"));
+loadEnvFile(join(homedir(), ".env"));
+
 const DATA = resolve(process.env.BENCH_DATA_DIR || join(HERE, "..", "data"));
 const LEDGER = join(DATA, "ledger.jsonl");
 const OUTPUTS = join(DATA, "outputs");
@@ -43,27 +69,15 @@ const CAPABILITY_FILE = join(HERE, "capabilities.json");
 const SKILL_PACKAGES = join(HERE, "..", "integrations", "skills");
 const MCP_NODE = existsSync("/opt/homebrew/bin/node") ? "/opt/homebrew/bin/node" : process.execPath;
 
-// ---------------------------------------------------------------- env
-
-function loadEnv() {
-  const p = join(homedir(), ".env");
-  if (!existsSync(p)) return;
-  for (const line of readFileSync(p, "utf8").split("\n")) {
-    const t = line.trim();
-    if (!t || t.startsWith("#") || !t.includes("=")) continue;
-    const i = t.indexOf("=");
-    const k = t.slice(0, i).trim();
-    const v = t.slice(i + 1).trim().replace(/^["']|["']$/g, "");
-    if (!process.env[k]) process.env[k] = v;
-  }
-}
-loadEnv();
-
 const FAL_KEY = process.env.FAL_KEY;
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+// Sem FAL_KEY o estúdio SOBE. Antes ele morria aqui, o que contradizia a regra
+// que vale para todos os outros provedores — cada um aparece indisponível com o
+// motivo, em vez de derrubar o resto. Quem só usa Agnes ou os modelos locais
+// nunca conseguiria abrir a interface para descobrir isso, nem chegar à aba
+// Config para colocar a chave que faltava.
 if (!FAL_KEY) {
-  console.error("No FAL_KEY in ~/.env. Add one from fal.ai/dashboard/keys and restart.");
-  process.exit(1);
+  console.warn("[bench] No FAL_KEY: the 37 fal models will show as unavailable. Add one in Config, or get one at fal.ai/dashboard/keys.");
 }
 
 mkdirSync(DATA, { recursive: true });
@@ -1715,6 +1729,64 @@ app.get("/api/catalog/status", (_req, res) => {
     new_endpoint_count: null,
     status: catalogSyncPromise ? "syncing" : "not_synced",
   });
+});
+
+// ---------------------------------------------------------------- config
+//
+// Estado das variaveis de ambiente, SEM valor de segredo. O que sai daqui e
+// "existe / veio de onde / termina em quanto" — nunca a chave.
+app.get("/api/config", async (req, res) => {
+  const estado = describeConfig();
+  const disponibilidade = await providerAvailability().catch(() => ({}));
+  res.json({
+    ...estado,
+    // Escrever e privilegio de quem esta NA maquina. Com --lan a interface fica
+    // exposta para a rede inteira, e la ninguem troca chave de ninguem.
+    writable: isLoopback(req),
+    lan_exposed: (process.env.BENCH_WEB_HOST ?? "") !== "" && process.env.BENCH_WEB_HOST !== "127.0.0.1",
+    providers: disponibilidade,
+  });
+});
+
+app.post("/api/config", (req, res) => {
+  if (!isLoopback(req)) {
+    return res.status(403).json({ error: "Settings can only be changed from this machine. This request came from the network." });
+  }
+  const { error, patch } = validatePatch(req.body);
+  if (error) return res.status(400).json({ error });
+  if (!Object.keys(patch).length) return res.status(400).json({ error: "Nothing to change." });
+
+  // Caminho que nao existe e pior do que caminho vazio: a build passa a citar no
+  // prompt um arquivo que o agente nao vai achar. Mesma regra de /api/settings.
+  for (const campo of ["BENCH_WEBSITE_REFERENCE", "BENCH_DOCUMENT_REFERENCE"]) {
+    if (patch[campo] && !existsSync(patch[campo])) return res.status(400).json({ error: `Does not exist: ${patch[campo]}` });
+  }
+
+  try {
+    writeConfig(patch);
+  } catch (e) {
+    return res.status(500).json({ error: `Could not write .env: ${e.message}` });
+  }
+
+  // O processo NAO recarrega a chave sozinho: metade do servidor leu env no
+  // boot (FAL_KEY, adapters, DATA). Dizer "salvo" sem dizer isto seria mentir.
+  res.json({ ...describeConfig(), writable: true, restart_required: true });
+});
+
+// Testa de verdade contra o provedor, com a chave que esta valendo AGORA no
+// processo — nao a que acabou de ser gravada. E por isso que a resposta pode
+// dizer "falhou" logo depois de um salvo bem-sucedido: o processo ainda usa a
+// antiga, e e util saber disso em vez de descobrir na hora de gerar.
+app.post("/api/config/test/:provider", async (req, res) => {
+  const alvo = String(req.params.provider ?? "");
+  const provider = PROVIDERS[alvo];
+  if (!provider) return res.status(404).json({ error: `Unknown provider: ${alvo}` });
+  try {
+    const estado = await providerAvailability({ force: true });
+    res.json({ provider: alvo, ...(estado?.[alvo] ?? { available: false, reason: "No answer" }) });
+  } catch (e) {
+    res.status(500).json({ provider: alvo, available: false, reason: e.message });
+  }
 });
 
 app.get("/api/settings", (_req, res) => res.json(readSettings()));
