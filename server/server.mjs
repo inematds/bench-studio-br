@@ -515,12 +515,39 @@ function megapixels(params) {
 
 // ---------------------------------------------------------------- ledger
 
+// Uma referência mandada como data URI chega aqui com o arquivo INTEIRO em
+// base64 — 2 MB para uma imagem comum. Guardar isso no recibo engorda o banco e,
+// pior, o /api/ledger passa a trafegar megabytes a cada abertura da tela (foi
+// medido: 8 MB de resposta por causa de DUAS linhas). O recibo precisa registrar
+// que houve um anexo e qual, não carregar os bytes dele.
+const DATA_URI_LIMIT = 512;
+
+function compactValue(value) {
+  // Campo de midia com aridade multipla chega como ARRAY de data URIs — foi o
+  // que sobrou pesando depois da primeira correcao, que so tratava string.
+  if (Array.isArray(value)) return value.map(compactValue);
+  if (typeof value !== "string" || !value.startsWith("data:") || value.length <= DATA_URI_LIMIT) return value;
+  const mime = value.slice(5, value.indexOf(";")) || "arquivo";
+  return `data:${mime};base64,[${(value.length / 1024 / 1024).toFixed(1)} MB não guardados no recibo]`;
+}
+
+function compactRow(row) {
+  if (!row || typeof row !== "object") return row;
+  const params = row.params ? Object.fromEntries(Object.entries(row.params).map(([k, v]) => [k, compactValue(v)])) : row.params;
+  const inputAssets = Array.isArray(row.input_assets)
+    ? row.input_assets.map((asset) => ({ ...asset, url: compactValue(asset?.url) }))
+    : row.input_assets;
+  return { ...row, params, input_assets: inputAssets };
+}
+
 function appendLedger(row) {
-  return store.addGeneration(row);
+  return store.addGeneration(compactRow(row));
 }
 
 function readLedger() {
-  return store.listGenerations(500);
+  // Também na leitura: linhas gravadas antes desta correção continuam gordas no
+  // banco, e sem isto seguiriam pesando na resposta para sempre.
+  return store.listGenerations(500).map(compactRow);
 }
 
 function spendSummary() {

@@ -65,7 +65,19 @@ function Shot({ shot, onDelete, onReuse }) {
   const resultLabel = shot.label || "Untitled result";
   // `params` carrega o prompt junto porque e o payload enviado ao provider; aqui
   // interessa so o que e ajuste de controle.
-  const reusableParams = Object.entries(shot.params ?? {}).filter(([name]) => name !== "prompt");
+  //
+  // E carrega tambem as REFERENCIAS. Quando a referencia foi enviada como data
+  // URI, o valor e o arquivo inteiro em base64 — 2 MB de texto que apareciam
+  // despejados na tela de detalhes. Media ja tem lugar proprio logo abaixo (as
+  // miniaturas), entao aqui ela nunca deve virar texto.
+  const reusableParams = Object.entries(shot.params ?? {})
+    .filter(([name, value]) => {
+      if (name === "prompt") return false;
+      const text = String(value ?? "");
+      if (text.startsWith("data:")) return false;
+      if (/^https?:\/\//.test(text) && /image|video|\.(png|jpe?g|webp|mp4|mov)/i.test(text)) return false;
+      return text.length <= 300;
+    });
 
   async function removeResult() {
     setDeleting(true);
