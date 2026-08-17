@@ -106,6 +106,8 @@ export default function Config({ onClose }) {
           Saving writes <code>{state?.project_env_path}</code> with owner-only permissions.
         </p>
 
+        <PasswordCard state={state} readOnly={readOnly} onChanged={load} />
+
         {state?.groups.map((group) => {
           const fields = state.fields.filter((f) => f.group === group.id);
           if (!fields.length) return null;
@@ -114,7 +116,7 @@ export default function Config({ onClose }) {
               <h4>{group.label}</h4>
               <p className="config-note">{group.note}</p>
 
-              {fields.map((field) => (
+              {fields.filter((f) => f.key !== "BENCH_PASSWORD").map((field) => (
                 <ConfigField
                   key={field.key}
                   field={field}
@@ -140,6 +142,80 @@ export default function Config({ onClose }) {
         </div>
       </div>
     </aside>
+  );
+}
+
+// The password is not an env var like the others: you type a password and what
+// gets stored is a hash of it, so it has its own action and its own endpoint.
+function PasswordCard({ state, readOnly, onChanged }) {
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [err, setErr] = useState(null);
+  const active = state?.fields?.find((f) => f.key === "BENCH_PASSWORD")?.present;
+
+  async function send(password) {
+    setBusy(true); setErr(null); setMsg(null);
+    try {
+      const res = await fetch("/api/config/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || `Failed (${res.status})`);
+      setValue("");
+      setMsg(body.message);
+      onChanged();
+    } catch (e) { setErr(String(e.message ?? e)); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <section className="config-group">
+      <h4>Access</h4>
+      <p className="config-note">
+        The studio ships with no password, on purpose: talking to your own machine should not need one.
+        A password protects the API — models, results, media, ledger and settings. The interface shell is
+        still served to anyone who reaches the port, but without a session it shows nothing.
+      </p>
+
+      <div className={`config-field ${active ? "set" : "missing"}`}>
+        <div className="config-field-head">
+          <strong>Studio password</strong>
+          <code>BENCH_PASSWORD</code>
+          <span className="spacer" />
+          <span className={`config-badge ${active ? "on" : "off"}`}>{active ? "password set" : "no password"}</span>
+        </div>
+        <p className="config-note">
+          Stored as a scrypt hash — the password itself is never written down, so nobody reads it out of
+          the file. Setting or changing it signs everyone else out immediately.
+        </p>
+
+        {msg && <p className="config-alert" role="status">{msg}</p>}
+        {err && <p className="config-alert danger" role="alert">{err}</p>}
+
+        <div className="config-field-edit">
+          <input
+            type="password"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={active ? "type a new password to replace it" : "at least 4 characters"}
+            disabled={readOnly || busy}
+            autoComplete="new-password"
+            aria-label="Studio password"
+          />
+          <button type="button" className="ghost-btn small" onClick={() => send(value)} disabled={readOnly || busy || value.length < 4}>
+            {active ? "Replace" : "Set password"}
+          </button>
+          {active && (
+            <button type="button" className="ghost-btn small" onClick={() => send("")} disabled={readOnly || busy}>
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -14,9 +14,14 @@ export default defineConfig({
     port: webPort,
     allowedHosts: true,
     proxy: {
-      "/api": { target: apiTarget, changeOrigin: true },
-      "/media": { target: apiTarget, changeOrigin: true },
-      "/projects": { target: apiTarget, changeOrigin: true },
+      // xfwd repassa o IP de origem em X-Forwarded-For. Sem isto a API ve TODO
+      // mundo como 127.0.0.1 (quem fala com ela e o proxy, na mesma maquina) — e
+      // a trava "so grava chave quem esta na maquina" nao travaria ninguem.
+      "/api": { target: apiTarget, changeOrigin: true, xfwd: true },
+      "/media": { target: apiTarget, changeOrigin: true, xfwd: true },
+      "/previews": { target: apiTarget, changeOrigin: true, xfwd: true },
+      "/inputs": { target: apiTarget, changeOrigin: true, xfwd: true },
+      "/projects": { target: apiTarget, changeOrigin: true, xfwd: true },
     },
   },
 });

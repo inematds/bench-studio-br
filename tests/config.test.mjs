@@ -90,6 +90,23 @@ test("a missing key is absent, not empty", () => {
   assert.equal(kie.masked_tail, null);
 });
 
+test("a client behind the dev proxy is judged by its real address, not the proxy's", () => {
+  // O navegador fala com o Vite, nao com a API: quem abre o socket e sempre a
+  // propria maquina. Sem olhar o X-Forwarded-For, a trava nao travaria ninguem.
+  const local = { socket: { remoteAddress: "127.0.0.1" } };
+  assert.equal(isLoopback({ ...local, headers: { "x-forwarded-for": "192.168.1.50" } }), false);
+  assert.equal(isLoopback({ ...local, headers: { "x-forwarded-for": "127.0.0.1" } }), true);
+  assert.equal(isLoopback({ ...local, headers: {} }), true);
+
+  // E o cabecalho so vale porque o socket ja e local: quem vem de fora nao
+  // consegue abrir socket loopback, entao nao consegue forjar a origem.
+  assert.equal(
+    isLoopback({ socket: { remoteAddress: "192.168.1.50" }, headers: { "x-forwarded-for": "127.0.0.1" } }),
+    false,
+    "a forged header from the network must never grant write access",
+  );
+});
+
 test("only loopback callers count as local", () => {
   assert.equal(isLoopback({ socket: { remoteAddress: "127.0.0.1" } }), true);
   assert.equal(isLoopback({ socket: { remoteAddress: "::1" } }), true);

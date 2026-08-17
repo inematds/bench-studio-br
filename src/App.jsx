@@ -9,6 +9,7 @@ import Modes from "./Modes.jsx";
 import CreativeStudio from "./CreativeStudio.jsx";
 import Config from "./Config.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import Login from "./Login.jsx";
 import { assignInputFields, imageInputFor, mediaInputsFor, mediaTypeForFile, pairedImageModel, retainCompatibleAssets, sortModels } from "./modelCatalog.js";
 
 function viewFromHash() {
@@ -260,6 +261,22 @@ export default function App() {
   const [syncingCatalog, setSyncingCatalog] = useState(false);
   const [settings, setSettings] = useState(null);
   const [health, setHealth] = useState(null);
+  // null = ainda nao perguntamos. Sem senha configurada, `locked` nunca fica
+  // true e esta tela inteira e invisivel.
+  const [locked, setLocked] = useState(null);
+
+  // Primeira pergunta do app, antes de qualquer dado: preciso de senha? A
+  // resposta de /api/auth e publica de proposito — dizer "aqui pede senha" nao
+  // entrega nada, e sem isso a interface nao sabe o que desenhar.
+  const checkAuth = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth");
+      const body = await res.json();
+      setLocked(body.required && !body.authenticated);
+    } catch { setLocked(false); }
+  }, []);
+
+  useEffect(() => { checkAuth(); }, [checkAuth]);
 
   useEffect(() => {
     const syncView = () => {
@@ -722,6 +739,9 @@ export default function App() {
     try { localStorage.setItem("bench.last-model", nextId); } catch {}
     setError(switchNotice);
   }
+
+  if (locked === null) return null;
+  if (locked) return <Login onDone={() => { setLocked(false); window.location.reload(); }} />;
 
   return (
     <div className="shell">

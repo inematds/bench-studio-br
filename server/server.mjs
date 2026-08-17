@@ -30,6 +30,7 @@ import { createCatalogPrefs } from "./catalog_prefs.mjs";
 import { ENGINES } from "./project_engines.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
 import { describeConfig, validatePatch, writeConfig, isLoopback } from "./config_store.mjs";
+import { createAuth, hashPassword } from "./auth.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -1352,6 +1353,37 @@ async function backfillMediaMirrors() {
 
 const app = express();
 app.use(express.json({ limit: "25mb" }));
+// ---------------------------------------------------------------- senha
+//
+// Sem BENCH_PASSWORD, `authenticated()` devolve true para todo mundo e nada
+// disto muda o comportamento de hoje. Com senha, a tranca cobre a API E os
+// estaticos: os arquivos gerados sao tao seus quanto o historico, e deixar
+// /media aberto entregaria as imagens a quem soubesse o caminho.
+const auth = createAuth();
+
+app.get("/api/auth", (req, res) => {
+  res.json({ required: auth.required(), authenticated: auth.authenticated(req), local: isLoopback(req) });
+});
+
+app.post("/api/login", async (req, res) => {
+  const r = await auth.login(req, res, req.body?.password);
+  if (!r.ok) return res.status(401).json(r);
+  res.json({ ok: true, required: auth.required() });
+});
+
+app.post("/api/logout", (req, res) => {
+  auth.logout(req, res);
+  res.json({ ok: true });
+});
+
+app.use((req, res, next) => {
+  if (auth.authenticated(req)) return next();
+  // Uma requisicao de mídia sem sessao nao deve devolver JSON: quem pediu era um
+  // <img>, e um 401 seco e a resposta honesta.
+  if (req.path.startsWith("/api/")) return res.status(401).json({ error: "Authentication required.", auth_required: true });
+  res.status(401).end();
+});
+
 app.use("/media", express.static(OUTPUTS, { fallthrough: false }));
 app.use("/previews", express.static(PREVIEWS, { fallthrough: false }));
 app.use("/inputs", express.static(INPUTS, { fallthrough: false }));
@@ -1786,6 +1818,31 @@ app.post("/api/config/test/:provider", async (req, res) => {
     res.json({ provider: alvo, ...(estado?.[alvo] ?? { available: false, reason: "No answer" }) });
   } catch (e) {
     res.status(500).json({ provider: alvo, available: false, reason: e.message });
+  }
+});
+
+// Definir e remover senha seguem a MESMA regra das chaves: so da propria
+// maquina. Numa VPS, use `npm run set-password` ou um tunel SSH — e de proposito
+// que trocar a tranca exija estar do lado de dentro dela.
+app.post("/api/config/password", (req, res) => {
+  if (!isLoopback(req)) {
+    return res.status(403).json({ error: "The password can only be changed from this machine." });
+  }
+  const nova = String(req.body?.password ?? "");
+  try {
+    if (nova === "") {
+      writeConfig({ BENCH_PASSWORD: "" });
+      auth.setHash("");
+      return res.json({ ok: true, required: false, message: "Password removed. The studio is open again." });
+    }
+    const hash = hashPassword(nova);
+    writeConfig({ BENCH_PASSWORD: hash });
+    // Vale JA, sem esperar restart: a janela entre "defini a senha" e "ela
+    // funciona" e exatamente quando o estudio esta exposto.
+    auth.setHash(hash);
+    res.json({ ok: true, required: true, message: "Password set. Everyone else was signed out." });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
   }
 });
 

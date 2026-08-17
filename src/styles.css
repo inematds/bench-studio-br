@@ -1532,3 +1532,14 @@ p { text-wrap: pretty; }
 .error-card h2 { margin: 0 0 8px; font-size: 18px; }
 .error-card p { margin: 0 0 12px; color: var(--text-2); font-size: 13px; line-height: 1.6; }
 .error-card pre { overflow-x: auto; margin: 0 0 14px; padding: 11px; border-radius: 8px; background: #0f1115; color: #ffbfbf; font-size: 12px; }
+
+/* ---------------------------------------------------------------- login */
+/* Aparece so quando ha senha configurada E este navegador nao tem sessao. */
+.login-screen { display: grid; place-items: center; min-height: 100vh; padding: 24px; background: var(--bg, #0d0f13); }
+.login-card { display: grid; gap: 12px; width: min(380px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel, #15171c); }
+.login-card .brand { margin-bottom: 4px; }
+.login-card h1 { margin: 0; font-size: 21px; }
+.login-card > p { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.6; }
+.login-card input { padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: #0f1115; color: var(--text); font-family: inherit; font-size: 14px; }
+.login-card button { padding: 10px 16px; border-radius: 9px; background: var(--accent, #6D7CFF); color: #0d1020; font-size: 13.5px; font-weight: 600; }
+.login-hint { margin: 4px 0 0; color: var(--text-3); font-size: 11.5px; line-height: 1.7; }

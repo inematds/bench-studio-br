@@ -34,6 +34,10 @@ export const FIELDS = [
   { key: "BENCH_WEBSITE_REFERENCE_URL", group: "reference", secret: false, label: "Website reference URL", effect: "Only used to show the preview in the side panel." },
   { key: "BENCH_DOCUMENT_REFERENCE", group: "reference", secret: false, label: "Document reference", effect: "A PDF of YOURS used the same way for documents." },
 
+  // O valor guardado aqui e um HASH scrypt, nunca a senha. Fica marcado como
+  // segredo por higiene: nem o hash precisa aparecer numa tela.
+  { key: "BENCH_PASSWORD", group: "access", secret: true, label: "Studio password", effect: "Empty means no password — the studio opens straight away, which is the default. Set one and everyone needs it to reach the API." },
+
   { key: "PORT", group: "server", secret: false, fallback: "8787", label: "API port", effect: "Defaults to 8787. The interface runs on 5200." },
   { key: "BENCH_DATA_DIR", group: "server", secret: false, fallback: "./data", label: "Data directory", effect: "Where the database, outputs and projects live. Defaults to ./data." },
   { key: "BENCH_CHROME", group: "server", secret: false, label: "Chrome path", effect: "Used to print PDFs. Detected automatically; set only if it lives somewhere unusual." },
@@ -45,6 +49,7 @@ export const GROUPS = [
   { id: "local", label: "Local models", note: "Run on your own machine, at zero cost. A URL that answers nothing simply shows as unavailable." },
   { id: "refine", label: "Prompt refine", note: "Rewrites your idea into the style each model expects, and into English (which Agnes requires). Order: Gemini, then OpenRouter, then the local Codex CLI. Having more than one keeps an exhausted quota from taking the studio down." },
   { id: "reference", label: "Craft reference", note: "Paths on this machine. They are read for calibration only — brand, copy, structure and files are never copied." },
+  { id: "access", label: "Access", note: "The studio ships with no password, on purpose: talking to your own machine should not need one. A password protects the API — your models, results, media, ledger and settings. The interface shell is still served to anyone who reaches the port, but without a session it shows nothing; hiding the shell too is a job for a reverse proxy." },
   { id: "server", label: "Server", note: "Changes here only take effect after the server restarts." },
 ];
 
@@ -207,12 +212,29 @@ export function writeConfig(patch, { projectPath = PROJECT_ENV } = {}) {
 
 // ------------------------------------------------------------------ acesso
 
-// Gravar chave é privilégio de quem está NA máquina. `--lan` publica a interface
-// para a rede inteira; sem esta trava, qualquer um no mesmo wifi trocaria as
-// chaves do dono. A checagem é no socket, não numa flag: a flag governa em que
-// interface o Vite escuta, não de onde a requisição chegou.
-export function isLoopback(req) {
-  const addr = req?.socket?.remoteAddress ?? "";
-  const limpo = addr.replace(/^::ffff:/, "");
+function enderecoLocal(addr) {
+  const limpo = String(addr ?? "").trim().replace(/^::ffff:/, "");
   return limpo === "127.0.0.1" || limpo === "::1" || limpo.startsWith("127.");
+}
+
+/**
+ * Gravar chave é privilégio de quem está NA máquina. `--lan` publica a
+ * interface para a rede inteira; sem esta trava, qualquer um no mesmo wifi
+ * trocaria as chaves do dono.
+ *
+ * O detalhe que quase passou: o navegador NÃO fala com esta API direto — fala
+ * com o Vite, que repassa. Quem abre o socket é o proxy, na mesma máquina, então
+ * olhar só o socket faz TODO mundo parecer local. Medido: pela porta da
+ * interface, um cliente da LAN vinha como local; pela porta da API, não.
+ *
+ * Por isso X-Forwarded-For entra na conta — mas só quando o socket já é local.
+ * Essa condição é o que torna o cabeçalho confiável: quem vem de fora não
+ * consegue abrir um socket loopback, então não consegue forjar a origem. Um
+ * cabeçalho aceito sem essa guarda seria pior do que não ter trava nenhuma.
+ */
+export function isLoopback(req) {
+  if (!enderecoLocal(req?.socket?.remoteAddress)) return false;
+  const encaminhado = req?.headers?.["x-forwarded-for"];
+  if (!encaminhado) return true;
+  return enderecoLocal(String(encaminhado).split(",")[0]);
 }
