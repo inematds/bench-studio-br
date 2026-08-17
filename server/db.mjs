@@ -396,6 +396,11 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     return projectRow(db.prepare("SELECT * FROM projects WHERE id = ?").get(id));
   }
 
+  function deleteProject(id) {
+    const info = db.prepare("DELETE FROM projects WHERE id=?").run(id);
+    return info.changes > 0;
+  }
+
   function listProjects(kind, limit = 100) {
     const rows = kind
       ? db.prepare("SELECT * FROM projects WHERE kind = ? ORDER BY created_at DESC LIMIT ?").all(kind, limit)
@@ -418,6 +423,7 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     recordCatalogSync,
     createProject,
     updateProject,
+    deleteProject,
     getProject,
     listProjects,
     migrateLegacyLedger,

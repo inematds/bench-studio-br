@@ -61,6 +61,15 @@ export default function CreativeStudio({ kind }) {
   const active = useMemo(() => projects.find((project) => ["queued", "running"].includes(project.status)), [projects]);
   const completed = useMemo(() => projects.filter((project) => project.status === "complete"), [projects]);
   const failed = useMemo(() => projects.filter((project) => project.status === "failed"), [projects]);
+
+  async function removeProject(id) {
+    try {
+      const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+      const payload = await response.json();
+      if (payload.error) throw new Error(payload.error);
+      setProjects((rows) => rows.filter((row) => row.id !== id));
+    } catch (e) { setError(String(e.message ?? e)); }
+  }
   const history = useMemo(() => projects.filter((project) => !["complete", "queued", "running", "failed"].includes(project.status)), [projects]);
 
   useEffect(() => {
@@ -196,13 +205,13 @@ export default function CreativeStudio({ kind }) {
         ) : (
           <div className="project-grid">
             {kind === "website" && reference?.preview_url && <WebsiteReferenceCard reference={reference} />}
-            {completed.map((project) => <ProjectCard key={project.id} project={project} />)}
+            {completed.map((project) => <ProjectCard key={project.id} project={project} onDelete={removeProject} />)}
           </div>
         )}
 
         {failed.length > 0 && (
           <div className="project-failed-list">
-            {failed.map((project) => <FailedCard key={project.id} project={project} />)}
+            {failed.map((project) => <FailedCard key={project.id} project={project} onDelete={removeProject} />)}
           </div>
         )}
 
@@ -227,8 +236,11 @@ export default function CreativeStudio({ kind }) {
 // Uma build que falhou ainda deixa coisa em disco — e as vezes quase tudo. Some-la
 // numa lista recolhida joga fora trabalho ja feito (e, num provedor pago, ja pago).
 // Aqui o motivo real aparece inteiro e cada arquivo pode ser aberto e editado.
-function FailedCard({ project }) {
-  const [open, setOpen] = useState(false);
+// Painel de arquivos + editor. Serve tanto para build concluida quanto para
+// build que falhou: nos dois casos o que esta em disco e a unica verdade, e
+// poder corrigir a mao evita refazer (e repagar) a geracao inteira por causa de
+// um detalhe.
+function ProjectFiles({ project }) {
   const [editing, setEditing] = useState(null);
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("");
@@ -261,23 +273,7 @@ function FailedCard({ project }) {
   }
 
   return (
-    <article className="project-card project-card-failed">
-      <div className="project-card-body">
-        <div><span className="project-status failed">Build failed</span><small>{relativeTime(project.updated_at)}</small></div>
-        <h3>{project.title}</h3>
-        {project.error && <p className="project-failed-reason">{project.error}</p>}
-
-        <div className="project-actions">
-          <button type="button" onClick={() => setOpen((v) => !v)}>
-            {open ? "Hide files" : `Files (${produced.length || 0})`}
-          </button>
-          {produced.some((f) => /index\.html?$/i.test(f.name)) && (
-            <a className="project-open" href={`/projects/${project.id}/index.html`} target="_blank" rel="noreferrer">Open anyway ↗</a>
-          )}
-        </div>
-
-        {open && (
-          <div className="project-files">
+    <div className="project-files">
             {!produced.length && <p className="modes-hint">Nenhum arquivo foi produzido — a build parou antes de escrever.</p>}
             {produced.map((f) => (
               <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)} disabled={!f.editable}>
@@ -294,23 +290,64 @@ function FailedCard({ project }) {
                 ))}
               </details>
             )}
-            {editing && (
-              <div className="project-editor">
-                <div className="project-editor-head">
-                  <strong>{editing.name}</strong>
-                  <div>
-                    <span>{status}</span>
-                    <button type="button" onClick={saveFile}>Salvar</button>
-                    <button type="button" onClick={() => { setEditing(null); setStatus(""); }}>Fechar</button>
-                  </div>
-                </div>
-                <textarea value={content} onChange={(e) => setContent(e.target.value)} spellCheck={false} />
-              </div>
-            )}
+      {editing && (
+        <div className="project-editor">
+          <div className="project-editor-head">
+            <strong>{editing.name}</strong>
+            <div>
+              <span>{status}</span>
+              <button type="button" onClick={saveFile}>Salvar</button>
+              <button type="button" onClick={() => { setEditing(null); setStatus(""); }}>Fechar</button>
+            </div>
           </div>
-        )}
+          <textarea value={content} onChange={(e) => setContent(e.target.value)} spellCheck={false} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FailedCard({ project, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const produced = (project.files ?? []).filter((f) => !f.internal);
+  return (
+    <article className="project-card project-card-failed">
+      <div className="project-card-body">
+        <div><span className="project-status failed">Build failed</span><small>{relativeTime(project.updated_at)}</small></div>
+        <h3>{project.title}</h3>
+        {project.error && <p className="project-failed-reason">{project.error}</p>}
+        <div className="project-actions">
+          <button type="button" onClick={() => setOpen((v) => !v)}>
+            {open ? "Hide files" : `Files (${produced.length})`}
+          </button>
+          {produced.some((f) => /index\.html?$/i.test(f.name)) && (
+            <a className="project-open" href={`/projects/${project.id}/index.html`} target="_blank" rel="noreferrer">Open anyway ↗</a>
+          )}
+          {onDelete && <DeleteProject project={project} onDelete={onDelete} />}
+        </div>
+        {open && <ProjectFiles project={project} />}
       </div>
     </article>
+  );
+}
+
+// Apagar e irreversivel e leva os arquivos do disco junto, entao pede confirmacao
+// no lugar de um clique solto ao lado de "Open".
+function DeleteProject({ project, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  if (!confirming) return <button type="button" className="project-delete" onClick={() => setConfirming(true)}>Delete</button>;
+  return (
+    <span className="project-delete-confirm">
+      <span>Apagar “{project.title}” e seus arquivos?</span>
+      <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Manter</button>
+      <button
+        type="button"
+        className="danger"
+        disabled={busy}
+        onClick={async () => { setBusy(true); try { await onDelete(project.id); } finally { setBusy(false); } }}
+      >{busy ? "Apagando…" : "Apagar"}</button>
+    </span>
   );
 }
 
@@ -344,7 +381,8 @@ function BuildProgress({ project, onCancel }) {
   );
 }
 
-function ProjectCard({ project }) {
+function ProjectCard({ project, onDelete }) {
+  const [showFiles, setShowFiles] = useState(false);
   const complete = project.status === "complete";
   const isWebsite = project.kind === "website";
   const resultUrl = isWebsite ? project.preview_url : project.artifact_file;
@@ -369,8 +407,15 @@ function ProjectCard({ project }) {
           {complete && isWebsite && project.bundle_url && <a href={`${project.bundle_url}?download=1`}>Source</a>}
           {complete && !isWebsite && project.artifact_file && <a href={project.artifact_file} download>Download</a>}
           {complete && !isWebsite && project.preview_url && <a href={project.preview_url} target="_blank" rel="noreferrer">Editable HTML</a>}
+          {complete && (
+            <button type="button" onClick={() => setShowFiles((v) => !v)}>
+              {showFiles ? "Hide files" : `Edit files (${(project.files ?? []).filter((f) => !f.internal).length})`}
+            </button>
+          )}
+          {onDelete && <DeleteProject project={project} onDelete={onDelete} />}
           {project.status === "failed" && <span title={project.error}>Build failed</span>}
         </div>
+        {showFiles && <ProjectFiles project={project} />}
       </div>
     </article>
   );

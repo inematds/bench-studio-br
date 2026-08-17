@@ -15,7 +15,7 @@
 // runner (stage/result.json) não muda.
 
 import { spawn } from "node:child_process";
-import { appendFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const MAX_FILE_BYTES = 400_000;
@@ -187,6 +187,24 @@ async function writeModelFiles(files, outputDir, isWebsite) {
   }
   const required = isWebsite ? "index.html" : "document.html";
   if (!written.includes(required)) throw new Error(`O modelo não produziu ${required}. Gravou: ${written.join(", ") || "nada"}.`);
+
+  // MEDIDO: uma build passou por "completa" com index.html + styles.css e SEM
+  // app.js — que o proprio HTML referenciava. O CSS deixava 7 elementos em
+  // opacity:0 esperando o JS revela-los, entao o site abria com o titulo e os
+  // beneficios INVISIVEIS. Parecia fonte que nao carregou; era conteudo que
+  // nunca aparecia. Um arquivo referenciado e ausente nao e detalhe: quebra a
+  // pagina silenciosamente, que e o pior jeito de quebrar.
+  const html = await readFile(join(outputDir, required), "utf8");
+  const referenced = [...html.matchAll(/(?:src|href)\s*=\s*["']([^"':#?]+)["']/gi)]
+    .map((match) => match[1].trim().replace(/^\.\//, ""))
+    .filter((ref) => ref && !/^(https?:|data:|mailto:|tel:|\/\/)/i.test(ref) && !ref.startsWith("/"));
+  const missing = [...new Set(referenced)].filter((ref) => !written.includes(ref));
+  if (missing.length) {
+    throw new Error(
+      `${required} referencia arquivo(s) que o modelo nao criou: ${missing.join(", ")}. ` +
+      `A pagina abriria quebrada (o CSS costuma esconder elementos ate o JS revela-los). Gravados: ${written.join(", ")}.`,
+    );
+  }
   return written;
 }
 

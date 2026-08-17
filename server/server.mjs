@@ -10,7 +10,7 @@
 
 import express from "express";
 import multer from "multer";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, createWriteStream, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, createWriteStream, unlinkSync, rmSync } from "node:fs";
 import { basename, dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
@@ -1303,6 +1303,19 @@ app.post("/api/projects", (req, res) => {
   });
   startProjectBuild(project);
   res.status(202).json(publicProject(store.getProject(id)));
+});
+
+app.delete("/api/projects/:id", (req, res) => {
+  const project = store.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  // Uma build em andamento tem processo vivo: matar antes, senao ele continua
+  // escrevendo numa pasta que acabou de deixar de existir.
+  const running = projectProcesses.get(project.id);
+  if (running) { running.kill("SIGTERM"); projectProcesses.delete(project.id); }
+  try { rmSync(project.output_dir, { recursive: true, force: true }); }
+  catch (error) { console.warn(`falha ao apagar ${project.output_dir}: ${error.message}`); }
+  store.deleteProject(project.id);
+  res.json({ removed: true });
 });
 
 app.post("/api/projects/:id/cancel", (req, res) => {
