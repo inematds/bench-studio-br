@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 // Results, big. Each one keeps its own price and billing confidence.
 
@@ -11,15 +11,68 @@ const FORMAT_LABELS = {
   poster: "Ad with headline",
 };
 
+// As opcoes de filtro saem dos proprios resultados: um provedor ou modelo que
+// voce nunca usou nao tem por que ocupar espaco na barra.
+function optionsFrom(shots, pick) {
+  const counts = new Map();
+  for (const shot of shots) {
+    const value = pick(shot);
+    if (!value) continue;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}
+
 export default function Work({ job, shots, standalone = false, onDelete, onReuse }) {
+  const [kind, setKind] = useState("all");
+  const [provider, setProvider] = useState("all");
+  const [model, setModel] = useState("all");
+
+  const kinds = useMemo(() => optionsFrom(shots, (s) => s.kind), [shots]);
+  const providers = useMemo(() => optionsFrom(shots, (s) => s.provider ?? "fal"), [shots]);
+  // A lista de modelos acompanha os outros filtros: escolhido o provedor, nao
+  // faz sentido oferecer modelos que nao sao dele.
+  const models = useMemo(() => optionsFrom(
+    shots.filter((s) => (kind === "all" || s.kind === kind) && (provider === "all" || (s.provider ?? "fal") === provider)),
+    (s) => s.model,
+  ), [shots, kind, provider]);
+
+  const filtered = useMemo(() => shots.filter((s) =>
+    (kind === "all" || s.kind === kind)
+    && (provider === "all" || (s.provider ?? "fal") === provider)
+    && (model === "all" || s.model === model)
+  ), [shots, kind, provider, model]);
+
+  // Um modelo escolhido pode deixar de existir na lista quando o provedor muda;
+  // sem isto o filtro ficaria travado num resultado vazio, sem explicacao.
+  useEffect(() => {
+    if (model !== "all" && !models.some(([value]) => value === model)) setModel("all");
+  }, [models, model]);
+
+  const filtering = kind !== "all" || provider !== "all" || model !== "all";
+  const spent = filtered.reduce((a, s) => a + (Number(s.cost) || 0), 0);
+
   return (
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
       <div className="wall-head">
         <h2>{standalone ? "Library" : "Your results"}</h2>
-        <span>{shots.length} {shots.length === 1 ? "result" : "results"}</span>
+        <span>{filtered.length}{filtering ? ` de ${shots.length}` : ""} {filtered.length === 1 ? "result" : "results"}</span>
         <div className="rule" />
-        <span>${shots.reduce((a, s) => a + (Number(s.cost) || 0), 0).toFixed(3)} spent</span>
+        <span>${spent.toFixed(3)} spent</span>
       </div>
+
+      {shots.length > 1 && (
+        <div className="results-filters" role="group" aria-label="Filtrar resultados">
+          <Filter label="Tipo" value={kind} onChange={setKind} options={kinds} total={shots.length} />
+          <Filter label="Provedor" value={provider} onChange={setProvider} options={providers} total={shots.length} />
+          {models.length > 1 && <Filter label="Modelo" value={model} onChange={setModel} options={models} total={filtered.length} wide />}
+          {filtering && (
+            <button type="button" className="results-filter-clear" onClick={() => { setKind("all"); setProvider("all"); setModel("all"); }}>
+              Limpar
+            </button>
+          )}
+        </div>
+      )}
 
       {!job && !shots.length ? (
         <div className="results-empty">
@@ -30,12 +83,27 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
       ) : (
         <div className="masonry">
           {job && <Job job={job} />}
-          {shots.map((s) => (
+          {filtered.map((s) => (
             <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onReuse={onReuse} />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function Filter({ label, value, onChange, options, total, wide }) {
+  if (!options.length) return null;
+  return (
+    <label className={`results-filter${wide ? " wide" : ""}`}>
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="all">Todos ({total})</option>
+        {options.map(([option, count]) => (
+          <option key={option} value={option}>{option} ({count})</option>
+        ))}
+      </select>
+    </label>
   );
 }
 
