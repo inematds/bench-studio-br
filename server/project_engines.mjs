@@ -214,13 +214,46 @@ async function writeModelFiles(files, outputDir, isWebsite) {
     .map((match) => match[1].trim().replace(/^\.\//, ""))
     .filter((ref) => ref && !/^(https?:|data:|mailto:|tel:|\/\/)/i.test(ref) && !ref.startsWith("/"));
   const missing = [...new Set(referenced)].filter((ref) => !written.includes(ref));
-  if (missing.length) {
+  return { written, missing };
+}
+
+// Motor de modelo nao se autocorrige — e a diferenca dele para um agente, que
+// olha o proprio resultado e conserta. MEDIDO: o qwen local esqueceu o `app.js`
+// em tres builds seguidas, sempre referenciando-o no HTML. Falhar era honesto e
+// inutil: o trabalho ja estava 90% feito em disco.
+//
+// Uma rodada de conserto devolve a autocorrecao pelo preco de uma pergunta
+// curta — e ela pede SO os arquivos que faltam, com o HTML que os referencia
+// junto, para o modelo escrever algo coerente e nao um arquivo generico.
+async function repairMissing({ missing, outputDir, isWebsite, gerar, stage, eventsPath }) {
+  const required = isWebsite ? "index.html" : "document.html";
+  const html = await readFile(join(outputDir, required), "utf8");
+  stage(82, `Escrevendo o que faltou: ${missing.join(", ")}`);
+
+  const pedido = `The page below is finished, but it references files that were not written: ${missing.join(", ")}.
+
+Write ONLY those files, complete and consistent with the markup. If the CSS hides
+elements until a script reveals them, the script must reveal them.
+${fileContract(isWebsite).replace(/Arquivos obrigatórios:[^\n]*/, `Arquivos obrigatórios: ${missing.join(", ")}.`)}
+
+=== FILE: ${required} ===
+${html}`;
+
+  const texto = await gerar(pedido);
+  await appendFile(eventsPath, `${JSON.stringify({ type: "model.repair", missing, chars: texto.length })}\n`);
+  const extras = parseFiles(texto).filter((f) => missing.includes(String(f?.path ?? "").trim()));
+  for (const file of extras) {
+    const nome = String(file.path).trim();
+    if (!nome || nome.includes("..") || nome.includes("/")) continue;
+    await writeFile(join(outputDir, nome), String(file.content ?? ""));
+  }
+  const ainda = missing.filter((m) => !extras.some((f) => String(f.path).trim() === m));
+  if (ainda.length) {
     throw new Error(
-      `${required} referencia arquivo(s) que o modelo nao criou: ${missing.join(", ")}. ` +
-      `A pagina abriria quebrada (o CSS costuma esconder elementos ate o JS revela-los). Gravados: ${written.join(", ")}.`,
+      `${required} referencia arquivo(s) que o modelo nao criou, nem apos uma rodada de conserto: ${ainda.join(", ")}. ` +
+      "A pagina abriria quebrada (o CSS costuma esconder elementos ate o JS revela-los).",
     );
   }
-  return written;
 }
 
 export async function runOllama({ prompt, outputDir, request, stage, eventsPath, isWebsite, isRevision }) {
@@ -251,7 +284,21 @@ export async function runOllama({ prompt, outputDir, request, stage, eventsPath,
   const text = data?.message?.content ?? "";
   await appendFile(eventsPath, `${JSON.stringify({ type: "model.response", engine: "ollama", model, chars: text.length })}\n`);
   stage(70, "Gravando os arquivos");
-  await writeModelFiles(parseFiles(text), outputDir, isWebsite);
+  const r = await writeModelFiles(parseFiles(text), outputDir, isWebsite);
+  if (r.missing.length) {
+    await repairMissing({
+      missing: r.missing, outputDir, isWebsite, stage, eventsPath,
+      gerar: async (pedido) => {
+        const res = await fetch(`${base}/api/chat`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model, stream: false, options: { temperature: 0.5, num_ctx: 16384 }, messages: [{ role: "user", content: pedido }] }),
+          signal: AbortSignal.timeout(10 * 60_000),
+        });
+        if (!res.ok) throw new Error(`Ollama devolveu HTTP ${res.status} na rodada de conserto`);
+        return (await res.json())?.message?.content ?? "";
+      },
+    });
+  }
 }
 
 export async function runOpenRouter({ prompt, outputDir, request, stage, eventsPath, isWebsite, isRevision }) {
@@ -280,7 +327,22 @@ export async function runOpenRouter({ prompt, outputDir, request, stage, eventsP
   const text = data?.choices?.[0]?.message?.content ?? "";
   await appendFile(eventsPath, `${JSON.stringify({ type: "model.response", engine: "openrouter", model, chars: text.length })}\n`);
   stage(70, "Gravando os arquivos");
-  await writeModelFiles(parseFiles(text), outputDir, isWebsite);
+  const r = await writeModelFiles(parseFiles(text), outputDir, isWebsite);
+  if (r.missing.length) {
+    await repairMissing({
+      missing: r.missing, outputDir, isWebsite, stage, eventsPath,
+      gerar: async (pedido) => {
+        const res = await fetch(`${process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"}/chat/completions`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model, temperature: 0.5, max_tokens: 16000, messages: [{ role: "user", content: pedido }] }),
+          signal: AbortSignal.timeout(10 * 60_000),
+        });
+        if (!res.ok) throw new Error(`OpenRouter devolveu HTTP ${res.status} na rodada de conserto`);
+        return (await res.json())?.choices?.[0]?.message?.content ?? "";
+      },
+    });
+  }
 }
 
 export // Agente abre o arquivo apontado; modelo puro nao. Mas MEDIDO 2026-08-17:
