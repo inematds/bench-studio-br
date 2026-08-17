@@ -26,6 +26,7 @@ import { createInemaimgProvider } from "./providers/inemaimg.mjs";
 import { kieProvider } from "./providers/kie.mjs";
 import { createKlingProvider } from "./providers/kling.mjs";
 import { createModesStore } from "./modes_store.mjs";
+import { ENGINES } from "./project_engines.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -155,6 +156,17 @@ function agentFailureReason(outputDir) {
   } catch { return null; }
 }
 
+// Num stack trace, a mensagem está na PRIMEIRA linha e o resto são quadros de
+// chamada. Pegar a última linha (o que o código fazia) entrega
+// "at async file:///.../project_runner.mjs:87:1" — verdadeiro, e inútil.
+function stderrReason(stderr) {
+  const lines = String(stderr ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const named = lines.find((line) => /^[A-Z]\w*(Error|Exception):/.test(line));
+  if (named) return named;
+  const useful = lines.filter((line) => !/^at\s/.test(line) && !/^Node\.js v/.test(line));
+  return useful[0] ?? null;
+}
+
 // Arquivos que a build produziu — inclusive quando ela falhou no meio. Um
 // projeto que morreu depois de escrever metade do site ainda tem metade do site
 // em disco, e escondê-lo joga fora trabalho que já foi feito (e pago).
@@ -178,6 +190,14 @@ function projectFiles(project) {
       .sort((a, b) => Number(a.internal) - Number(b.internal) || a.name.localeCompare(b.name));
   } catch { return []; }
 }
+
+// Default por motor: cada um tem seu proprio vocabulario de nomes de modelo.
+const DEFAULT_ENGINE_MODEL = {
+  codex: "gpt-5.6-sol",
+  claude: "",
+  ollama: "qwen3.6:35b-a3b",
+  openrouter: process.env.OPENROUTER_MODEL_DEFAULT || "google/gemini-2.5-flash",
+};
 
 function projectSlug(value) {
   return String(value || "untitled")
@@ -220,6 +240,7 @@ function startProjectBuild(project) {
     template: project.template,
     model: project.model,
     reasoning: project.reasoning,
+    engine: project.metadata?.engine_id || "codex",
     output_dir: project.output_dir,
     reference_path: CREATIVE_REFERENCES[project.kind] && existsSync(CREATIVE_REFERENCES[project.kind])
       ? CREATIVE_REFERENCES[project.kind]
@@ -269,7 +290,7 @@ function startProjectBuild(project) {
       // última mensagem que o próprio agente escreveu (ex.: "o sandbox do
       // workspace falhou ao iniciar: bwrap ... Operation not permitted").
       const message = agentFailureReason(project.output_dir)
-        ?? stderr.split(/\r?\n/).filter((line) => line.trim() && !/^Node\.js v/.test(line)).at(-1)
+        ?? stderrReason(stderr)
         ?? `Build exited with status ${code}`;
       store.updateProject(project.id, { status: "failed", stage: "Build stopped", error: message.slice(0, 1200) });
       return;
@@ -1238,12 +1259,33 @@ app.get("/api/projects/:id/bundle", (req, res) => {
   });
 });
 
+app.get("/api/project-engines", (_req, res) => {
+  res.json({
+    engines: Object.entries(ENGINES).map(([id, e]) => ({
+      id, label: e.label, kind: e.kind, note: e.note,
+      default_model: DEFAULT_ENGINE_MODEL[id] || null,
+      available: id === "openrouter" ? Boolean(process.env.OPENROUTER_API_KEY) : true,
+    })),
+  });
+});
+
 app.post("/api/projects", (req, res) => {
-  const { kind, title, prompt, template = kind === "website" ? "immersive" : "editorial-report", model = "gpt-5.6-sol", reasoning = "low" } = req.body ?? {};
+  const { kind, title, prompt, template = kind === "website" ? "immersive" : "editorial-report", engine = "codex", model, reasoning = "low" } = req.body ?? {};
   if (!["website", "document"].includes(kind)) return res.status(400).json({ error: "kind must be website or document" });
   if (!String(title ?? "").trim()) return res.status(400).json({ error: "Give this project a title." });
   if (String(prompt ?? "").trim().length < 20) return res.status(400).json({ error: "Describe the audience, purpose, and desired look in a little more detail." });
-  if (!/^gpt-[a-zA-Z0-9._-]+$/.test(model)) return res.status(400).json({ error: "Unsupported Codex model" });
+  if (!ENGINES[engine]) return res.status(400).json({ error: `Motor desconhecido. Disponíveis: ${Object.keys(ENGINES).join(", ")}` });
+  // A validação de modelo era `^gpt-` fixo, o que só faz sentido para o Codex.
+  // Cada motor tem seu próprio vocabulário de nomes (qwen3.6:35b-a3b,
+  // google/gemini-2.5-flash, claude-...), então validar contra o do Codex
+  // rejeitaria modelos perfeitamente válidos dos outros.
+  const chosenModel = String(model ?? "").trim() || DEFAULT_ENGINE_MODEL[engine] || "";
+  if (engine === "codex" && !/^gpt-[a-zA-Z0-9._-]+$/.test(chosenModel)) {
+    return res.status(400).json({ error: "Unsupported Codex model" });
+  }
+  if (chosenModel && !/^[a-zA-Z0-9._:\/-]{1,80}$/.test(chosenModel)) {
+    return res.status(400).json({ error: "Nome de modelo inválido" });
+  }
   if (!["low", "medium"].includes(reasoning)) return res.status(400).json({ error: "Reasoning must be low or medium" });
   if (projectProcesses.size >= 2) return res.status(429).json({ error: "Two creative builds are already running. Let one finish first." });
   const id = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
@@ -1253,7 +1295,10 @@ app.post("/api/projects", (req, res) => {
   const project = store.createProject({
     id, kind, title: String(title).trim(), prompt: String(prompt).trim(), template,
     status: "queued", stage: "Queued", progress: 0, output_dir: outputDir,
-    model, reasoning, stages: [], metadata: { engine: "Codex SDK", authentication: "cached ChatGPT login" },
+    model: chosenModel, reasoning, stages: [],
+    // A tabela nao tem coluna `engine` e o INSERT e explicito — um campo solto
+    // seria descartado em silencio. metadata_json ja e gravado e lido de volta.
+    metadata: { engine_id: engine, engine: ENGINES[engine].label, kind: ENGINES[engine].kind },
     created_at: now, updated_at: now,
   });
   startProjectBuild(project);

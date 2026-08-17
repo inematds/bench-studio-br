@@ -538,6 +538,13 @@ export default function App() {
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
+      // A resposta e um fluxo NDJSON que TERMINA num evento `done` ou `error`.
+      // Se a conexao cair no meio — servidor reiniciado, rede oscilando, aba
+      // suspensa — o laco simplesmente acabava e nada era dito: sem resultado,
+      // sem erro, sem explicacao. Foi exatamente o que aconteceu numa geracao de
+      // video real. Silencio e o pior desfecho possivel: a pessoa nao sabe se
+      // espera, se tenta de novo, ou se ja pagou por aquilo.
+      let terminou = false;
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -548,16 +555,29 @@ export default function App() {
           if (!line.trim()) continue;
           const ev = JSON.parse(line);
           if (ev.phase === "error") {
+            terminou = true;
             if (/exhausted balance|user is locked/i.test(ev.error ?? "")) setFalLocked(true);
             setError(ev.error); setJob(null);
           }
           else if (ev.phase === "done") {
+            terminou = true;
             setShots((p) => [{ ...ev.ledger, at: Date.now() }, ...p]);
             setJob(null);
             setLedger((l) => ({ ...l, summary: ev.spend }));
             refreshLedger();
           } else setJob((j) => ({ ...j, ...ev }));
         }
+      }
+      if (!terminou) {
+        setJob(null);
+        setError(
+          "A conexao com o estudio caiu antes de a geracao terminar. " +
+          "O trabalho pode ter continuado do lado do provedor — confira em Results antes de gerar de novo, " +
+          "para nao pagar duas vezes pela mesma coisa.",
+        );
+        // O provedor pode ter concluido depois da queda; o ledger e a fonte da
+        // verdade, entao vale reler em vez de assumir que nao saiu nada.
+        refreshLedger();
       }
     } catch (e) {
       if (e.name !== "AbortError") {

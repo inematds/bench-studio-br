@@ -1,4 +1,4 @@
-import { Codex } from "@openai/codex-sdk";
+import { ENGINES } from "./project_engines.mjs";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
@@ -17,8 +17,23 @@ function stage(progress, message) {
   console.log(`BENCH_STAGE:${progress}:${message}`);
 }
 
+// O caminho estava fixo no do macOS, então a geração de PDF nunca funcionaria
+// fora de um Mac — e este estúdio roda em Linux. Procura os nomes usuais e
+// permite apontar explicitamente com BENCH_CHROME.
+function findChrome() {
+  const candidates = [
+    process.env.BENCH_CHROME,
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium", "/usr/bin/chromium-browser", "/snap/bin/chromium",
+  ].filter(Boolean);
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (!found) throw new Error(`Chrome/Chromium não encontrado. Instale um, ou aponte BENCH_CHROME. Procurei em: ${candidates.join(", ")}`);
+  return found;
+}
+
 function chromePrint(htmlPath, pdfPath) {
-  const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  const chrome = findChrome();
   return new Promise((resolvePromise, reject) => {
     const child = spawn(chrome, [
       "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
@@ -65,44 +80,11 @@ When complete, reply with a short factual summary. The files, not the reply, are
 stage(8, "Preparing the creative brief");
 const eventsPath = join(outputDir, "codex-events.jsonl");
 await writeFile(eventsPath, "");
-const codex = new Codex({
-  config: { features: { apps: false, browser_use: false, computer_use: false, image_generation: false, multi_agent: false, plugins: false, skill_search: false } },
-});
-const thread = codex.startThread({
-  workingDirectory: outputDir,
-  model: request.model || "gpt-5.6-sol",
-  modelReasoningEffort: request.reasoning || "low",
-  sandboxMode: "workspace-write",
-  networkAccessEnabled: false,
-  skipGitRepoCheck: true,
-  webSearchMode: "disabled",
-  webSearchEnabled: false,
-  approvalPolicy: "never",
-});
 
-const controller = new AbortController();
-let lastEvent = Date.now();
-const timeout = setTimeout(() => controller.abort(new Error("Project build exceeded 14 minutes")), 14 * 60_000);
-const watchdog = setInterval(() => {
-  if (Date.now() - lastEvent > 6 * 60_000) controller.abort(new Error("Project build produced no progress for 6 minutes"));
-}, 15_000);
-watchdog.unref();
-
-try {
-  stage(18, `Codex is designing the ${isWebsite ? "site" : "document"}`);
-  const { events } = await thread.runStreamed(prompt, { signal: controller.signal });
-  for await (const event of events) {
-    lastEvent = Date.now();
-    await appendFile(eventsPath, `${JSON.stringify(event)}\n`);
-    if (event.type === "turn.started") stage(24, "Creative build started");
-    if (event.type === "item.started" && event.item?.type === "command_execution") stage(48, "Building and inspecting files");
-    if (event.type === "turn.failed") throw new Error(event.error?.message || "Codex build failed");
-    if (event.type === "error") throw new Error(event.message || "Codex build failed");
-  }
-} finally {
-  clearTimeout(timeout);
-  clearInterval(watchdog);
-}
+const engineName = request.engine || "codex";
+const engine = ENGINES[engineName];
+if (!engine) throw new Error(`Motor desconhecido: ${engineName}. Disponíveis: ${Object.keys(ENGINES).join(", ")}`);
+await engine.run({ prompt, outputDir, request, stage, eventsPath, isWebsite });
 
 if (isWebsite) {
   const entry = join(outputDir, "index.html");
