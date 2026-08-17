@@ -789,7 +789,10 @@ export default function PromptBar({
         <div className="bar-chips">
           <ModelPicker
             model={model}
-            models={catalog.models}
+            // Curadoria vale aqui tambem, senao "desliguei 60 modelos" nao
+            // muda nada onde o modelo e de fato escolhido. Indisponivel sai
+            // igual: oferecer um modelo sem chave e oferecer um erro.
+            models={catalog.models.filter((m) => m.enabled !== false && m.available !== false)}
             onChange={onPickModel}
             referenceActive={refs.length > 0}
             refs={refs}

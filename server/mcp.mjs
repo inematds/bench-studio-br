@@ -232,7 +232,11 @@ function buildServer() {
   }, async ({ output, accepts, search }) => {
     const catalog = await api("/api/models");
     const query = search?.toLowerCase();
+    // A curadoria do catalogo vale aqui tambem: se o estudio nao oferece um
+    // modelo, um agente conectado nao deveria ver uma lista diferente da que a
+    // pessoa ve. Duas listas divergentes e como duas verdades.
     const models = catalog.models.filter((model) =>
+      model.enabled !== false && model.available !== false &&
       (output === "all" || model.kind === output) &&
       (accepts === "any" || model.capabilities?.modalities?.includes(accepts)) &&
       (!query || `${model.label} ${model.vendor} ${model.id}`.toLowerCase().includes(query))

@@ -1774,6 +1774,21 @@ app.post("/api/generate", async (req, res) => {
   if (!model) return res.status(400).json({ error: `unknown model ${modelId}` });
   if (!prompt) return res.status(400).json({ error: "prompt required" });
 
+  // Indisponivel e DESLIGADO merecem tratamentos opostos.
+  //
+  // Sem chave, a geracao falharia de qualquer jeito — melhor falhar aqui,
+  // dizendo o que falta, do que la na frente com um erro do provedor.
+  //
+  // Desligado e so preferencia: some das listas, mas continua gerando se for
+  // pedido de proposito. Bloquear quebraria o Redo de um resultado antigo cujo
+  // modelo voce desligou depois — e quem pediu explicitamente sabe o que quer.
+  const providerStatus = (await providerAvailability())[providerOf(model)];
+  if (providerStatus && providerStatus.available === false) {
+    return res.status(400).json({
+      error: `${model.label} nao esta disponivel: ${providerStatus.reason}.${providerStatus.hint ? ` ${providerStatus.hint}` : ""}`,
+    });
+  }
+
   // Never let a reference silently disappear. The client normally switches to
   // the paired image-capable endpoint, but this guard protects direct callers
   // and catches UI races before they become a paid generation.

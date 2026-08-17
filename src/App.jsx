@@ -305,7 +305,8 @@ export default function App() {
             last = localStorage.getItem("bench.last-model") || "";
           } catch {}
           const previous = c.models.find((candidate) => candidate.id === last && (!pinned || candidate.kind === pinned));
-          return previous?.id ?? sortModels(c.models.filter((candidate) => !pinned || candidate.kind === pinned))[0]?.id ?? c.models[0]?.id ?? null;
+          const usaveis = c.models.filter((candidate) => candidate.enabled !== false && candidate.available !== false);
+          return previous?.id ?? sortModels(usaveis.filter((candidate) => !pinned || candidate.kind === pinned))[0]?.id ?? usaveis[0]?.id ?? c.models[0]?.id ?? null;
         });
         setError(null);
       } catch (e) {
