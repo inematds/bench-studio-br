@@ -172,8 +172,10 @@ export const SHOT_DIRECTION = {
   ],
 };
 
-function ShotDirection({ format, values, onChange }) {
-  const fields = SHOT_DIRECTION[format] ?? [];
+function ShotDirection({ format, values, onChange, customControls }) {
+  // Modos de fabrica trazem os submodos daqui; os criados na aba Modes trazem
+  // os deles pelo catalogo, ja no mesmo formato.
+  const fields = SHOT_DIRECTION[format] ?? customControls ?? [];
   if (!fields.length) return null;
 
   return (
@@ -640,7 +642,12 @@ export default function PromptBar({
           )}
         </div>
 
-        <ShotDirection format={format} values={shotSettings} onChange={setShotSettings} />
+        <ShotDirection
+          format={format}
+          values={shotSettings}
+          onChange={setShotSettings}
+          customControls={(catalog.formats ?? []).find((f) => f.id === format && f.custom)?.controls}
+        />
 
         <div className="bar-top">
           {refs.length > 0 && (

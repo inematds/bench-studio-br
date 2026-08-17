@@ -5,12 +5,13 @@ import ModelWall from "./ModelWall.jsx";
 import Work from "./Work.jsx";
 import Ledger from "./Ledger.jsx";
 import Tooling from "./Tooling.jsx";
+import Modes from "./Modes.jsx";
 import CreativeStudio from "./CreativeStudio.jsx";
 import { assignInputFields, imageInputFor, mediaInputsFor, mediaTypeForFile, pairedImageModel, retainCompatibleAssets, sortModels } from "./modelCatalog.js";
 
 function viewFromHash() {
   const view = window.location.hash.slice(1);
-  return ["create", "websites", "documents", "models", "work", "connect"].includes(view) ? view : "create";
+  return ["create", "websites", "documents", "models", "work", "modes", "connect"].includes(view) ? view : "create";
 }
 
 // Params driven by the schema but kept off the bar. Model defaults are already
@@ -320,8 +321,14 @@ export default function App() {
     loadCatalog();
     refreshLedger();
     refreshBilling();
+    // Criar um modo na aba Modes muda o catalogo, mas trocar de aba e so uma
+    // mudanca de hash — nao recarrega a pagina. Sem este aviso, o modo recem
+    // criado so aparecia na barra depois de um refresh manual.
+    const onModesChanged = () => loadCatalog();
+    window.addEventListener("bench:modes-changed", onModesChanged);
     return () => {
       dead = true;
+      window.removeEventListener("bench:modes-changed", onModesChanged);
       clearTimeout(retryTimer);
       clearTimeout(ledgerRetryRef.current);
     };
@@ -736,6 +743,7 @@ export default function App() {
                   />
                 </section>
               )}
+              {activeView === "modes" && <Modes />}
               {activeView === "connect" && <Tooling />}
               {activeView === "websites" && <CreativeStudio kind="website" />}
               {activeView === "documents" && <CreativeStudio kind="document" />}

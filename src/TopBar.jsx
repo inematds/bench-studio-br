@@ -28,6 +28,7 @@ export default function TopBar({ summary, activeView, onLedger, ledgerOpen, bill
         {navItem("documents", "Documents", "Create a designed PDF document")}
         {navItem("models", "Model catalog", "Browse available image and video models")}
         {navItem("work", "Results", "View your generated images and videos")}
+        {navItem("modes", "Modes", "Create your own shot modes")}
         {navItem("connect", "Connect", "Use Bench from local AI tools")}
       </nav>
 

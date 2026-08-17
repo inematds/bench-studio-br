@@ -25,6 +25,7 @@ import { agnesProvider } from "./providers/agnes.mjs";
 import { createInemaimgProvider } from "./providers/inemaimg.mjs";
 import { kieProvider } from "./providers/kie.mjs";
 import { createKlingProvider } from "./providers/kling.mjs";
+import { createModesStore } from "./modes_store.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -498,6 +499,16 @@ function sameFamily(a, b) {
   return Boolean(fa) && fa === familyOf(b);
 }
 
+// Modos personalizados: aditivos aos de fabrica, nunca sobrescrevem.
+// `isReserved` como funcao, e nao lista: FORMATS so existe mais abaixo no
+// modulo, e a checagem so acontece quando alguem salva um modo.
+const modesStore = createModesStore({ dataDir: DATA, isReserved: (id) => Boolean(FORMATS[id]) });
+function customModes() { return modesStore.list(); }
+function briefFor(format) {
+  if (FORMATS[format]) return FORMATS[format].brief ?? "";
+  return customModes().find((m) => m.id === format)?.brief ?? "";
+}
+
 function shotDirectionLines(shotSettings = {}) {
   return Object.entries(shotSettings)
     .filter(([, value]) => value !== undefined && value !== null && String(value).trim())
@@ -519,7 +530,7 @@ async function optimizePrompt({ idea, modelId, format, hasReference, refCount = 
 
   const formatBrief = format === "ugc"
     ? ugcBrief({ model, modelId, hasReference, refCount })
-    : FORMATS[format]?.brief ?? "";
+    : briefFor(format);
 
   // The aspect ratio, duration and resolution are sent as real parameters, so
   // the prompt must not argue with them. Writing "vertical 9:16" into a prompt
@@ -689,7 +700,8 @@ async function rewriteWithCodex(sys, idea) {
   return text.replace(/^```[a-z]*\n?|```$/g, "").trim();
 }
 
-// The format presets. This is the Marketing-Studio layer, except you can read it.
+// The format presets. This is the Marketing-Studio layer, except you can read it —
+// e, com a aba Modes, tambem editar sem tocar em codigo.
 const FORMATS = {
   none: { label: "Freeform", brief: "" },
   ugc: {
@@ -1059,7 +1071,10 @@ app.get("/api/models", (_req, res) => {
   res.json({
     generated_at: registry.generated_at,
     catalog_sync: CATALOG_SYNC,
-    formats: Object.entries(FORMATS).map(([id, f]) => ({ id, label: f.label })),
+    formats: [
+      ...Object.entries(FORMATS).map(([id, f]) => ({ id, label: f.label, custom: false })),
+      ...customModes().map((m) => ({ id: m.id, label: m.label, custom: true, controls: m.controls })),
+    ],
     models: registry.models.map((m) => ({
       ...m,
       // Explícito, nunca implícito: a mesma família de modelo existe por mais de
@@ -1318,6 +1333,24 @@ app.delete("/api/results/:id", (req, res) => {
     summary: spendSummary(),
     storage: store.storageSummary(),
   });
+});
+
+// ---------------------------------------------------------------- modos
+// Os modos de fabrica continuam em codigo; estes sao os que a pessoa cria.
+app.get("/api/modes", (_req, res) => {
+  res.json({
+    builtin: Object.entries(FORMATS).map(([id, f]) => ({ id, label: f.label, brief: f.brief, custom: false })),
+    custom: customModes(),
+  });
+});
+
+app.post("/api/modes", (req, res) => {
+  try { res.json(modesStore.save(req.body ?? {})); }
+  catch (error) { res.status(400).json({ error: String(error.message ?? error) }); }
+});
+
+app.delete("/api/modes/:id", (req, res) => {
+  res.json({ removed: modesStore.remove(req.params.id) });
 });
 
 app.post("/api/reload", (_req, res) => { reloadKnowledge(); res.json({ ok: true, profiles: Object.keys(PROFILES).length }); });

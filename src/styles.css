@@ -1214,3 +1214,47 @@ p { text-wrap: pretty; }
   border-radius: 8px;
   border: 1px solid var(--line, rgba(255, 255, 255, 0.14));
 }
+
+/* Aba Modes: criar modos sem tocar em codigo. */
+.modes-page { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+.modes-hero h1 { margin: 6px 0 10px; }
+.modes-hero p { max-width: 62ch; opacity: .8; line-height: 1.55; }
+.modes-form { margin-top: 28px; display: grid; gap: 18px; }
+.modes-form label { display: grid; gap: 8px; }
+.modes-form label > span { font-size: 13px; opacity: .75; }
+.modes-form input, .modes-form textarea {
+  width: 100%; padding: 11px 13px; border-radius: 10px;
+  border: 1px solid var(--line, rgba(255,255,255,.14));
+  background: rgba(255,255,255,.03); color: inherit; font: inherit; line-height: 1.5;
+}
+.modes-form textarea { resize: vertical; }
+.modes-controls { display: grid; gap: 10px; }
+.modes-controls-head { display: flex; align-items: center; justify-content: space-between; }
+.modes-controls-head button, .modes-actions button, .modes-card-head button {
+  padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line, rgba(255,255,255,.14));
+  background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.modes-controls-head button:hover, .modes-actions button:hover { background: rgba(255,255,255,.06); }
+.modes-control { display: grid; grid-template-columns: minmax(120px, 1fr) 3fr auto; gap: 8px; align-items: center; }
+.modes-remove { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 18px; opacity: .6; }
+.modes-remove:hover { opacity: 1; }
+.modes-hint { opacity: .6; font-size: 13px; }
+.modes-error {
+  padding: 10px 13px; border-radius: 10px;
+  border: 1px solid rgba(255,120,120,.4); background: rgba(255,80,80,.08);
+}
+.modes-actions { display: flex; gap: 10px; }
+.modes-save { background: var(--accent, #6D7CFF) !important; border-color: transparent !important; color: #fff; }
+.modes-list { margin-top: 44px; display: grid; gap: 14px; }
+.modes-list h2 { margin: 22px 0 2px; font-size: 15px; text-transform: uppercase; letter-spacing: .08em; opacity: .7; }
+.modes-list h2 span { opacity: .5; margin-left: 6px; }
+.modes-card {
+  padding: 16px; border-radius: 12px;
+  border: 1px solid var(--line, rgba(255,255,255,.12)); background: rgba(255,255,255,.02);
+}
+.modes-card.builtin { opacity: .72; }
+.modes-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.modes-card-head > div { display: flex; gap: 8px; }
+.modes-card p { margin: 0; line-height: 1.55; opacity: .85; }
+.modes-card-controls { margin: 10px 0 0; padding-left: 18px; opacity: .8; font-size: 14px; }
+.modes-card-head .danger { border-color: rgba(255,120,120,.35); }
