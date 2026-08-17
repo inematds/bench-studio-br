@@ -584,7 +584,21 @@ export default function App() {
     // sem pagar outra reescrita.
     setIdea(shot.raw_idea || shot.prompt || "");
     setRewritten(shot.prompt ? { prompt: shot.prompt, optimized: true, restored: true } : null);
-    const assets = (shot.input_assets ?? []).map((asset) => ({ ...asset, url: asset.local_url || asset.url }));
+    // `preview` é o que a barra usa para desenhar a miniatura, e no upload ele é
+    // um object URL criado a partir do File — memória do navegador, que nunca foi
+    // persistida e não existe mais numa sessão futura. Sem reconstruí-lo a partir
+    // das URLs que ficaram gravadas, a referência restaurada aparece como imagem
+    // quebrada mesmo estando íntegra no arquivo.
+    const assets = (shot.input_assets ?? []).map((asset) => {
+      const source = asset.local_url || asset.url;
+      return {
+        ...asset,
+        url: source,
+        preview: asset.preview || source,
+        name: asset.name || "referência",
+        media_type: asset.media_type || "image",
+      };
+    });
     setRefs(assets);
     refsRef.current = assets;
     setQuote(null);
