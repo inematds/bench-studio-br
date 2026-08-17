@@ -516,7 +516,6 @@ async function optimizePrompt({ idea, modelId, format, hasReference, refCount = 
   const profile = findProfile(modelId);
   const model = byId.get(modelId);
   if (!profile) return { prompt: idea, optimized: false, reason: "no profile for this model yet" };
-  if (!GOOGLE_API_KEY) return { prompt: idea, optimized: false, reason: "no GOOGLE_API_KEY for the rewriter" };
 
   const formatBrief = format === "ugc"
     ? ugcBrief({ model, modelId, hasReference, refCount })
@@ -573,19 +572,121 @@ Return ONLY the rewritten prompt. No preamble, no quotes, no explanation, no mar
     },
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GOOGLE_API_KEY}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    return { prompt: idea, optimized: false, reason: `rewriter HTTP ${res.status}` };
+  // O refino não é enfeite: para a Agnes ele é o que traduz a ideia para inglês,
+  // e sem isso a API recusa português com HTTP 400. Um único rewriter significa
+  // que a cota dele derruba o estúdio inteiro — foi o que aconteceu em
+  // 2026-08-16, quando o free tier do Gemini bateu
+  // `GenerateRequestsPerDayPerProjectPerModel-FreeTier` e TODOS os modelos
+  // passaram a receber o prompt cru, em português. Por isso: uma cadeia.
+  const rewriters = [
+    { name: "gemini-3-flash-preview", run: () => rewriteWithGemini(body) },
+    { name: "openrouter", run: () => rewriteWithOpenRouter(sys, idea) },
+    { name: "codex", run: () => rewriteWithCodex(sys, idea) },
+  ];
+
+  const failures = [];
+  for (const rewriter of rewriters) {
+    try {
+      const text = await rewriter.run();
+      if (text) {
+        return {
+          prompt: text,
+          optimized: true,
+          profile_used: profile.family ?? modelId,
+          rewriter: rewriter.name,
+          // Quem assumiu importa: se o primeiro caiu, dizer isso evita a
+          // suspeita de que o perfil do modelo é que parou de funcionar.
+          fallback_from: failures.length ? failures.map((f) => f.name) : undefined,
+        };
+      }
+      failures.push({ name: rewriter.name, reason: "resposta vazia" });
+    } catch (error) {
+      failures.push({ name: rewriter.name, reason: String(error.message ?? error).slice(0, 120) });
+    }
   }
+  return {
+    prompt: idea,
+    optimized: false,
+    reason: `nenhum rewriter disponível: ${failures.map((f) => `${f.name} (${f.reason})`).join("; ")}`,
+  };
+}
+
+async function rewriteWithGemini(body) {
+  if (!GOOGLE_API_KEY) throw new Error("sem GOOGLE_API_KEY");
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GOOGLE_API_KEY}`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(90000) },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const j = await res.json();
-  const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text).join("").trim();
-  if (!text) return { prompt: idea, optimized: false, reason: "rewriter returned nothing" };
-  return { prompt: text, optimized: true, profile_used: profile.family ?? modelId };
+  return j.candidates?.[0]?.content?.parts?.map((p) => p.text).join("").trim();
+}
+
+async function rewriteWithOpenRouter(sys, idea) {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("sem OPENROUTER_API_KEY");
+  // O modelo configurado no ambiente pode ter sido aposentado: o
+  // OPENROUTER_MODEL_DEFAULT herdado do imkt5 era `gemini-2.0-flash-exp:free`,
+  // que o OpenRouter respondeu com 404 "No endpoints found" em 2026-08-16. Um
+  // default do ambiente que envelheceu não pode derrubar o elo inteiro da
+  // cadeia, então há um segundo candidato conhecido.
+  const candidates = [process.env.OPENROUTER_MODEL_DEFAULT, "google/gemini-2.5-flash"].filter(Boolean);
+  let last;
+  for (const model of candidates) {
+    const res = await fetch(`${process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: sys }, { role: "user", content: `Idea: ${idea}` }],
+        temperature: 0.7,
+        // MEDIDO 2026-08-16: sem este teto o OpenRouter reserva 65535 tokens e
+        // recusa a conta com HTTP 402 ("You requested up to 65535 tokens, but
+        // can only afford 10535"). Uma reescrita de prompt cabe em centenas de
+        // tokens, então o teto não corta nada e mantém o elo vivo mesmo com
+        // saldo baixo.
+        max_tokens: 1000,
+      }),
+      signal: AbortSignal.timeout(90000),
+    });
+    if (res.ok) {
+      const j = await res.json();
+      const text = j.choices?.[0]?.message?.content?.trim();
+      if (text) return text;
+      last = new Error(`${model}: resposta vazia`);
+      continue;
+    }
+    last = new Error(`${model}: HTTP ${res.status}`);
+    // 404 = modelo inexistente, vale tentar o próximo. Outros erros (401, 402,
+    // 429) valem para a conta inteira: trocar de modelo não resolve.
+    if (res.status !== 404) break;
+  }
+  throw last;
+}
+
+// Último recurso: o Codex já está instalado e autenticado para os workspaces de
+// Website e Document, então reescrever um prompt não custa chave nova nem
+// dinheiro novo. Sem rede e sem escrita em disco — é só texto.
+async function rewriteWithCodex(sys, idea) {
+  const { Codex } = await import("@openai/codex-sdk");
+  const codex = new Codex({
+    config: { features: { apps: false, browser_use: false, computer_use: false, image_generation: false, multi_agent: false, plugins: false, skill_search: false } },
+  });
+  const thread = codex.startThread({
+    workingDirectory: DATA,
+    model: "gpt-5.6-sol",
+    modelReasoningEffort: "low",
+    sandboxMode: "read-only",
+    networkAccessEnabled: false,
+    skipGitRepoCheck: true,
+    webSearchMode: "disabled",
+    webSearchEnabled: false,
+    approvalPolicy: "never",
+  });
+  const turn = await thread.run(`${sys}\n\nIdea: ${idea}`);
+  const text = String(turn?.finalResponse ?? "").trim();
+  // O Codex conversa por natureza; o contrato aqui é devolver só o prompt.
+  return text.replace(/^```[a-z]*\n?|```$/g, "").trim();
 }
 
 // The format presets. This is the Marketing-Studio layer, except you can read it.
@@ -950,7 +1051,7 @@ app.get("/api/health", (_req, res) => {
     discovered_new_endpoints: CATALOG_SYNC?.new_endpoint_count ?? null,
     persistence: "sqlite",
     storage: store.storageSummary(),
-    rewriter: GOOGLE_API_KEY ? "gemini-3-flash-preview" : "disabled (no GOOGLE_API_KEY)",
+    rewriter: [GOOGLE_API_KEY && "gemini-3-flash-preview", process.env.OPENROUTER_API_KEY && "openrouter", "codex"].filter(Boolean).join(" -> "),
   });
 });
 
