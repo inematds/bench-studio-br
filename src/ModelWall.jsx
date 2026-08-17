@@ -66,9 +66,11 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
   const visiveis = (catalog.models ?? []).filter(matches);
   const filtrando = provider !== "all" || output !== "all" || status !== "all" || query.trim();
 
-  const freeIds = (catalog.models ?? [])
-    .filter((m) => ["agnes", "inemaimg"].includes(m.provider))
-    .map((m) => m.id);
+  // Custo vem da classe que o servidor deriva do adapter (cost_class), nao de
+  // uma lista de nomes de provedor aqui: quem cobra hoje pode nao cobrar amanha.
+  const idsComClasse = (classe) => (catalog.models ?? []).filter((m) => m.cost_class === classe).map((m) => m.id);
+  const freeIds = idsComClasse("free");
+  const creditIds = idsComClasse("credits");
   const localIds = (catalog.models ?? []).filter((m) => m.provider === "inemaimg").map((m) => m.id);
 
   // Cada grupo é um INTERRUPTOR, não um "só isto": clicar em Free liga os
