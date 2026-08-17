@@ -321,6 +321,9 @@ export default {
     fastLane: "Via rápida",
     cost: {
       free: "sem custo",
+      // `paid` so aparece quando o modelo cobra mas nao publicou preco — com
+      // preco na mao, o valor vence este rotulo.
+      paid: "cobra por uso",
       credits: "créditos do plano",
       unknown: "preço só após rodar",
     },

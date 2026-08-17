@@ -320,6 +320,7 @@ export default {
     fastLane: "Fast lane",
     cost: {
       free: "no cost",
+      paid: "billed per use",
       credits: "plan credits",
       unknown: "priced after run",
     },

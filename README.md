@@ -502,6 +502,21 @@ Traduções vivem em `src/i18n/pt-BR.js` e `src/i18n/en.js` — nenhuma frase é
 escrita dentro do JSX. Para acrescentar um idioma, copie um dos dois arquivos,
 registre-o em `src/i18n/index.jsx` e pronto.
 
+## Known issues
+
+Honest state of the test suite at 1.4.2, so you know what you are looking at
+when `npm run test:release` is not all green:
+
+| Test | Status |
+| --- | --- |
+| `an attachment follows compatible models…` (desktop + mobile) | Fails. Pre-dates this fork's i18n work; the model it reaches for is not offered when your catalog differs. |
+| `creator visual contract stays stable` (mobile) | Fails. The committed baseline was captured on macOS; a Linux run renders different type. |
+| `invalid generation and project requests…` (`tests/api.test.mjs`) | Needs a working `FAL_KEY`; without one the model it probes reports "unavailable" before the case under test. |
+| `every workspace has no serious accessibility violations` | Passes with providers reachable. With most models unavailable, the dimmed cards drop below the AA contrast threshold. |
+
+`npm run test:contracts`, `npm run test:mcp` and the remaining 25 end-to-end
+tests pass. Fixes welcome.
+
 ## Fork and license
 
 This is a fork of **[promptadvisers/bench-studio-public](https://github.com/promptadvisers/bench-studio-public)** (MIT).
