@@ -8,16 +8,17 @@ A local-first creative studio for images, videos, websites, designed PDFs, and A
 
 [![MIT License](https://img.shields.io/badge/license-MIT-6D7CFF.svg)](LICENSE)
 ![Node 22.5+](https://img.shields.io/badge/node-22.5%2B-171A21.svg)
-![37 model routes](https://img.shields.io/badge/model_routes-37-6D7CFF.svg)
+![73 model routes](https://img.shields.io/badge/model_routes-73-6D7CFF.svg)
+![5 providers](https://img.shields.io/badge/providers-5-6D7CFF.svg)
 ![MCP ready](https://img.shields.io/badge/MCP-ready-171A21.svg)
 
-**[Quick start](#run-it-in-three-minutes)** · **[How it works](#the-system-in-30-seconds)** · **[Connect an agent](#use-it-from-claude-codex-or-cursor)** · **[Security](SECURITY.md)**
+**[Quick start](#run-it-in-three-minutes)** · **[Tips](#tips-that-save-you-time-and-money)** · **[How it works in depth](docs/COMO-FUNCIONA.md)** · **[What changed and why](docs/HISTORICO.md)** · **[Security](#security-and-privacy)**
 
 </div>
 
 ![Bench Studio model catalog](docs/bench-studio-models.png)
 
-Bench Studio puts **37 curated image and video routes**, prompt refinement,
+Bench Studio puts **73 curated image and video routes across 5 providers**, prompt refinement,
 capability-aware controls, local file custody, and a transparent cost ledger
 behind one interface. The same system is available to Claude, Codex, Cursor,
 and other compatible clients through MCP.
@@ -54,12 +55,32 @@ portable layer that connects your ideas, tools, providers, files, and costs.
 
 ### What you need
 
-- Node.js **22.5+**; Node 24 is recommended because Bench uses `node:sqlite`.
+**Required**
+
+- Node.js **22.5+**; Node 24 recommended, because Bench uses `node:sqlite`.
 - npm.
-- A [fal.ai](https://fal.ai/) API key for image and video generation.
-- Google Chrome for PDF printing and visual preflight.
-- Optional: a Google API key for prompt refinement.
-- Optional: a signed-in Codex installation for website and document builds.
+
+**That is the whole list.** Every provider is optional and degrades on its own:
+a missing key makes those models show as unavailable, with the reason and how to
+fix it — the studio still starts. Bring at least one of these to generate
+anything:
+
+| Provider | Models | Cost | What you need |
+|---|---|---|---|
+| [fal.ai](https://fal.ai/dashboard/keys) | 37 | dollars, live pricing | `FAL_KEY` |
+| [Kling](https://klingai.com) | 26 | plan credits | `npm i -g @klingai/cli-global && kling login` |
+| [Agnes AI](https://apihub.agnes-ai.com) | 4 | zero | `AGNES_API_KEY` |
+| [kie.ai](https://kie.ai/api-key) | 4 | credits | `KIE_API_KEY` |
+| [inemaimg](https://github.com/inematds/inemaimg) | 2 | zero (your GPU) | a running local server |
+
+**Optional, but worth it**
+
+- A [Google AI Studio](https://aistudio.google.com/apikey) or
+  [OpenRouter](https://openrouter.ai/keys) key for prompt refinement. Without
+  any refiner your prompt is sent raw — which Agnes rejects, because it requires
+  English.
+- Google Chrome, for PDF printing and visual preflight.
+- A signed-in Codex or Claude Code, for agent-driven website and document builds.
 
 ### 1. Clone and install
 
@@ -71,16 +92,25 @@ npm install
 
 ### 2. Add server-side credentials
 
-Bench reads credentials from `~/.env`. Never put provider keys in Vite
-variables or commit them to the repository.
-
-```dotenv
-FAL_KEY=<your-fal-key>
-GOOGLE_API_KEY=<your-optional-google-key>
+```bash
+cp .env.example .env
 ```
 
-`FAL_KEY` is required for media generation. Without `GOOGLE_API_KEY`, Bench
-still runs and submits your original prompt without refinement.
+Fill in whatever you have. `.env.example` documents all 16 variables — what each
+one unlocks, how it bills, and where to create the key. Keys stay server-side and
+are never sent to the browser; `.env` is gitignored and written with owner-only
+permissions.
+
+Reading order, highest first:
+
+```
+exported in your shell  >  .env in the project  >  ~/.env
+```
+
+**Or skip the file entirely:** start the studio and use the **Config** button in
+the top right. It shows every setting — present or missing, where the value came
+from, and the last 4 characters — lets you test each provider, and writes `.env`
+for you. For safety it only accepts writes from the machine running the studio.
 
 ### 3. Start the studio
 
@@ -101,6 +131,53 @@ If either port is occupied:
 ```bash
 PORT=8790 BENCH_API_PORT=8790 BENCH_WEB_PORT=5201 npm run dev
 ```
+
+## Tips that save you time and money
+
+**Start with the free routes.** Agnes (4 models) and inemaimg (2, on your own
+GPU) cost nothing. In the Model catalog, the **No cost** switch turns exactly
+that group on. Use them to find the prompt that works, then spend on the model
+that renders it best.
+
+**Curate the catalog once.** 73 models is a lot to scroll. Filter by provider,
+then use "Disable those N" to hide what you will not use. Curation is a
+preference, not a block: it hides models from the pickers but a **Redo** of an
+old result still works. Deleting `data/catalog-prefs.json` restores the factory
+state.
+
+**Refine before you spend.** The refined prompt is editable before submission.
+Read it. It is the cheapest place to catch a misunderstanding — after you submit,
+the fix costs another run.
+
+**Keep two refiners configured.** The chain is Gemini → OpenRouter → local Codex.
+With a single one, an exhausted quota takes the whole studio down: the prompt
+goes through raw, and Agnes rejects non-English with an error that looks like an
+Agnes problem but is not.
+
+**Redo instead of retyping.** Every result carries the model, controls, refined
+prompt, original idea and attachments. Redo restores all of it, so you can tweak
+one thing without paying for a rewrite.
+
+**The same model can exist on two routes.** Veo, Nano Banana, gpt-image and
+gemini-image appear via more than one provider — with different bills (dollars on
+fal, plan credits on Kling). The provider is shown next to the name in the
+picker; it is a real choice, not a duplicate.
+
+**Kling never auto-retries, on purpose.** Every Kling job is charged, including
+failures. Nothing is resubmitted behind your back.
+
+**Watch disk, not CPU.** Every file is mirrored locally because provider URLs
+expire — 24h on Kling, temporary on Agnes. Roughly 1.3 MB per image and 0.7–5 MB
+per video. The studio idles at 274 MB of RAM.
+
+**Building a website? Prefer an agent.** Codex and Claude Code write the files
+themselves and fix their own mistakes. The model engines (local Qwen, OpenRouter)
+only return text, so they need no sandbox and cost nothing — but they need more
+supervision.
+
+**Point the builder at a reference you own.** Set a site or PDF of yours in
+Config and the builder calibrates its finish against it — tokens, fonts, palette,
+radii. It never copies brand, copy, structure or files.
 
 ## What you can make
 
@@ -123,7 +200,7 @@ flowchart LR
     Client -->|Create manually| UI["React studio"]
     Client -->|Delegate to an agent| MCP["MCP server"]
 
-    UI --> API["Loopback-only API"]
+    UI --> API["Local API"]
     MCP --> API
 
     API --> Prompt["Editable prompt refinement"]
@@ -131,8 +208,8 @@ flowchart LR
     API --> Quote["Quote and pricing engine"]
 
     Prompt --> Router
-    Router --> Fal["fal.ai model APIs"]
-    Fal --> Mirror["Local media mirror"]
+    Router --> Prov["fal · Kling · Agnes · kie · inemaimg"]
+    Prov --> Mirror["Local media mirror"]
 
     API --> Projects["Website and PDF runner"]
     Projects --> Archive["Inspectable project source"]
@@ -307,6 +384,16 @@ bench-studio-public/
 └── package.json
 ```
 
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [`docs/COMO-FUNCIONA.md`](docs/COMO-FUNCIONA.md) | How the system works inside: the provider contract, the traps measured per provider, cost classes, availability vs curation, the refine chain, the builder, and the security model |
+| [`docs/HISTORICO.md`](docs/HISTORICO.md) | Everything built on top of the original kit, and every bug found — separating the ones that were already there from the ones introduced along the way |
+| [`CHANGELOG.md`](CHANGELOG.md) | Version by version |
+| [`.env.example`](.env.example) | All 16 settings, what each unlocks, and where to get the key |
+| [`SECURITY.md`](SECURITY.md) | Threat model and reporting |
+
 ## Useful commands
 
 | Command | Purpose |
@@ -317,18 +404,52 @@ bench-studio-public/
 | `npm run capabilities` | Rebuild the capability manifest. |
 | `npm run catalog:sync` | Refresh provider discovery and pricing evidence. |
 | `npm run mcp` | Start the stdio MCP server. |
+| `npm run set-password` | Set or change the studio password (`-- --remove` clears it). |
 | `npm run test:contracts` | Run API, persistence, and model-contract tests. |
 | `npm run test:mcp` | Smoke-test MCP discovery and media behavior. |
-| `npm run test:e2e` | Run browser journeys and accessibility checks. |
+| `npm run test:e2e` | Run browser journeys and accessibility checks (needs `npx playwright install chromium` once). |
 | `npm run test:release` | Run the complete release gate. |
 
 ## Security and privacy
 
-- The API binds to loopback by default. Do not expose it publicly without
-  authentication and a deliberate threat model.
-- Secrets are read server-side from `~/.env` and are never returned to the UI.
-- `.env*` is ignored except for the placeholder-only `.env.example`.
-- Local data, reports, generated builds, test output, and handoffs are ignored.
+**Default posture.** Both ports bind to loopback and there is **no password** —
+talking to your own machine should not require one. Nothing leaves your machine
+except the calls you make to the providers you configured.
+
+**Keys.** Read server-side, never returned to the UI. The Config screen shows
+presence, origin and the last 4 characters — never the value. `.env` is written
+with owner-only permissions (`600`) and is gitignored.
+
+**Optional password.** Set `BENCH_PASSWORD` and the API requires a session:
+
+```bash
+npm run set-password              # asks for it, without echoing
+npm run set-password -- --remove
+```
+
+Stored as a scrypt hash, so nobody reads your password out of the file. Setting
+or changing it signs everyone else out immediately. Forgot it? Delete the line
+from `.env` and restart — that is the recovery path, on purpose, because whoever
+has that file already has the keys inside it.
+
+The password protects the API and your generated files. The interface shell is
+still served to anyone who reaches the port, but without a session it shows
+nothing. Hiding the shell too is a reverse proxy's job, not this process's.
+
+**Writing settings is machine-only.** Even with a valid session, `POST` to the
+config endpoints is refused from the network — changing keys requires being at
+the machine. This survives the dev proxy: the API only trusts a forwarded origin
+when the socket is already loopback, so a request from the network cannot forge
+one.
+
+**Exposing it.** `./dev.sh --lan` publishes the interface to your local network.
+Prefer reaching the studio over Tailscale or behind a password-protected reverse
+proxy rather than an open port. Generated media may still be retained by the
+provider under that provider's terms, and website builds can invoke a locally
+authenticated coding agent — review generated source before deploying it.
+
+Read [SECURITY.md](SECURITY.md) before exposing, modifying, or redistributing
+the service.
 - Generated media may still be retained by an external provider according to
   that provider's terms.
 - Website and document creation can invoke a locally authenticated coding
