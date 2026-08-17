@@ -781,7 +781,11 @@ p { text-wrap: pretty; }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(166px, 1fr));
+  /* auto-FILL, nao auto-fit: com poucos itens (ex.: filtrar 4 modelos da Agnes)
+     o auto-fit colapsa as trilhas vazias e estica os cards restantes ate a
+     largura toda. O auto-fill mantem as trilhas, entao card filtrado tem o
+     mesmo tamanho de card nao filtrado. */
+  grid-template-columns: repeat(auto-fill, minmax(166px, 1fr));
   gap: 11px;
 }
 
@@ -1334,10 +1338,21 @@ p { text-wrap: pretty; }
 }
 .results-filter { display: grid; gap: 5px; }
 .results-filter > span { font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; opacity: .55; }
-.results-filter select {
+.results-filter select,
+.catalog-switch-inline select {
   min-width: 150px; padding: 8px 11px; border-radius: 9px;
   border: 1px solid var(--line, rgba(255,255,255,.14));
-  background: rgba(255,255,255,.03); color: inherit; font: inherit; font-size: 13px;
+  /* Fundo OPACO de proposito: a lista suspensa do select nativo herda esta cor,
+     e com um rgba quase transparente ela virava texto claro sobre fundo claro —
+     a lista existia e nao dava para ler. */
+  background: #171a21; color: var(--text, #f0ece4); font: inherit; font-size: 13px;
+}
+.catalog-switch-inline select { min-width: 96px; padding: 5px 8px; }
+/* Firefox e alguns temas do Linux exigem a cor tambem em cada opcao. */
+.results-filter select option,
+.catalog-switch-inline select option {
+  background: #171a21;
+  color: #f0ece4;
 }
 .results-filter.wide select { min-width: 240px; }
 .results-filter-clear {
@@ -1386,4 +1401,12 @@ p { text-wrap: pretty; }
   min-width: 220px; padding: 8px 11px; border-radius: 9px;
   border: 1px solid var(--line, rgba(255,255,255,.14));
   background: rgba(255,255,255,.03); color: inherit; font: inherit; font-size: 13px;
+}
+
+/* Versao ao lado da marca. */
+.brand-version {
+  margin-left: 8px; padding: 2px 7px; border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px;
+  letter-spacing: .02em; opacity: .55;
+  border: 1px solid var(--line, rgba(255,255,255,.14));
 }

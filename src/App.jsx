@@ -256,6 +256,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [syncingCatalog, setSyncingCatalog] = useState(false);
   const [settings, setSettings] = useState(null);
+  const [health, setHealth] = useState(null);
 
   useEffect(() => {
     const syncView = () => {
@@ -322,6 +323,7 @@ export default function App() {
 
     loadCatalog();
     readJson("/api/settings").then(setSettings).catch(() => {});
+    readJson("/api/health").then(setHealth).catch(() => {});
     refreshLedger();
     refreshBilling();
     // Criar um modo na aba Modes muda o catalogo, mas trocar de aba e so uma
@@ -625,7 +627,7 @@ export default function App() {
         ...asset,
         url: source,
         preview: asset.preview || source,
-        name: asset.name || "referência",
+        name: asset.name || "reference",
         media_type: asset.media_type || "image",
       };
     });
@@ -724,6 +726,7 @@ export default function App() {
       <TopBar
         summary={ledger.summary}
         activeView={activeView}
+        version={health?.version}
         onLedger={() => { setShowCredits(false); setShowLedger((v) => !v); }}
         ledgerOpen={showLedger}
         billing={billing}

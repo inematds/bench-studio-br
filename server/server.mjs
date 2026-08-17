@@ -77,6 +77,10 @@ if (migratedRows) console.log(`migrated ${migratedRows} legacy ledger rows into 
 
 // ---------------------------------------------------------------- registry + profiles + pricing
 
+// Fonte unica da versao: o package.json. Duplicar em constante e como duplicar
+// chave — uma hora as duas divergem e ninguem sabe qual vale.
+const APP_VERSION = JSON.parse(readFileSync(join(HERE, "..", "package.json"), "utf8")).version;
+
 const registry = JSON.parse(readFileSync(join(HERE, "registry.json"), "utf8"));
 
 // Modelos de providers não-fal entram aqui — antes do byId e antes do manifesto
@@ -1305,6 +1309,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 120
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
+    version: APP_VERSION,
     models: registry.models.length,
     schema_source: registry.source,
     image_input_models: registry.models.filter((model) => imageInputForModel(model)).length,

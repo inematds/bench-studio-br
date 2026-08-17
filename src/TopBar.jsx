@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen }) {
+export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen, version }) {
   const month = summary?.month ?? 0;
   const all = summary?.all_time ?? 0;
   const gens = summary?.total_generations ?? 0;
@@ -20,6 +20,7 @@ export default function TopBar({ summary, activeView, onLedger, ledgerOpen, bill
       <div className="brand">
         Bench
         <small>studio</small>
+        {version && <span className="brand-version" title={`Bench Studio ${version}`}>v{version}</span>}
       </div>
 
       <nav className="top-nav" aria-label="Primary navigation">

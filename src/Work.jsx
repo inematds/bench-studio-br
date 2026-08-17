@@ -56,7 +56,7 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
       <div className="wall-head">
         <h2>{standalone ? "Library" : "Your results"}</h2>
-        <span>{filtered.length}{filtering ? ` de ${shots.length}` : ""} {filtered.length === 1 ? "result" : "results"}</span>
+        <span>{filtered.length}{filtering ? ` of ${shots.length}` : ""} {filtered.length === 1 ? "result" : "results"}</span>
         <div className="rule" />
         <span>${spent.toFixed(3)} spent</span>
       </div>
@@ -64,11 +64,11 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
       {shots.length > 1 && (
         <div className="results-filters" role="group" aria-label="Filtrar resultados">
           <Filter label="Tipo" value={kind} onChange={setKind} options={kinds} total={shots.length} />
-          <Filter label="Provedor" value={provider} onChange={setProvider} options={providers} total={shots.length} />
+          <Filter label="Provider" value={provider} onChange={setProvider} options={providers} total={shots.length} />
           {models.length > 1 && <Filter label="Modelo" value={model} onChange={setModel} options={models} total={filtered.length} wide />}
           {filtering && (
             <button type="button" className="results-filter-clear" onClick={() => { setKind("all"); setProvider("all"); setModel("all"); }}>
-              Limpar
+              Clear
             </button>
           )}
         </div>
@@ -98,7 +98,7 @@ function Filter({ label, value, onChange, options, total, wide }) {
     <label className={`results-filter${wide ? " wide" : ""}`}>
       <span>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="all">Todos ({total})</option>
+        <option value="all">All ({total})</option>
         {options.map(([option, count]) => (
           <option key={option} value={option}>{option} ({count})</option>
         ))}

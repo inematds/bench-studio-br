@@ -64,91 +64,91 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
 
   return (
     <div className="wall model-wall">
-      <div className="catalog-filters" role="group" aria-label="Filtrar catálogo">
+      <div className="catalog-filters" role="group" aria-label="Filter catalog">
         <label className="results-filter">
-          <span>Provedor</span>
+          <span>Provider</span>
           <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-            <option value="all">Todos ({stats.total})</option>
+            <option value="all">All ({stats.total})</option>
             {providerOptions.map(([id, count]) => <option key={id} value={id}>{id} ({count})</option>)}
           </select>
         </label>
         <label className="results-filter">
-          <span>Saída</span>
+          <span>Output</span>
           <select value={output} onChange={(e) => setOutput(e.target.value)}>
-            <option value="all">Tudo</option>
-            <option value="image">Imagem</option>
-            <option value="video">Vídeo</option>
+            <option value="all">All</option>
+            <option value="image">Image</option>
+            <option value="video">Video</option>
           </select>
         </label>
         <label className="results-filter">
-          <span>Estado</span>
+          <span>Status</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">Todos</option>
-            <option value="on">Ligados</option>
-            <option value="off">Desligados ({stats.off})</option>
-            <option value="unavailable">Indisponíveis ({stats.unavailable})</option>
+            <option value="all">All</option>
+            <option value="on">Enabled</option>
+            <option value="off">Disabled ({stats.off})</option>
+            <option value="unavailable">Unavailable ({stats.unavailable})</option>
           </select>
         </label>
         <label className="results-filter wide">
-          <span>Buscar</span>
-          <input value={query} placeholder="nome, fabricante ou id" onChange={(e) => setQuery(e.target.value)} />
+          <span>Search</span>
+          <input value={query} placeholder="name, vendor or id" onChange={(e) => setQuery(e.target.value)} />
         </label>
         {filtrando && (
           <button type="button" className="results-filter-clear" onClick={() => { setProvider("all"); setOutput("all"); setStatus("all"); setQuery(""); }}>
-            Limpar
+            Clear
           </button>
         )}
       </div>
 
       <div className="catalog-toolbar">
         <div>
-          <strong>{filtrando ? `${visiveis.length} de ${stats.total}` : stats.total} modelos</strong>
-          {stats.unavailable > 0 && <span>{stats.unavailable} indisponíveis</span>}
-          {stats.off > 0 && <span>{stats.off} desligados por você</span>}
+          <strong>{filtrando ? `${visiveis.length} of ${stats.total}` : stats.total} models</strong>
+          {stats.unavailable > 0 && <span>{stats.unavailable} unavailable</span>}
+          {stats.off > 0 && <span>{stats.off} turned off by you</span>}
         </div>
         <div className="catalog-toolbar-actions">
           {stats.unavailable > 0 && (
             <label className="catalog-switch-inline">
               <input type="checkbox" checked={showUnavailable} onChange={(e) => setShowUnavailable(e.target.checked)} />
-              Mostrar indisponíveis
+              Show unavailable
             </label>
           )}
           {onRefresh && (
-            <button type="button" onClick={() => onRefresh()} title="Descobre modelos novos, repuxa os precos ao vivo e reconfere as chaves">
-              Atualizar catálogo
+            <button type="button" onClick={() => onRefresh()} title="Discovers new models, pulls live prices, and rechecks keys">
+              Refresh catalog
             </button>
           )}
           {onSettings && (
-            <label className="catalog-switch-inline" title="Com que frequência o catálogo se atualiza sozinho">
+            <label className="catalog-switch-inline" title="How often the catalog refreshes on its own">
               auto
               <select
                 value={String(settings?.catalog_refresh_hours ?? 6)}
                 onChange={(e) => onSettings({ catalog_refresh_hours: Number(e.target.value) })}
               >
-                <option value="0">só manual</option>
+                <option value="0">manual only</option>
                 <option value="1">1h</option>
                 <option value="6">6h</option>
                 <option value="24">24h</option>
-                <option value="168">semanal</option>
+                <option value="168">weekly</option>
               </select>
             </label>
           )}
           {onToggle && (
             <button type="button" className={curating ? "on" : ""} onClick={() => setCurating((v) => !v)}>
-              {curating ? "Concluir curadoria" : "Escolher modelos"}
+              {curating ? "Done curating" : "Choose models"}
             </button>
           )}
           {curating && onBulk && (
             <>
               {filtrando && (
                 <>
-                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), true)}>Ligar os {visiveis.length} filtrados</button>
-                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), false)}>Desligar os {visiveis.length}</button>
+                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), true)}>Enable the {visiveis.length} filtered</button>
+                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), false)}>Disable those {visiveis.length}</button>
                 </>
               )}
-              <button type="button" onClick={() => onBulk({ only: freeIds })}>Só os gratuitos</button>
-              <button type="button" onClick={() => onBulk({ only: localIds })}>Só os locais</button>
-              <button type="button" onClick={() => onBulk({ reset: true })}>Ligar tudo</button>
+              <button type="button" onClick={() => onBulk({ only: freeIds })}>Free only</button>
+              <button type="button" onClick={() => onBulk({ only: localIds })}>Local only</button>
+              <button type="button" onClick={() => onBulk({ reset: true })}>Enable all</button>
             </>
           )}
         </div>
@@ -178,7 +178,7 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                 >
                   {curating && (
                     <span className={`card-switch${m.enabled === false ? "" : " on"}`} aria-hidden="true">
-                      {m.enabled === false ? "desligado" : "ligado"}
+                      {m.enabled === false ? "off" : "on"}
                     </span>
                   )}
                   {m.thumbnail ? (

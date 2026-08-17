@@ -100,16 +100,16 @@ export default function Modes() {
           <div className="eyebrow">Modes</div>
           <h1>{editingId ? "Edit a mode." : "Create a mode."}</h1>
           <p>
-            O <strong>brief</strong> é a instrução que o refinador recebe quando este modo
-            estiver ativo. Os <strong>submodos</strong> viram seletores na barra de criação, e o
-            que você escolher entra no prompt como direção criativa.
+            The <strong>brief</strong> is the instruction the prompt refiner receives while this mode
+            is active. <strong>Sub-controls</strong> become selectors on the creation bar, and what
+            you pick enters the prompt as creative direction.
           </p>
         </div>
       </div>
 
       <div className="modes-form">
         <label>
-          <span>Nome do modo</span>
+          <span>Mode name</span>
           <input
             value={draft.label}
             placeholder="Reels INEMA"
@@ -118,38 +118,38 @@ export default function Modes() {
         </label>
 
         <label>
-          <span>Brief — o que este modo instrui</span>
+          <span>Brief — what this mode instructs</span>
           <textarea
             rows={6}
             value={draft.brief}
-            placeholder="Um plano vertical de rede social, com gancho nos 3 primeiros segundos, uma tese só, sem montagem e sem texto na imagem…"
+            placeholder="A vertical, social-native shot with a hook in the first 3 seconds, one single point, no montage and no on-image text…"
             onChange={(e) => setDraft({ ...draft, brief: e.target.value })}
           />
         </label>
 
         <div className="modes-controls">
           <div className="modes-controls-head">
-            <strong>Submodos (opcional)</strong>
+            <strong>Sub-controls (optional)</strong>
             <button type="button" onClick={() => setDraft((d) => ({ ...d, controls: [...d.controls, { label: "", optionsText: "" }] }))}>
-              Adicionar submodo
+              Add sub-control
             </button>
           </div>
-          {!draft.controls.length && <p className="modes-hint">Sem submodos, o modo aplica só o brief.</p>}
+          {!draft.controls.length && <p className="modes-hint">With no sub-controls, the mode applies the brief alone.</p>}
           {draft.controls.map((control, i) => (
             <div className="modes-control" key={i}>
               <input
                 className="modes-control-label"
                 value={control.label}
-                placeholder="Câmera"
+                placeholder="Camera"
                 onChange={(e) => setControl(i, { label: e.target.value })}
               />
               <input
                 className="modes-control-options"
                 value={control.optionsText ?? ""}
-                placeholder="selfie de mão, tripé fixo, plano detalhe (separe por vírgula)"
+                placeholder="handheld selfie, locked tripod, product close-up (comma separated)"
                 onChange={(e) => setControl(i, { optionsText: e.target.value })}
               />
-              <button type="button" className="modes-remove" onClick={() => setDraft((d) => ({ ...d, controls: d.controls.filter((_, j) => j !== i) }))} aria-label="Remover submodo">×</button>
+              <button type="button" className="modes-remove" onClick={() => setDraft((d) => ({ ...d, controls: d.controls.filter((_, j) => j !== i) }))} aria-label="Remove sub-control">×</button>
             </div>
           ))}
         </div>
@@ -158,7 +158,7 @@ export default function Modes() {
 
         <div className="modes-actions">
           <button type="button" className="modes-save" onClick={save} disabled={saving}>
-            {saving ? "Salvando…" : editingId ? "Salvar alterações" : "Criar modo"}
+            {saving ? "Saving…" : editingId ? "Save changes" : "Create mode"}
           </button>
           {editingId && (
             <button type="button" onClick={() => { setDraft(VAZIO); setEditingId(null); }}>Cancelar</button>
@@ -167,15 +167,15 @@ export default function Modes() {
       </div>
 
       <div className="modes-list">
-        <h2>Seus modos <span>{custom.length}</span></h2>
-        {!custom.length && <p className="modes-hint">Nenhum modo criado ainda. Os de fábrica continuam disponíveis.</p>}
+        <h2>Your modes <span>{custom.length}</span></h2>
+        {!custom.length && <p className="modes-hint">No custom modes yet. The built-in ones stay available.</p>}
         {custom.map((mode) => (
           <article className="modes-card" key={mode.id}>
             <div className="modes-card-head">
               <strong>{mode.label}</strong>
               <div>
-                <button type="button" onClick={() => edit(mode)}>Editar</button>
-                <button type="button" className="danger" onClick={() => remove(mode.id)}>Excluir</button>
+                <button type="button" onClick={() => edit(mode)}>Edit</button>
+                <button type="button" className="danger" onClick={() => remove(mode.id)}>Delete</button>
               </div>
             </div>
             <p>{mode.brief}</p>
@@ -189,12 +189,12 @@ export default function Modes() {
           </article>
         ))}
 
-        <h2>De fábrica <span>{builtin.length}</span></h2>
-        <p className="modes-hint">Vivem no código (<code>server/server.mjs</code>, <code>FORMATS</code>). Servem de exemplo de brief bem escrito.</p>
+        <h2>Built-in <span>{builtin.length}</span></h2>
+        <p className="modes-hint">They live in code (<code>server/server.mjs</code>, <code>FORMATS</code>). Useful as examples of a well-written brief.</p>
         {builtin.map((mode) => (
           <article className="modes-card builtin" key={mode.id}>
             <div className="modes-card-head"><strong>{mode.label}</strong></div>
-            <p>{mode.brief || <em>sem instrução — modo livre</em>}</p>
+            <p>{mode.brief || <em>no instruction — freeform</em>}</p>
           </article>
         ))}
       </div>

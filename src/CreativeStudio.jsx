@@ -275,7 +275,7 @@ function ProjectFiles({ project, onRevise, onRevert }) {
   }
 
   async function saveFile() {
-    setStatus("Salvando…");
+    setStatus("Saving…");
     try {
       const r = await fetch(`/api/projects/${project.id}/file`, {
         method: "PUT",
@@ -284,7 +284,7 @@ function ProjectFiles({ project, onRevise, onRevert }) {
       });
       const j = await r.json();
       if (j.error) throw new Error(j.error);
-      setStatus("Salvo.");
+      setStatus("Saved.");
     } catch (e) { setStatus(String(e.message ?? e)); }
   }
 
@@ -299,28 +299,28 @@ function ProjectFiles({ project, onRevise, onRevert }) {
     <div className="project-files">
       {onRevise && (
         <div className="project-revise">
-          <label htmlFor={`revise-${project.id}`}>Pedir uma alteração</label>
+          <label htmlFor={`revise-${project.id}`}>Ask for a change</label>
           <textarea
             id={`revise-${project.id}`}
             rows={2}
             value={instruction}
-            placeholder="Ex.: deixe o fundo mais escuro e aumente o título da primeira seção"
+            placeholder="e.g. make the background darker and enlarge the first section heading"
             onChange={(e) => setInstruction(e.target.value)}
           />
           <div className="project-revise-actions">
             <button type="button" className="project-revise-send" onClick={revise} disabled={sending || instruction.trim().length < 4}>
-              {sending ? "Enviando…" : "Aplicar alteração"}
+              {sending ? "Sending…" : "Apply change"}
             </button>
             {project.snapshots?.length > 0 && onRevert && (
-              <button type="button" onClick={() => onRevert(project.id)} title={`Volta ao estado de ${relativeTime(project.snapshots[0].at)}`}>
-                Desfazer última ({project.snapshots.length})
+              <button type="button" onClick={() => onRevert(project.id)} title={`Back to the state from ${relativeTime(project.snapshots[0].at)}`}>
+                Undo last ({project.snapshots.length})
               </button>
             )}
-            <span>Os arquivos atuais são copiados antes de qualquer alteração.</span>
+            <span>Current files are copied before any change.</span>
           </div>
         </div>
       )}
-            {!produced.length && <p className="modes-hint">Nenhum arquivo foi produzido — a build parou antes de escrever.</p>}
+            {!produced.length && <p className="modes-hint">No files were produced — the build stopped before writing.</p>}
             {produced.map((f) => (
               <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)} disabled={!f.editable}>
                 <b>{f.name}</b><small>{(f.size_bytes / 1024).toFixed(1)} kB</small>
@@ -328,12 +328,12 @@ function ProjectFiles({ project, onRevise, onRevert }) {
             ))}
             {project.bundle_url && (
               <a className="project-file project-file-download" href={`${project.bundle_url}?download=1`}>
-                <b>Baixar tudo (.zip)</b><small>{produced.length} arquivos</small>
+                <b>Download all (.zip)</b><small>{produced.length} files</small>
               </a>
             )}
             {logs.length > 0 && (
               <details className="project-logs">
-                <summary>Diário da build ({logs.length})</summary>
+                <summary>Build log ({logs.length})</summary>
                 {logs.map((f) => (
                   <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)}>
                     <b>{f.name}</b><small>{(f.size_bytes / 1024).toFixed(1)} kB</small>
@@ -347,8 +347,8 @@ function ProjectFiles({ project, onRevise, onRevert }) {
             <strong>{editing.name}</strong>
             <div>
               <span>{status}</span>
-              <button type="button" onClick={saveFile}>Salvar</button>
-              <button type="button" onClick={() => { setEditing(null); setStatus(""); }}>Fechar</button>
+              <button type="button" onClick={saveFile}>Save</button>
+              <button type="button" onClick={() => { setEditing(null); setStatus(""); }}>Close</button>
             </div>
           </div>
           <textarea value={content} onChange={(e) => setContent(e.target.value)} spellCheck={false} />
@@ -390,14 +390,14 @@ function DeleteProject({ project, onDelete }) {
   if (!confirming) return <button type="button" className="project-delete" onClick={() => setConfirming(true)}>Delete</button>;
   return (
     <span className="project-delete-confirm">
-      <span>Apagar “{project.title}” e seus arquivos?</span>
-      <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Manter</button>
+      <span>Delete “{project.title}” and its files?</span>
+      <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Keep</button>
       <button
         type="button"
         className="danger"
         disabled={busy}
         onClick={async () => { setBusy(true); try { await onDelete(project.id); } finally { setBusy(false); } }}
-      >{busy ? "Apagando…" : "Apagar"}</button>
+      >{busy ? "Deleting…" : "Delete"}</button>
     </span>
   );
 }
@@ -459,7 +459,7 @@ function ProjectCard({ project, onDelete, onRevise, onRevert }) {
           {complete && !isWebsite && project.preview_url && <a href={project.preview_url} target="_blank" rel="noreferrer">Editable HTML</a>}
           {complete && (
             <button type="button" onClick={() => setShowFiles((v) => !v)}>
-              {showFiles ? "Fechar source" : `Source (${(project.files ?? []).filter((f) => !f.internal).length})`}
+              {showFiles ? "Hide source" : `Source (${(project.files ?? []).filter((f) => !f.internal).length})`}
             </button>
           )}
           {onDelete && <DeleteProject project={project} onDelete={onDelete} />}
