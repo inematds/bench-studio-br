@@ -227,7 +227,7 @@ export async function runOllama({ prompt, outputDir, request, stage, eventsPath,
   const base = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
   const model = request.model || "qwen3.6:35b-a3b";
   stage(18, `${model} (local) está ${isRevision ? "revisando" : "escrevendo"} o ${isWebsite ? "site" : "documento"}`);
-  const contexto = isRevision ? await revisionContext(outputDir) : "";
+  const contexto = isRevision ? await revisionContext(outputDir) : await referenceContext(request);
 
   let response;
   try {
@@ -259,7 +259,7 @@ export async function runOpenRouter({ prompt, outputDir, request, stage, eventsP
   if (!key) throw new Error("OPENROUTER_API_KEY ausente.");
   const model = request.model || process.env.OPENROUTER_MODEL_DEFAULT || "google/gemini-2.5-flash";
   stage(18, `${model} está ${isRevision ? "revisando" : "escrevendo"} o ${isWebsite ? "site" : "documento"}`);
-  const contexto = isRevision ? await revisionContext(outputDir) : "";
+  const contexto = isRevision ? await revisionContext(outputDir) : await referenceContext(request);
 
   const response = await fetch(`${process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"}/chat/completions`, {
     method: "POST",
@@ -283,7 +283,69 @@ export async function runOpenRouter({ prompt, outputDir, request, stage, eventsP
   await writeModelFiles(parseFiles(text), outputDir, isWebsite);
 }
 
-export async function revisionContext(outputDir) {
+export // Agente abre o arquivo apontado; modelo puro nao. Mas MEDIDO 2026-08-17:
+// despejar o HTML cru da referencia afoga o pedido. Num teste com o qwen local,
+// o recorte de 20 mil caracteres ocupou ~99% do prompt (5.000 tokens de
+// marcacao contra 60 tokens do brief) e a saida ignorou completamente a
+// referencia — a referencia era escura com Sora, a saida saiu clara com
+// serifada. Nao foi falta de capacidade: foi diluicao.
+//
+// O que interessa numa referencia de acabamento nao e o HTML, e o SISTEMA: a
+// paleta, as fontes, a escala de espacamento e de raio. Isso cabe em algumas
+// centenas de tokens e e acionavel.
+function designSummary(html) {
+  const linhas = [];
+
+  // Custom properties sao, na pratica, o design system declarado.
+  const vars = [...html.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;{}]+)/gi)]
+    .map(([, nome, valor]) => `${nome}: ${valor.trim()}`);
+  if (vars.length) linhas.push(`Design tokens:\n${[...new Set(vars)].slice(0, 40).join("\n")}`);
+
+  const fontes = [...new Set([...html.matchAll(/font-family\s*:\s*([^;{}]+)/gi)].map((m) => m[1].trim()))]
+    .filter((f) => !f.startsWith("var("));
+  if (fontes.length) linhas.push(`Fonts: ${fontes.slice(0, 6).join(" | ")}`);
+
+  const importadas = [...new Set([...html.matchAll(/fonts\.googleapis\.com\/css2\?family=([^&"'\s]+)/gi)].map((m) => decodeURIComponent(m[1])))];
+  if (importadas.length) linhas.push(`Web fonts loaded: ${importadas.join(", ")}`);
+
+  const cores = {};
+  for (const c of html.match(/#[0-9a-f]{6}\b/gi) ?? []) {
+    const k = c.toLowerCase();
+    cores[k] = (cores[k] ?? 0) + 1;
+  }
+  const paleta = Object.entries(cores).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([c, n]) => `${c} (${n}x)`);
+  if (paleta.length) linhas.push(`Palette, most used first: ${paleta.join(", ")}`);
+
+  const raios = [...new Set([...html.matchAll(/border-radius\s*:\s*([^;{}]+)/gi)].map((m) => m[1].trim()))].filter((r) => !r.startsWith("var("));
+  if (raios.length) linhas.push(`Corner radii: ${raios.slice(0, 8).join(" | ")}`);
+
+  const pesos = [...new Set([...html.matchAll(/font-weight\s*:\s*(\d{3})/gi)].map((m) => m[1]))].sort();
+  if (pesos.length) linhas.push(`Font weights: ${pesos.join(", ")}`);
+
+  return linhas.join("\n\n");
+}
+
+async function referenceContext(request) {
+  const caminho = request?.reference_path;
+  if (!caminho) return "";
+  try {
+    const resumo = designSummary(await readFile(caminho, "utf8"));
+    if (!resumo.trim()) return "";
+    return `
+
+CRAFT REFERENCE — the design system of a page whose finish should be matched.
+Use it to calibrate palette, type and spacing. Do NOT copy brand, copy, section
+structure or assets; the content must come from the brief above.
+
+${resumo}
+`;
+  } catch (error) {
+    console.warn(`referencia de craft ilegivel (${error.message})`);
+    return "";
+  }
+}
+
+async function revisionContext(outputDir) {
   const { names, text } = await currentFiles(outputDir);
   return `
 

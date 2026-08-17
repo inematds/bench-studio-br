@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 const CONFIG = {
   website: {
@@ -54,6 +54,7 @@ export default function CreativeStudio({ kind }) {
   const [reasoning, setReasoning] = useState("low");
   const [projects, setProjects] = useState([]);
   const [reference, setReference] = useState(null);
+  const loadReferenceRef = useRef(() => {});
   const [error, setError] = useState("");
   const [libraryError, setLibraryError] = useState("");
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -107,6 +108,7 @@ export default function CreativeStudio({ kind }) {
     });
     load();
     json("/api/creative-references").then((result) => !dead && setReference(result[kind])).catch(() => {});
+    loadReferenceRef.current = () => json("/api/creative-references").then((r) => setReference(r[kind])).catch(() => {});
     const timer = setInterval(load, 1800);
     return () => { dead = true; clearInterval(timer); };
   }, [kind]);
@@ -189,6 +191,7 @@ export default function CreativeStudio({ kind }) {
               <object title="Local document reference" data={reference.preview_url} type="application/pdf" />
             ) : <div className="reference-offline">Add an optional local reference in ~/.env.</div>}
           </div>
+          <ReferenceConfig kind={kind} reference={reference} onSaved={() => loadReferenceRef.current()} />
           <div className="reference-copy">
             <span>Craft reference</span>
             <strong>{reference?.name ?? (kind === "website" ? "Local website reference" : "Local document reference")}</strong>
@@ -399,6 +402,71 @@ function DeleteProject({ project, onDelete }) {
         onClick={async () => { setBusy(true); try { await onDelete(project.id); } finally { setBusy(false); } }}
       >{busy ? "Deleting…" : "Delete"}</button>
     </span>
+  );
+}
+
+// A referencia de craft e um alvo de qualidade, nao um molde: o construtor pode
+// olhar para calibrar acabamento e e proibido de copiar marca, texto, estrutura
+// ou assets. Antes so dava para apontar por variavel de ambiente, o que exigia
+// editar arquivo e reiniciar — e por isso ficava vazia para sempre.
+function ReferenceConfig({ kind, reference, onSaved }) {
+  const [open, setOpen] = useState(false);
+  const [path, setPath] = useState("");
+  const [url, setUrl] = useState("");
+  const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setPath(reference?.path ?? "");
+    setUrl(reference?.url ?? "");
+  }, [reference?.path, reference?.url]);
+
+  async function save() {
+    setSaving(true);
+    setStatus("");
+    try {
+      const body = kind === "website"
+        ? { website_reference: path, website_reference_url: url }
+        : { document_reference: path };
+      await json("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      await onSaved();
+      setStatus("Saved.");
+      setOpen(false);
+    } catch (e) { setStatus(String(e.message ?? e)); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="reference-config">
+      <button type="button" className="reference-config-toggle" onClick={() => setOpen((v) => !v)}>
+        {open ? "Close" : reference?.path ? "Change reference" : "Set a reference"}
+      </button>
+      {reference?.path && !open && (
+        <span className={`reference-state${reference.exists ? "" : " missing"}`}>
+          {reference.exists ? reference.path : `not found: ${reference.path}`}
+        </span>
+      )}
+      {open && (
+        <div className="reference-config-form">
+          <label>
+            <span>{kind === "website" ? "Path to a site of yours (folder or index.html)" : "Path to a document of yours (.html or .pdf)"}</span>
+            <input value={path} placeholder="/home/you/projects/site/guia/index.html" onChange={(e) => setPath(e.target.value)} />
+          </label>
+          {kind === "website" && (
+            <label>
+              <span>Preview URL (optional — only used to render the panel above)</span>
+              <input value={url} placeholder="http://localhost:5300/" onChange={(e) => setUrl(e.target.value)} />
+            </label>
+          )}
+          <div className="reference-config-actions">
+            <button type="button" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+            <button type="button" onClick={() => { setPath(""); setUrl(""); }}>Clear</button>
+            {status && <span>{status}</span>}
+          </div>
+          <p>The builder is told it may inspect this for craft and interaction ideas, and that it must not copy brand, text, structure or assets. Model engines (local Qwen, OpenRouter) receive the file content inline, since they cannot open files.</p>
+        </div>
+      )}
+    </div>
   );
 }
 

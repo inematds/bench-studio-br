@@ -137,7 +137,20 @@ const CAPABILITIES = loadOrBuildCapabilityManifest({
 });
 const capabilityById = new Map(CAPABILITIES.models.map((model) => [model.model_id, model]));
 const projectProcesses = new Map();
-const CREATIVE_REFERENCES = {
+// A referencia de craft era so variavel de ambiente: mudar exigia editar
+// arquivo e reiniciar o estudio. Agora ela mora nos ajustes (editaveis pela
+// tela) e o ambiente vira o padrao de fabrica — util para quem distribui uma
+// imagem ja configurada.
+function creativeReferences() {
+  const cfg = readSettings();
+  return {
+    website: cfg.website_reference || process.env.BENCH_WEBSITE_REFERENCE || null,
+    document: cfg.document_reference || process.env.BENCH_DOCUMENT_REFERENCE || null,
+    website_url: cfg.website_reference_url || process.env.BENCH_WEBSITE_REFERENCE_URL || null,
+  };
+}
+
+const CREATIVE_REFERENCES_ENV = {
   website: process.env.BENCH_WEBSITE_REFERENCE || null,
   document: process.env.BENCH_DOCUMENT_REFERENCE || null,
 };
@@ -166,9 +179,20 @@ function agentFailureReason(outputDir) {
 // "at async file:///.../project_runner.mjs:87:1" — verdadeiro, e inútil.
 function stderrReason(stderr) {
   const lines = String(stderr ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const named = lines.find((line) => /^[A-Z]\w*(Error|Exception):/.test(line));
+  // `^[A-Z]\w*(Error|Exception):` exigia um PREFIXO antes de "Error" — casava com
+  // TypeError e SyntaxError e falhava justamente no `Error:` puro, que e o que
+  // um `throw new Error(...)` produz. Resultado: a mensagem escrita a mao era
+  // ignorada e subia um quadro do stack no lugar dela.
+  const named = lines.find((line) => /^\w*(Error|Exception):/.test(line));
   if (named) return named;
-  const useful = lines.filter((line) => !/^at\s/.test(line) && !/^Node\.js v/.test(line));
+  // Antes de imprimir o erro, o Node imprime o ARQUIVO e a linha do throw, mais
+  // o trecho de codigo e um circunflexo. Nada disso e motivo de falha.
+  const useful = lines.filter((line) =>
+    !/^at\s/.test(line)
+    && !/^Node\.js v/.test(line)
+    && !/^file:\/\//.test(line)
+    && !/^\^+$/.test(line)
+    && !/^(throw|const|await|return|})\b/.test(line));
   return useful[0] ?? null;
 }
 
@@ -208,7 +232,7 @@ const DEFAULT_ENGINE_MODEL = {
 // Ajustes que a pessoa controla pela tela. Mesmo padrao dos modos e da curadoria:
 // arquivo proprio em data/, so o que difere do padrao, apagavel sem quebrar nada.
 const SETTINGS_FILE = join(DATA, "settings.json");
-const SETTINGS_DEFAULTS = { catalog_refresh_hours: 6 };
+const SETTINGS_DEFAULTS = { catalog_refresh_hours: 6, website_reference: "", website_reference_url: "", document_reference: "" };
 
 function readSettings() {
   if (!existsSync(SETTINGS_FILE)) return { ...SETTINGS_DEFAULTS };
@@ -308,9 +332,10 @@ function startProjectBuild(project) {
     mode: project.metadata?.mode || "build",
     instruction: project.metadata?.instruction || null,
     output_dir: project.output_dir,
-    reference_path: CREATIVE_REFERENCES[project.kind] && existsSync(CREATIVE_REFERENCES[project.kind])
-      ? CREATIVE_REFERENCES[project.kind]
-      : null,
+    reference_path: (() => {
+      const ref = creativeReferences()[project.kind];
+      return ref && existsSync(ref) ? ref : null;
+    })(),
   };
   writeFileSync(requestPath, JSON.stringify(request, null, 2));
   const child = spawn(process.execPath, [join(HERE, "project_runner.mjs"), requestPath], {
@@ -1598,31 +1623,41 @@ app.post("/api/projects/:id/cancel", (req, res) => {
 });
 
 app.get("/api/creative-references", async (_req, res) => {
-  const websiteUrl = process.env.BENCH_WEBSITE_REFERENCE_URL || null;
+  const refs = creativeReferences();
+  const websiteUrl = refs.website_url;
   let websiteLive = false;
   if (websiteUrl) {
     try { websiteLive = (await fetch(websiteUrl, { signal: AbortSignal.timeout(800) })).ok; } catch {}
   }
-  const documentPath = CREATIVE_REFERENCES.document;
+  const documentPath = refs.document;
   const documentPdf = documentPath
     ? (documentPath.endsWith(".pdf") ? documentPath : documentPath.replace(/\.html$/, ".pdf"))
     : null;
   res.json({
     website: {
-      name: "Local website reference",
-      description: "Optional reference configured by the person running this studio.",
+      name: refs.website ? refs.website.split("/").filter(Boolean).slice(-2).join("/") : "Local website reference",
+      description: refs.website
+        ? "The builder may inspect this for craft and interaction ideas. It is told not to copy brand, text, structure or assets."
+        : "Point this at a site of yours whose finish you want matched. Nothing is copied from it.",
+      path: refs.website,
+      exists: Boolean(refs.website && existsSync(refs.website)),
+      url: websiteUrl,
       preview_url: websiteLive ? websiteUrl : null,
     },
     document: {
-      name: "Local document reference",
-      description: "Optional reference configured by the person running this studio.",
+      name: refs.document ? refs.document.split("/").at(-1) : "Local document reference",
+      description: refs.document
+        ? "The builder may inspect this for craft ideas. It is told not to copy its content."
+        : "Point this at a document of yours whose finish you want matched.",
+      path: refs.document,
+      exists: Boolean(refs.document && existsSync(refs.document)),
       preview_url: documentPdf && existsSync(documentPdf) ? "/api/creative-references/document.pdf" : null,
     },
   });
 });
 
 app.get("/api/creative-references/document.pdf", (_req, res) => {
-  const source = CREATIVE_REFERENCES.document;
+  const source = creativeReferences().document;
   const path = source ? (source.endsWith(".pdf") ? source : source.replace(/\.html$/, ".pdf")) : null;
   if (!path || !existsSync(path)) return res.status(404).json({ error: "Reference PDF is unavailable" });
   res.sendFile(resolve(path));
@@ -1686,6 +1721,18 @@ app.get("/api/settings", (_req, res) => res.json(readSettings()));
 
 app.post("/api/settings", (req, res) => {
   const patch = {};
+  for (const campo of ["website_reference", "document_reference"]) {
+    if (req.body?.[campo] === undefined) continue;
+    const valor = String(req.body[campo] ?? "").trim();
+    // Caminho que nao existe e pior que caminho vazio: a build passa a citar no
+    // prompt um arquivo que o agente nao vai achar, e ninguem descobre por que
+    // o resultado nao melhorou.
+    if (valor && !existsSync(valor)) return res.status(400).json({ error: `Nao existe: ${valor}` });
+    patch[campo] = valor;
+  }
+  if (req.body?.website_reference_url !== undefined) {
+    patch.website_reference_url = String(req.body.website_reference_url ?? "").trim();
+  }
   if (req.body?.catalog_refresh_hours !== undefined) {
     const hours = Number(req.body.catalog_refresh_hours);
     if (!Number.isFinite(hours) || hours < 0 || hours > 24 * 7) {
