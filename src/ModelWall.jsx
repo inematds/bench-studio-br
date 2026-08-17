@@ -62,6 +62,13 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
     .map((m) => m.id);
   const localIds = (catalog.models ?? []).filter((m) => m.provider === "inemaimg").map((m) => m.id);
 
+  // Cada grupo é um INTERRUPTOR, não um "só isto": clicar em Free liga os
+  // gratuitos sem desligar o resto, e clicar de novo desliga só eles. O "só
+  // isto" de antes escondia uma segunda ação (desligar tudo mais) atrás de um
+  // rótulo que não a anunciava.
+  const enabledIds = new Set((catalog.models ?? []).filter((m) => m.enabled !== false).map((m) => m.id));
+  const allOn = (ids) => ids.length > 0 && ids.every((id) => enabledIds.has(id));
+
   return (
     <div className="wall model-wall">
       <div className="catalog-filters" role="group" aria-label="Filter catalog">
@@ -135,7 +142,7 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
           )}
           {onToggle && (
             <button type="button" className={curating ? "on" : ""} onClick={() => setCurating((v) => !v)}>
-              {curating ? "Done curating" : "Choose models"}
+              {curating ? "Done" : "Choose models"}
             </button>
           )}
           {curating && onBulk && (
@@ -146,8 +153,23 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                   <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), false)}>Disable those {visiveis.length}</button>
                 </>
               )}
-              <button type="button" onClick={() => onBulk({ only: freeIds })}>Free only</button>
-              <button type="button" onClick={() => onBulk({ only: localIds })}>Local only</button>
+              <button
+                type="button"
+                className={allOn(freeIds) ? "on" : ""}
+                onClick={() => onToggle(freeIds, !allOn(freeIds))}
+                title={`${freeIds.length} models that cost nothing (Agnes and local)`}
+              >
+                Free
+              </button>
+              <button
+                type="button"
+                className={allOn(localIds) ? "on" : ""}
+                onClick={() => onToggle(localIds, !allOn(localIds))}
+                title={`${localIds.length} models running on your own machine`}
+              >
+                Local
+              </button>
+              <button type="button" onClick={() => onBulk({ only: [] })}>Clear all</button>
               <button type="button" onClick={() => onBulk({ reset: true })}>Enable all</button>
             </>
           )}
