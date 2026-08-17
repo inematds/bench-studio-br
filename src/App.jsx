@@ -610,8 +610,21 @@ export default function App() {
     refsRef.current = assets;
     setQuote(null);
     setError(null);
+    // Quem rola nesta aplicação é o contêiner `.scroll`, não a janela — o
+    // window.scrollTo daqui não movia nada. E o salto precisa acontecer DEPOIS
+    // do React trocar de aba, senão rola a tela antiga.
     window.location.hash = "create";
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    requestAnimationFrame(() => {
+      // Instantâneo, não suave: com o arquivo cheio a lista passa de 4000px e a
+      // animação leva segundos, durante os quais a tela parece não ter reagido
+      // ao clique. Além disso as imagens abaixo terminam de carregar no meio do
+      // caminho e empurram o layout, competindo com a animação.
+      const scroller = document.querySelector(".scroll");
+      (scroller ?? window).scrollTo({ top: 0 });
+      // O cursor já no campo de texto: quem clicou em Redo quer editar a ideia
+      // ou gerar de novo, e nos dois casos o próximo gesto é ali.
+      document.getElementById("prompt-idea")?.focus({ preventScroll: true });
+    });
   }
 
   function pickModel(nextId) {
