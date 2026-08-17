@@ -153,6 +153,8 @@ function providerOf(key) {
   return null;
 }
 
+// Um endereco em valor padrao continua testavel: e justamente ali que "esta no
+// ar?" e a pergunta que importa, porque ninguem digitou nada.
 function ConfigField({ field, draft, readOnly, onDraft, onTest, test, live }) {
   const changed = draft !== undefined;
   const estado = field.present ? (field.shadowed ? "shadowed" : "set") : "missing";
@@ -173,8 +175,6 @@ function ConfigField({ field, draft, readOnly, onDraft, onTest, test, live }) {
           <span className="config-badge off">not set</span>
         )}
         {onTest && (
-          {/* Um endereco em valor padrao e testavel: e justamente ali que "esta no ar?"
-              e a pergunta, ja que ninguem digitou nada. */}
           <button type="button" className="ghost-btn small" onClick={onTest} disabled={!field.present && !field.using_fallback}>
             {test?.testing ? "Testing…" : "Test"}
           </button>
