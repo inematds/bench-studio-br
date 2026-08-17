@@ -562,6 +562,37 @@ export default function App() {
     } finally { setBusy(false); abortRef.current = null; }
   }
 
+  // "Redo": recarrega no Create a configuracao EXATA de um resultado do arquivo.
+  // Tudo que isso precisa ja estava sendo gravado no ledger desde sempre
+  // (modelo, params, prompt, a ideia crua e os anexos) — so nao havia como
+  // trazer de volta. Sem isso, repetir uma geracao boa era redigitar de memoria.
+  function reuseShot(shot) {
+    if (!shot) return;
+    const picked = catalog?.models.find((m) => m.id === shot.model);
+    if (!picked) {
+      setError(`O modelo ${shot.model} nao esta mais no catalogo, entao esta configuracao nao pode ser recarregada.`);
+      return;
+    }
+    // O prompt vive dentro de params porque params E o payload enviado ao
+    // provider; como controle, ele nao entra.
+    const { prompt: _sent, ...controls } = shot.params ?? {};
+    setModelId(shot.model);
+    setFormat(shot.format ?? "none");
+    setParams(controls);
+    // A ideia original (em portugues, antes do refino) e o que a pessoa quer
+    // editar; o prompt refinado vai junto como rascunho pronto, para dar Redo
+    // sem pagar outra reescrita.
+    setIdea(shot.raw_idea || shot.prompt || "");
+    setRewritten(shot.prompt ? { prompt: shot.prompt, optimized: true, restored: true } : null);
+    const assets = (shot.input_assets ?? []).map((asset) => ({ ...asset, url: asset.local_url || asset.url }));
+    setRefs(assets);
+    refsRef.current = assets;
+    setQuote(null);
+    setError(null);
+    window.location.hash = "create";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function pickModel(nextId) {
     const picked = catalog?.models.find((candidate) => candidate.id === nextId);
     if (!picked) return;
@@ -652,7 +683,7 @@ export default function App() {
                 )}
                 {(job || shots.length > 0) && (
                   <section className="create-results" id="create-results" aria-label="Generated media">
-                    <Work job={job} shots={shots} onDelete={deleteResult} />
+                    <Work job={job} shots={shots} onDelete={deleteResult} onReuse={reuseShot} />
                   </section>
                 )}
               </section>}
@@ -668,7 +699,7 @@ export default function App() {
                     <a className="view-action" href="#create">Create another</a>
                   </div>
                   {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
-                  <Work job={job} shots={shots} standalone onDelete={deleteResult} />
+                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onReuse={reuseShot} />
                 </section>
               )}
 

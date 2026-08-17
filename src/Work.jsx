@@ -11,7 +11,7 @@ const FORMAT_LABELS = {
   poster: "Ad with headline",
 };
 
-export default function Work({ job, shots, standalone = false, onDelete }) {
+export default function Work({ job, shots, standalone = false, onDelete, onReuse }) {
   return (
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
       <div className="wall-head">
@@ -31,7 +31,7 @@ export default function Work({ job, shots, standalone = false, onDelete }) {
         <div className="masonry">
           {job && <Job job={job} />}
           {shots.map((s) => (
-            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} />
+            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onReuse={onReuse} />
           ))}
         </div>
       )}
@@ -55,7 +55,7 @@ function Job({ job }) {
   );
 }
 
-function Shot({ shot, onDelete }) {
+function Shot({ shot, onDelete, onReuse }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -63,6 +63,9 @@ function Shot({ shot, onDelete }) {
   const formatLabel = FORMAT_LABELS[shot.format];
   const idea = String(shot.raw_idea || shot.prompt || "").trim();
   const resultLabel = shot.label || "Untitled result";
+  // `params` carrega o prompt junto porque e o payload enviado ao provider; aqui
+  // interessa so o que e ajuste de controle.
+  const reusableParams = Object.entries(shot.params ?? {}).filter(([name]) => name !== "prompt");
 
   async function removeResult() {
     setDeleting(true);
@@ -100,6 +103,11 @@ function Shot({ shot, onDelete }) {
             <button type="button" onClick={() => setDetailsOpen((value) => !value)} aria-expanded={detailsOpen}>
               {detailsOpen ? "Hide details" : "Details"}
             </button>
+            {onReuse && (
+              <button type="button" onClick={() => onReuse(shot)} aria-label={`Reuse settings from ${resultLabel}`} title="Carrega modelo, prompt, controles e referencias deste resultado no Create">
+                Redo
+              </button>
+            )}
             <a href={shot.outputs[0]?.local_url || shot.outputs[0]?.url} download aria-label={`Download ${resultLabel}`}>Download</a>
             {onDelete && shot.archive_id && (
               <button type="button" className="work-delete" onClick={() => setConfirmingDelete(true)} aria-label={`Delete ${resultLabel}`}>
@@ -117,8 +125,39 @@ function Shot({ shot, onDelete }) {
               {shot.request_id && <div><dt>Request</dt><dd>{shot.request_id}</dd></div>}
               <div><dt>Archive</dt><dd>{shot.outputs.some((output) => output.local_url) ? "Saved locally" : "Remote copy only"}</dd></div>
             </dl>
+            {shot.raw_idea && shot.raw_idea !== shot.prompt && (
+              <>
+                <strong>Your idea</strong>
+                <p>{shot.raw_idea}</p>
+              </>
+            )}
             <strong>Prompt sent</strong>
             <p>{shot.prompt}</p>
+            {reusableParams.length > 0 && (
+              <>
+                <strong>Settings</strong>
+                <dl>
+                  {reusableParams.map(([name, value]) => (
+                    <div key={name}><dt>{name.replace(/_/g, " ")}</dt><dd>{String(value)}</dd></div>
+                  ))}
+                </dl>
+              </>
+            )}
+            {shot.input_assets?.length > 0 && (
+              <>
+                <strong>References used ({shot.input_assets.length})</strong>
+                <div className="work-refs">
+                  {shot.input_assets.map((asset, i) => (
+                    <img key={i} src={asset.local_url || asset.url} alt={`Reference ${i + 1}`} loading="lazy" />
+                  ))}
+                </div>
+              </>
+            )}
+            {onReuse && (
+              <button type="button" className="work-reuse-wide" onClick={() => onReuse(shot)}>
+                Redo with these exact settings
+              </button>
+            )}
             {shot.outputs[0]?.remote_url && <a className="hosted-copy" href={shot.outputs[0].remote_url} target="_blank" rel="noreferrer">Open fal-hosted copy ↗</a>}
           </div>
         )}

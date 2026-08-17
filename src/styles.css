@@ -1187,3 +1187,30 @@ p { text-wrap: pretty; }
   .build-meter { grid-column: 1 / -1; grid-row: 2; }
   .project-grid { grid-template-columns: 1fr; }
 }
+
+/* Redo: reaproveitar a configuracao de um resultado do arquivo. */
+.work-reuse-wide {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.14));
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.work-reuse-wide:hover { background: rgba(255, 255, 255, 0.06); }
+.work-refs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+.work-refs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.14));
+}
