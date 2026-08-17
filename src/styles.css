@@ -1258,3 +1258,39 @@ p { text-wrap: pretty; }
 .modes-card p { margin: 0; line-height: 1.55; opacity: .85; }
 .modes-card-controls { margin: 10px 0 0; padding-left: 18px; opacity: .8; font-size: 14px; }
 .modes-card-head .danger { border-color: rgba(255,120,120,.35); }
+
+/* Build que falhou: motivo real + arquivos que sobraram, editaveis. */
+.project-failed-list { display: grid; gap: 14px; margin-bottom: 18px; }
+.project-card-failed { border-color: rgba(255, 140, 120, .28); }
+.project-status.failed { color: #ff9d8a; }
+.project-failed-reason {
+  margin: 8px 0 12px; padding: 10px 12px; border-radius: 9px; line-height: 1.5;
+  background: rgba(255, 90, 70, .08); border: 1px solid rgba(255, 140, 120, .22);
+}
+.project-files { margin-top: 12px; display: grid; gap: 8px; }
+.project-file {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  width: 100%; padding: 9px 12px; border-radius: 9px; text-align: left;
+  border: 1px solid var(--line, rgba(255,255,255,.12)); background: transparent;
+  color: inherit; font: inherit; cursor: pointer;
+}
+.project-file:hover:not(:disabled) { background: rgba(255,255,255,.06); }
+.project-file:disabled { opacity: .45; cursor: default; }
+.project-file small { opacity: .6; }
+.project-logs summary { cursor: pointer; opacity: .7; font-size: 13px; margin: 6px 0; }
+.project-editor { margin-top: 10px; border: 1px solid var(--line, rgba(255,255,255,.14)); border-radius: 10px; overflow: hidden; }
+.project-editor-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; background: rgba(255,255,255,.04);
+}
+.project-editor-head > div { display: flex; align-items: center; gap: 10px; }
+.project-editor-head span { opacity: .65; font-size: 12px; }
+.project-editor-head button {
+  padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line, rgba(255,255,255,.16));
+  background: transparent; color: inherit; font: inherit; cursor: pointer;
+}
+.project-editor textarea {
+  width: 100%; min-height: 340px; padding: 13px; border: 0; resize: vertical;
+  background: rgba(0,0,0,.25); color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.6;
+}

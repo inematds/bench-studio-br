@@ -60,7 +60,8 @@ export default function CreativeStudio({ kind }) {
   const [submitting, setSubmitting] = useState(false);
   const active = useMemo(() => projects.find((project) => ["queued", "running"].includes(project.status)), [projects]);
   const completed = useMemo(() => projects.filter((project) => project.status === "complete"), [projects]);
-  const history = useMemo(() => projects.filter((project) => !["complete", "queued", "running"].includes(project.status)), [projects]);
+  const failed = useMemo(() => projects.filter((project) => project.status === "failed"), [projects]);
+  const history = useMemo(() => projects.filter((project) => !["complete", "queued", "running", "failed"].includes(project.status)), [projects]);
 
   useEffect(() => {
     setTemplate(config.templates[0][0]);
@@ -199,6 +200,12 @@ export default function CreativeStudio({ kind }) {
           </div>
         )}
 
+        {failed.length > 0 && (
+          <div className="project-failed-list">
+            {failed.map((project) => <FailedCard key={project.id} project={project} />)}
+          </div>
+        )}
+
         {history.length > 0 && (
           <details className="project-history">
             <summary>Build history <span>{history.length}</span></summary>
@@ -214,6 +221,96 @@ export default function CreativeStudio({ kind }) {
         )}
       </section>
     </section>
+  );
+}
+
+// Uma build que falhou ainda deixa coisa em disco — e as vezes quase tudo. Some-la
+// numa lista recolhida joga fora trabalho ja feito (e, num provedor pago, ja pago).
+// Aqui o motivo real aparece inteiro e cada arquivo pode ser aberto e editado.
+function FailedCard({ project }) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [content, setContent] = useState("");
+  const [status, setStatus] = useState("");
+  const produced = (project.files ?? []).filter((f) => !f.internal);
+  const logs = (project.files ?? []).filter((f) => f.internal);
+
+  async function openFile(file) {
+    setStatus("");
+    setEditing(file);
+    try {
+      const r = await fetch(`/api/projects/${project.id}/file?name=${encodeURIComponent(file.name)}`);
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      setContent(j.content);
+    } catch (e) { setStatus(String(e.message ?? e)); }
+  }
+
+  async function saveFile() {
+    setStatus("Salvando…");
+    try {
+      const r = await fetch(`/api/projects/${project.id}/file`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editing.name, content }),
+      });
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      setStatus("Salvo.");
+    } catch (e) { setStatus(String(e.message ?? e)); }
+  }
+
+  return (
+    <article className="project-card project-card-failed">
+      <div className="project-card-body">
+        <div><span className="project-status failed">Build failed</span><small>{relativeTime(project.updated_at)}</small></div>
+        <h3>{project.title}</h3>
+        {project.error && <p className="project-failed-reason">{project.error}</p>}
+
+        <div className="project-actions">
+          <button type="button" onClick={() => setOpen((v) => !v)}>
+            {open ? "Hide files" : `Files (${produced.length || 0})`}
+          </button>
+          {produced.some((f) => /index\.html?$/i.test(f.name)) && (
+            <a className="project-open" href={`/projects/${project.id}/index.html`} target="_blank" rel="noreferrer">Open anyway ↗</a>
+          )}
+        </div>
+
+        {open && (
+          <div className="project-files">
+            {!produced.length && <p className="modes-hint">Nenhum arquivo foi produzido — a build parou antes de escrever.</p>}
+            {produced.map((f) => (
+              <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)} disabled={!f.editable}>
+                <b>{f.name}</b><small>{(f.size_bytes / 1024).toFixed(1)} kB</small>
+              </button>
+            ))}
+            {logs.length > 0 && (
+              <details className="project-logs">
+                <summary>Diário da build ({logs.length})</summary>
+                {logs.map((f) => (
+                  <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)}>
+                    <b>{f.name}</b><small>{(f.size_bytes / 1024).toFixed(1)} kB</small>
+                  </button>
+                ))}
+              </details>
+            )}
+            {editing && (
+              <div className="project-editor">
+                <div className="project-editor-head">
+                  <strong>{editing.name}</strong>
+                  <div>
+                    <span>{status}</span>
+                    <button type="button" onClick={saveFile}>Salvar</button>
+                    <button type="button" onClick={() => { setEditing(null); setStatus(""); }}>Fechar</button>
+                  </div>
+                </div>
+                <textarea value={content} onChange={(e) => setContent(e.target.value)} spellCheck={false} />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 

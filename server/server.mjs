@@ -10,8 +10,8 @@
 
 import express from "express";
 import multer from "multer";
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, createWriteStream, unlinkSync } from "node:fs";
-import { basename, dirname, extname, join, resolve } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, createWriteStream, unlinkSync } from "node:fs";
+import { basename, dirname, extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -136,6 +136,49 @@ const CREATIVE_REFERENCES = {
   document: process.env.BENCH_DOCUMENT_REFERENCE || null,
 };
 
+// O Codex narra o que aconteceu em codex-events.jsonl. Quando a build morre, a
+// última fala dele explica a causa muito melhor que o stderr do processo.
+function agentFailureReason(outputDir) {
+  try {
+    const raw = readFileSync(join(outputDir, "codex-events.jsonl"), "utf8");
+    const messages = [];
+    for (const line of raw.split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        const event = JSON.parse(line);
+        if (event?.item?.type === "agent_message" && event.item.text) messages.push(event.item.text);
+        if (event?.type === "turn.failed" && event.error?.message) messages.push(event.error.message);
+        if (event?.type === "error" && event.message) messages.push(event.message);
+      } catch { /* linha parcial: ignora */ }
+    }
+    return messages.at(-1) ?? null;
+  } catch { return null; }
+}
+
+// Arquivos que a build produziu — inclusive quando ela falhou no meio. Um
+// projeto que morreu depois de escrever metade do site ainda tem metade do site
+// em disco, e escondê-lo joga fora trabalho que já foi feito (e pago).
+function projectFiles(project) {
+  try {
+    return readdirSync(project.output_dir, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => {
+        const full = join(project.output_dir, entry.name);
+        const { size, mtime } = statSync(full);
+        return {
+          name: entry.name,
+          size_bytes: size,
+          updated_at: mtime.toISOString(),
+          url: `/projects/${project.id}/${entry.name}`,
+          // Estes são o diário da build, não o produto dela.
+          internal: ["codex-events.jsonl", "request.json", "result.json"].includes(entry.name),
+          editable: /\.(html?|css|js|mjs|json|md|txt|svg)$/i.test(entry.name),
+        };
+      })
+      .sort((a, b) => Number(a.internal) - Number(b.internal) || a.name.localeCompare(b.name));
+  } catch { return []; }
+}
+
 function projectSlug(value) {
   return String(value || "untitled")
     .toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "untitled";
@@ -143,6 +186,13 @@ function projectSlug(value) {
 
 function publicProject(project) {
   if (!project) return null;
+  // Builds que falharam ANTES desta correção guardaram o rodapé do stack trace
+  // ("Node.js v24.13.0") como se fosse o motivo. O diário do agente continua em
+  // disco, então dá para recuperar a causa real na leitura, em vez de exigir
+  // que a pessoa rode tudo de novo só para ver uma mensagem decente.
+  const storedError = project.status === "failed" && (!project.error || /^Node\.js v/.test(project.error))
+    ? (agentFailureReason(project.output_dir) ?? project.error)
+    : project.error;
   const entryName = project.entry_file?.split("/").at(-1);
   const artifactName = project.artifact_file?.split("/").at(-1);
   const bundleUrl = project.kind === "website" && project.status === "complete"
@@ -151,6 +201,8 @@ function publicProject(project) {
   return {
     ...project,
     output_dir: undefined,
+    error: storedError,
+    files: projectFiles(project),
     entry_file: entryName ? `/projects/${project.id}/${entryName}` : null,
     artifact_file: artifactName ? `/projects/${project.id}/${artifactName}` : null,
     bundle_url: bundleUrl,
@@ -211,7 +263,14 @@ function startProjectBuild(project) {
     // cancel route also emits `close`; never reinterpret that exit as failure.
     if (store.getProject(project.id)?.status === "cancelled") return;
     if (code !== 0) {
-      const message = stderr.split(/\r?\n/).filter(Boolean).at(-1) || `Build exited with status ${code}`;
+      // A ÚLTIMA linha do stderr é quase sempre lixo: num crash do Node ela é
+      // "Node.js v24.13.0", o rodapé do stack trace. Foi literalmente isso que a
+      // tela mostrou numa falha real. O motivo de verdade costuma estar na
+      // última mensagem que o próprio agente escreveu (ex.: "o sandbox do
+      // workspace falhou ao iniciar: bwrap ... Operation not permitted").
+      const message = agentFailureReason(project.output_dir)
+        ?? stderr.split(/\r?\n/).filter((line) => line.trim() && !/^Node\.js v/.test(line)).at(-1)
+        ?? `Build exited with status ${code}`;
       store.updateProject(project.id, { status: "failed", stage: "Build stopped", error: message.slice(0, 1200) });
       return;
     }
@@ -1115,6 +1174,41 @@ app.get("/api/projects/:id", (req, res) => {
   const project = store.getProject(req.params.id);
   if (!project) return res.status(404).json({ error: "Project not found" });
   res.json(publicProject(project));
+});
+
+// Arquivos de um projeto — visiveis mesmo quando a build falhou.
+app.get("/api/projects/:id/files", (req, res) => {
+  const project = store.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  res.json({ files: projectFiles(project) });
+});
+
+// Um arquivo dentro do diretorio do projeto. `resolve` + prefixo garante que
+// um nome como `../../.env` nao escape da pasta da build.
+function projectFilePath(project, name) {
+  const full = resolve(project.output_dir, String(name ?? ""));
+  const root = resolve(project.output_dir);
+  if (full !== root && !full.startsWith(root + sep)) return null;
+  return full;
+}
+
+app.get("/api/projects/:id/file", (req, res) => {
+  const project = store.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  const full = projectFilePath(project, req.query.name);
+  if (!full || !existsSync(full)) return res.status(404).json({ error: "File not found" });
+  res.json({ name: req.query.name, content: readFileSync(full, "utf8") });
+});
+
+app.put("/api/projects/:id/file", (req, res) => {
+  const project = store.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  const { name, content } = req.body ?? {};
+  const full = projectFilePath(project, name);
+  if (!full) return res.status(400).json({ error: "Invalid file name" });
+  if (typeof content !== "string") return res.status(400).json({ error: "content must be a string" });
+  writeFileSync(full, content);
+  res.json({ ok: true, name, size_bytes: Buffer.byteLength(content) });
 });
 
 app.get("/api/projects/:id/bundle", (req, res) => {
