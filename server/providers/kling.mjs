@@ -21,7 +21,8 @@
 //    só o link.
 
 import { execFile } from "node:child_process";
-import { readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { homedir } from "node:os";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
@@ -167,6 +168,12 @@ export function createKlingProvider({ modelById } = {}) {
 
   return {
     label: "Kling (CLI oficial)",
+    // Nao basta a chave: aqui o acesso e por CLI autenticado. Checar o arquivo de
+    // credencial e barato; chamar `kling account` leva segundos e nao cabe num
+    // carregamento de catalogo.
+    availability: () => existsSync(join(homedir(), ".kling", ".credentials"))
+      ? { available: true }
+      : { available: false, reason: "Kling nao autenticado", hint: "npm i -g @klingai/cli-global && kling login. Consome creditos do plano." },
     // O CLI recebe caminho local e faz o upload sozinho.
     accepts: { localPath: true },
     submit,

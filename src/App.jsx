@@ -647,6 +647,31 @@ export default function App() {
     });
   }
 
+  // Curadoria do catalogo: preferencia, nao disponibilidade. Depois de gravar,
+  // o catalogo e relido para a tela refletir a verdade do servidor, e nao um
+  // palpite otimista do cliente.
+  async function toggleModel(id, enabled) {
+    try {
+      await readJson("/api/catalog/enabled", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id], enabled }),
+      });
+      const fresh = await readJson("/api/models");
+      setCatalog(fresh);
+    } catch (e) { setError(String(e.message ?? e)); }
+  }
+
+  async function bulkCatalog(payload) {
+    try {
+      await readJson("/api/catalog/enabled", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const fresh = await readJson("/api/models");
+      setCatalog(fresh);
+    } catch (e) { setError(String(e.message ?? e)); }
+  }
+
   function pickModel(nextId) {
     const picked = catalog?.models.find((candidate) => candidate.id === nextId);
     if (!picked) return;
@@ -769,6 +794,8 @@ export default function App() {
                   <ModelWall
                     catalog={catalog}
                     modelId={modelId}
+                    onToggle={toggleModel}
+                    onBulk={bulkCatalog}
                     onPick={(nextId) => {
                       pickModel(nextId);
                       openView("create");

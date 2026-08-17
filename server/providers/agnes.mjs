@@ -240,6 +240,11 @@ const isVideo = (modelId) => modelId.includes("video");
 
 export const agnesProvider = {
   label: "Agnes AI",
+  // Disponibilidade e FATO, nao preferencia: ou a chave existe, ou nao existe.
+  // Calculada na hora e nunca gravada, porque muda sozinha.
+  availability: () => process.env.AGNES_API_KEY
+    ? { available: true }
+    : { available: false, reason: "Falta AGNES_API_KEY", hint: "Chave do gateway apihub.agnes-ai.com. Geracao gratuita." },
   // Aceita base64 (medido: a doc afirma exigir URL publica, e falso).
   accepts: { dataUri: true },
   submit: (modelId, input) => (isVideo(modelId) ? submitVideo(modelId, input) : submitImage(modelId, input)),

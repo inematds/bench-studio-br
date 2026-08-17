@@ -1345,3 +1345,34 @@ p { text-wrap: pretty; }
   background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer;
 }
 .results-filter-clear:hover { background: rgba(255,255,255,.06); }
+
+/* Catalogo: curadoria (preferencia) e disponibilidade (fato) sao coisas
+   diferentes, e a tela precisa distinguir as duas. */
+.catalog-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--line, rgba(255,255,255,.1));
+}
+.catalog-toolbar > div:first-child { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.catalog-toolbar span { font-size: 13px; opacity: .6; }
+.catalog-toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.catalog-toolbar-actions button {
+  padding: 7px 12px; border-radius: 9px; border: 1px solid var(--line, rgba(255,255,255,.16));
+  background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer;
+}
+.catalog-toolbar-actions button:hover { background: rgba(255,255,255,.06); }
+.catalog-toolbar-actions button.on { background: var(--accent, #6D7CFF); border-color: transparent; color: #fff; }
+.catalog-switch-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; opacity: .8; }
+
+.card.unavailable { opacity: .42; }
+.card.unavailable .shot { filter: grayscale(1); }
+.card.off { opacity: .5; }
+.card-switch {
+  position: absolute; top: 10px; left: 10px; z-index: 2;
+  padding: 3px 9px; border-radius: 999px; font-size: 11px; letter-spacing: .03em;
+  background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2);
+}
+.card-switch.on { background: var(--accent, #6D7CFF); border-color: transparent; color: #fff; }
+.card-unavailable { display: grid; gap: 2px; margin-top: 6px; }
+.card-unavailable b { color: #ff9d8a; font-size: 12px; }
+.card-unavailable small { opacity: .65; font-size: 11px; line-height: 1.4; }

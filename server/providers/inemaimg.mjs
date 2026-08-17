@@ -149,6 +149,11 @@ export function createInemaimgProvider({ outputsDir, mediaUrlBase = "/media" }) 
 
   return {
     label: "inemaimg (local, DGX)",
+    // Servico local: a pergunta nao e "tem chave", e "esta no ar". A resposta e
+    // assincrona e o servidor guarda em cache por um minuto.
+    availability: async () => (await health())
+      ? { available: true }
+      : { available: false, reason: `Servidor local nao responde em ${BASE}`, hint: "cd ~/projetos/inemaimg && docker compose up -d. Custo zero." },
     // O adapter converte para base64 cru antes de enviar.
     accepts: { dataUri: true },
     submit,

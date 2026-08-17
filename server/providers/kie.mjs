@@ -161,6 +161,9 @@ function priceOf(modelId) {
 
 export const kieProvider = {
   label: "kie.ai",
+  availability: () => process.env.KIE_API_KEY
+    ? { available: true }
+    : { available: false, reason: "Falta KIE_API_KEY", hint: "Crie em kie.ai/api-key. Cobra em creditos." },
   // NAO aceita data URI (nota de campo medida): exige URL publica.
   accepts: { dataUri: false },
   submit,

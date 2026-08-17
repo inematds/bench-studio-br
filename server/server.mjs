@@ -26,6 +26,7 @@ import { createInemaimgProvider } from "./providers/inemaimg.mjs";
 import { kieProvider } from "./providers/kie.mjs";
 import { createKlingProvider } from "./providers/kling.mjs";
 import { createModesStore } from "./modes_store.mjs";
+import { createCatalogPrefs } from "./catalog_prefs.mjs";
 import { ENGINES } from "./project_engines.mjs";
 import { mergeProviderModels } from "./providers/registry_merge.mjs";
 
@@ -638,6 +639,7 @@ function sameFamily(a, b) {
 // Modos personalizados: aditivos aos de fabrica, nunca sobrescrevem.
 // `isReserved` como funcao, e nao lista: FORMATS so existe mais abaixo no
 // modulo, e a checagem so acontece quando alguem salva um modo.
+const catalogPrefs = createCatalogPrefs({ dataDir: DATA });
 const modesStore = createModesStore({ dataDir: DATA, isReserved: (id) => Boolean(FORMATS[id]) });
 function customModes() { return modesStore.list(); }
 function briefFor(format) {
@@ -1029,6 +1031,9 @@ const PROVIDERS = {
     label: "fal.ai",
     // A fila do fal so aceita URL publica.
     accepts: { dataUri: false },
+    availability: () => FAL_KEY
+      ? { available: true }
+      : { available: false, reason: "Falta FAL_KEY", hint: "Crie em fal.ai/dashboard/keys. Cobra em dolar, com preco ao vivo." },
     submit: (modelId, input) => falSubmit(modelId, input),
     poll: (modelId, handle, opts) => falPoll(modelId, handle.request_id, opts),
     quote: (modelId, input) => estimateCost(modelId, input),
@@ -1042,6 +1047,37 @@ const PROVIDERS = {
   // modelo nao declara faz o CLI recusar.
   kling: createKlingProvider({ modelById: (id) => byId.get(id) }),
 };
+
+
+// ---------------------------------------------------------------- disponibilidade
+//
+// Disponibilidade e FATO (a chave existe? o servico responde?), preferencia e
+// outra coisa (eu quero ver este modelo?). Misturar as duas faz um modelo sumir
+// sem que ninguem saiba se e por falta de chave ou por escolha — e ai nao da
+// para agir. Aqui so mora o fato; ele nunca e gravado, porque muda sozinho.
+const AVAILABILITY_TTL_MS = 60_000;
+let availabilityCache = { at: 0, value: null, promise: null };
+
+async function providerAvailability({ force = false } = {}) {
+  if (!force && availabilityCache.value && Date.now() - availabilityCache.at < AVAILABILITY_TTL_MS) {
+    return availabilityCache.value;
+  }
+  if (availabilityCache.promise) return availabilityCache.promise;
+  availabilityCache.promise = (async () => {
+    const entries = await Promise.all(Object.entries(PROVIDERS).map(async ([name, adapter]) => {
+      try {
+        const status = adapter.availability ? await adapter.availability() : { available: true };
+        return [name, { label: adapter.label, ...status }];
+      } catch (error) {
+        return [name, { label: adapter.label, available: false, reason: String(error.message ?? error).slice(0, 160) }];
+      }
+    }));
+    const value = Object.fromEntries(entries);
+    availabilityCache = { at: Date.now(), value, promise: null };
+    return value;
+  })();
+  return availabilityCache.promise;
+}
 
 const DEFAULT_PROVIDER = "fal";
 const providerOf = (model) => model?.provider ?? DEFAULT_PROVIDER;
@@ -1250,8 +1286,11 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-app.get("/api/models", (_req, res) => {
+app.get("/api/models", async (_req, res) => {
+  const availability = await providerAvailability();
+  const disabled = catalogPrefs.disabledSet();
   res.json({
+    providers: availability,
     generated_at: registry.generated_at,
     catalog_sync: CATALOG_SYNC,
     formats: [
@@ -1265,6 +1304,16 @@ app.get("/api/models", (_req, res) => {
       // cobranças diferentes. Sem este campo, escolher a rota vira adivinhação.
       provider: providerOf(m),
       provider_label: PROVIDERS[providerOf(m)]?.label ?? providerOf(m),
+      // Dois estados separados de proposito: um diz se DA para usar, o outro se
+      // VOCE quer ver. Um modelo que sumiu precisa dizer por qual dos dois.
+      available: availability[providerOf(m)]?.available !== false,
+      unavailable_reason: availability[providerOf(m)]?.available === false
+        ? availability[providerOf(m)].reason
+        : null,
+      unavailable_hint: availability[providerOf(m)]?.available === false
+        ? availability[providerOf(m)].hint ?? null
+        : null,
+      enabled: !disabled.has(m.id),
       capabilities: capabilityById.get(m.id) ?? null,
       has_profile: Boolean(findProfile(m.id)),
       // live from fal, so a price change shows up without a code change
@@ -1273,6 +1322,22 @@ app.get("/api/models", (_req, res) => {
         : null,
     })),
   });
+});
+
+// Preferencia de catalogo: ligar/desligar modelos. Nada aqui afeta
+// disponibilidade — um modelo ligado cuja chave sumiu continua indisponivel, e a
+// tela diz isso, em vez de faze-lo desaparecer em silencio.
+app.post("/api/catalog/enabled", (req, res) => {
+  const { ids, enabled, only, reset } = req.body ?? {};
+  const allIds = registry.models.map((m) => m.id);
+  if (reset) return res.json({ disabled: catalogPrefs.reset() });
+  if (Array.isArray(only)) return res.json({ disabled: catalogPrefs.keepOnly(only, allIds) });
+  if (!ids) return res.status(400).json({ error: "Informe ids, only ou reset." });
+  res.json({ disabled: catalogPrefs.setEnabled(ids, Boolean(enabled)) });
+});
+
+app.get("/api/providers", async (req, res) => {
+  res.json({ providers: await providerAvailability({ force: req.query.refresh === "1" }) });
 });
 
 app.get("/api/capabilities", (_req, res) => {
