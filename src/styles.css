@@ -1521,7 +1521,11 @@ p { text-wrap: pretty; }
 .config-field-edit a { color: var(--text-3); font-size: 11.5px; white-space: nowrap; }
 .ghost-btn.small { padding: 3px 9px; font-size: 11.5px; }
 
-.config-actions { position: sticky; bottom: 0; display: flex; gap: 9px; padding: 12px 0; background: linear-gradient(to top, #15171c 70%, transparent); }
+.config-actions { position: sticky; bottom: 0; z-index: 2; display: flex; gap: 9px; padding: 14px 0 6px; background: linear-gradient(to top, #15171c 78%, rgba(21,23,28,0)); }
+/* Botao base do estudio nao tem borda nem fundo (regra global em `button`), entao
+   uma acao primaria precisa dizer que e uma acao — senao vira texto solto. */
+.config-actions > button:first-child { padding: 9px 16px; border: 1px solid transparent; border-radius: 9px; background: var(--accent, #6D7CFF); color: #0d1020; font-size: 13px; font-weight: 600; }
+.config-actions > button:first-child:hover:not(:disabled) { filter: brightness(1.08); }
 
 /* Cartao do error boundary: um workspace quebrado nao pode mais apagar o app. */
 .error-card { max-width: 640px; padding: 22px; border: 1px solid #6d3535; border-radius: 13px; background: rgba(120,45,45,0.12); }

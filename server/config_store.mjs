@@ -22,20 +22,20 @@ export const FIELDS = [
   { key: "AGNES_API_KEY", group: "generation", secret: true, label: "Agnes AI", effect: "4 image and video models at zero cost. Requires English prompts.", help: "https://apihub.agnes-ai.com" },
   { key: "KIE_API_KEY", group: "generation", secret: true, label: "kie.ai", effect: "4 models billed in credits (Z-Image, Veo 3 fast).", help: "https://kie.ai/api-key" },
 
-  { key: "INEMAIMG_URL", group: "local", secret: false, label: "inemaimg", effect: "2 local models on your own GPU (FLUX.2, Qwen-Edit). Zero cost.", help: "https://github.com/inematds/inemaimg" },
-  { key: "OLLAMA_URL", group: "local", secret: false, label: "ollama", effect: "Local engine for the website and document builder. Needs a GPU.", help: "https://ollama.com" },
+  { key: "INEMAIMG_URL", group: "local", secret: false, fallback: "http://127.0.0.1:8000", label: "inemaimg", effect: "2 local models on your own GPU (FLUX.2, Qwen-Edit). Zero cost.", help: "https://github.com/inematds/inemaimg" },
+  { key: "OLLAMA_URL", group: "local", secret: false, fallback: "http://127.0.0.1:11434", label: "ollama", effect: "Local engine for the website and document builder. Needs a GPU.", help: "https://ollama.com" },
 
   { key: "GOOGLE_API_KEY", group: "refine", secret: true, label: "Google AI Studio", effect: "First link of the prompt rewriter (gemini-3-flash-preview).", help: "https://aistudio.google.com/apikey" },
   { key: "OPENROUTER_API_KEY", group: "refine", secret: true, label: "OpenRouter", effect: "Second link of the rewriter, and a model engine for the builder.", help: "https://openrouter.ai/keys" },
-  { key: "OPENROUTER_BASE_URL", group: "refine", secret: false, label: "OpenRouter base URL", effect: "Defaults to https://openrouter.ai/api/v1." },
+  { key: "OPENROUTER_BASE_URL", group: "refine", secret: false, fallback: "https://openrouter.ai/api/v1", label: "OpenRouter base URL", effect: "Defaults to https://openrouter.ai/api/v1." },
   { key: "OPENROUTER_MODEL_DEFAULT", group: "refine", secret: false, label: "OpenRouter model", effect: "A retired model id here returns 404 and drops the link. Check openrouter.ai/models." },
 
   { key: "BENCH_WEBSITE_REFERENCE", group: "reference", secret: false, label: "Website reference", effect: "A site of YOURS the builder may inspect to calibrate finish. Never copied." },
   { key: "BENCH_WEBSITE_REFERENCE_URL", group: "reference", secret: false, label: "Website reference URL", effect: "Only used to show the preview in the side panel." },
   { key: "BENCH_DOCUMENT_REFERENCE", group: "reference", secret: false, label: "Document reference", effect: "A PDF of YOURS used the same way for documents." },
 
-  { key: "PORT", group: "server", secret: false, label: "API port", effect: "Defaults to 8787. The interface runs on 5200." },
-  { key: "BENCH_DATA_DIR", group: "server", secret: false, label: "Data directory", effect: "Where the database, outputs and projects live. Defaults to ./data." },
+  { key: "PORT", group: "server", secret: false, fallback: "8787", label: "API port", effect: "Defaults to 8787. The interface runs on 5200." },
+  { key: "BENCH_DATA_DIR", group: "server", secret: false, fallback: "./data", label: "Data directory", effect: "Where the database, outputs and projects live. Defaults to ./data." },
   { key: "BENCH_CHROME", group: "server", secret: false, label: "Chrome path", effect: "Used to print PDFs. Detected automatically; set only if it lives somewhere unusual." },
   { key: "FFMPEG_PATH", group: "server", secret: false, label: "ffmpeg path", effect: "Set only if ffmpeg is not on PATH." },
 ];
@@ -115,6 +115,10 @@ export function describeConfig({ env = process.env, projectPath = PROJECT_ENV, h
       present,
       source,
       shadowed,
+      // Uma variavel com valor padrao FUNCIONA vazia. Marcar isso como "not set"
+      // manda a pessoa procurar problema onde nao ha — e pior, sugere preencher
+      // algo que nao precisa existir.
+      using_fallback: !present && Boolean(field.fallback),
       masked_tail: field.secret ? maskedTail(live ?? project.get(field.key) ?? home.get(field.key)) : null,
       value: field.secret ? null : (live ?? project.get(field.key) ?? home.get(field.key) ?? ""),
     };

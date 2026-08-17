@@ -167,11 +167,15 @@ function ConfigField({ field, draft, readOnly, onDraft, onTest, test, live }) {
           <span className="config-badge on">
             set{field.masked_tail ? ` ${field.masked_tail}` : ""} · {SOURCE_LABEL[field.source] ?? field.source}
           </span>
+        ) : field.using_fallback ? (
+          <span className="config-badge">using default {field.fallback}</span>
         ) : (
           <span className="config-badge off">not set</span>
         )}
         {onTest && (
-          <button type="button" className="ghost-btn small" onClick={onTest} disabled={!field.present}>
+          {/* Um endereco em valor padrao e testavel: e justamente ali que "esta no ar?"
+              e a pergunta, ja que ninguem digitou nada. */}
+          <button type="button" className="ghost-btn small" onClick={onTest} disabled={!field.present && !field.using_fallback}>
             {test?.testing ? "Testing…" : "Test"}
           </button>
         )}
