@@ -192,10 +192,20 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                 type="button"
                 className={allOn(freeIds) ? "on" : ""}
                 onClick={() => onToggle(freeIds, !allOn(freeIds))}
-                title={`${freeIds.length} models that cost nothing (Agnes and local)`}
+                title={`${freeIds.length} models that cost nothing on your current plan — this reflects today's billing, not a permanent property`}
               >
-                Free
+                No cost
               </button>
+              {creditIds.length > 0 && (
+                <button
+                  type="button"
+                  className={allOn(creditIds) ? "on" : ""}
+                  onClick={() => onToggle(creditIds, !allOn(creditIds))}
+                  title={`${creditIds.length} models billed as credits from a plan you already pay`}
+                >
+                  Plan credits
+                </button>
+              )}
               <button
                 type="button"
                 className={allOn(localIds) ? "on" : ""}
@@ -266,7 +276,7 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                     </div>
                     <div className="s">
                       <span>{m.vendor}</span>
-                      <b>{price(m)}</b>
+                      <b>{price(m) || COST_LABEL[m.cost_class] || ""}</b>
                     </div>
                     <div className="card-capabilities">
                       <span>{m.kind === "video" ? "Video output" : "Image output"}</span>
@@ -296,6 +306,15 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
 
 // fal bills in different units per model, so say which unit rather than
 // pretending everything is priced per picture.
+// Nem todo provedor cobra em dolar. Sem isto, um modelo do Kling (credito de
+// plano) e um da Agnes (zero hoje) apareciam com o preco em branco, como se a
+// informacao nao existisse.
+const COST_LABEL = {
+  free: "no cost",
+  credits: "plan credits",
+  unknown: "priced after run",
+};
+
 const UNIT_LABEL = {
   images: "/img",
   megapixels: "/MP",

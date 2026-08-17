@@ -1115,6 +1115,19 @@ async function providerAvailability({ force = false } = {}) {
   return availabilityCache.promise;
 }
 
+// free = o provedor declara custo zero agora · credits = consome credito de um
+// plano (nao da para somar com dolar) · paid = cobra em dolar · unknown = nao da
+// para saber antes de rodar.
+function costClassOf(model) {
+  try {
+    const quote = adapterFor(model).quote(model.id, {});
+    if (quote?.unit === "credits") return "credits";
+    if (quote?.cost === 0) return "free";
+    if (typeof quote?.cost === "number" && quote.cost > 0) return "paid";
+    return "unknown";
+  } catch { return "unknown"; }
+}
+
 const DEFAULT_PROVIDER = "fal";
 const providerOf = (model) => model?.provider ?? DEFAULT_PROVIDER;
 function adapterFor(model) {
@@ -1351,6 +1364,12 @@ app.get("/api/models", async (_req, res) => {
         ? availability[providerOf(m)].hint ?? null
         : null,
       enabled: !disabled.has(m.id),
+      // "Gratis" NAO e propriedade do provedor: e o que a conta cobra hoje. A
+      // Agnes pode passar a cobrar, o free tier do Gemini acaba (aconteceu:
+      // RESOURCE_EXHAUSTED no meio desta sessao). Entao a classe de custo sai do
+      // orcamento que o proprio adapter calcula, e nao de uma lista fixa na
+      // interface — se a cobranca mudar, o adapter muda e a tela acompanha.
+      cost_class: costClassOf(m),
       capabilities: capabilityById.get(m.id) ?? null,
       has_profile: Boolean(findProfile(m.id)),
       // live from fal, so a price change shows up without a code change
