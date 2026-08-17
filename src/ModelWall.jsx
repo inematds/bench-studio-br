@@ -22,10 +22,20 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
 
   // As opcoes saem do proprio catalogo, com contagem — provedor que voce nao tem
   // nao ocupa espaco na barra.
+  // Por provedor: quantos existem, quantos estao ligados e se a rota esta
+  // utilizavel. E a unidade natural de decisao — quase toda escolha aqui e
+  // "quero ou nao quero este provedor", nao modelo a modelo.
   const providerOptions = useMemo(() => {
-    const counts = new Map();
-    for (const m of catalog?.models ?? []) counts.set(m.provider, (counts.get(m.provider) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    const acc = new Map();
+    for (const m of catalog?.models ?? []) {
+      const cur = acc.get(m.provider) ?? { id: m.provider, label: m.provider_label ?? m.provider, total: 0, on: 0, ids: [], available: m.available !== false };
+      cur.total += 1;
+      cur.ids.push(m.id);
+      if (m.enabled !== false) cur.on += 1;
+      if (m.available === false) cur.available = false;
+      acc.set(m.provider, cur);
+    }
+    return [...acc.values()].sort((a, b) => b.total - a.total);
   }, [catalog]);
 
   const stats = useMemo(() => {
@@ -71,13 +81,44 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
   return (
     <div className="wall model-wall">
       <div className="catalog-filters" role="group" aria-label="Filter catalog">
-        <label className="results-filter">
-          <span>Provider</span>
-          <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-            <option value="all">All ({stats.total})</option>
-            {providerOptions.map(([id, count]) => <option key={id} value={id}>{id} ({count})</option>)}
-          </select>
-        </label>
+        <div className="provider-chips" role="group" aria-label="Providers">
+          <span className="results-filter-label">Provider</span>
+          <button
+            type="button"
+            className={`provider-chip${provider === "all" ? " selected" : ""}`}
+            onClick={() => setProvider("all")}
+          >
+            All <small>{stats.total}</small>
+          </button>
+          {providerOptions.map((p) => (
+            <span className={`provider-chip-wrap${provider === p.id ? " selected" : ""}${p.available ? "" : " unavailable"}`} key={p.id}>
+              <button
+                type="button"
+                className="provider-chip"
+                onClick={() => setProvider(provider === p.id ? "all" : p.id)}
+                title={p.available ? `Show only ${p.label}` : `${p.label} is unavailable`}
+              >
+                {p.id} <small>{p.on}/{p.total}</small>
+              </button>
+              {onToggle && (
+                // Liga ou desliga o provedor INTEIRO. Meio caminho (alguns
+                // ligados) conta como desligado para o clique: o gesto esperado
+                // e "quero este provedor", e ai o certo e ligar o que falta.
+                <button
+                  type="button"
+                  className={`provider-switch${p.on === p.total ? " on" : ""}`}
+                  role="switch"
+                  aria-checked={p.on === p.total}
+                  aria-label={`${p.on === p.total ? "Disable" : "Enable"} all ${p.label} models`}
+                  title={p.on === p.total ? `Turn off all ${p.total}` : `Turn on all ${p.total}`}
+                  onClick={() => onToggle(p.ids, p.on !== p.total)}
+                >
+                  {p.on === p.total ? "on" : p.on === 0 ? "off" : `${p.on}`}
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
         <label className="results-filter">
           <span>Output</span>
           <select value={output} onChange={(e) => setOutput(e.target.value)}>

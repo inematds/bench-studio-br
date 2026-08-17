@@ -63,9 +63,9 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
 
       {shots.length > 1 && (
         <div className="results-filters" role="group" aria-label="Filtrar resultados">
-          <Filter label="Tipo" value={kind} onChange={setKind} options={kinds} total={shots.length} />
+          <Filter label="Type" value={kind} onChange={setKind} options={kinds} total={shots.length} />
           <Filter label="Provider" value={provider} onChange={setProvider} options={providers} total={shots.length} />
-          {models.length > 1 && <Filter label="Modelo" value={model} onChange={setModel} options={models} total={filtered.length} wide />}
+          {models.length > 1 && <Filter label="Model" value={model} onChange={setModel} options={models} total={filtered.length} wide />}
           {filtering && (
             <button type="button" className="results-filter-clear" onClick={() => { setKind("all"); setProvider("all"); setModel("all"); }}>
               Clear

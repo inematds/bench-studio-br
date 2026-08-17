@@ -330,7 +330,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
   const filteredModels = sortModels(models.filter((candidate) => {
     const matchesKind = normalizedQuery || kindFilter === "all" || candidate.kind === kindFilter;
     const matchesQuery = !normalizedQuery ||
-      `${candidate.label} ${candidate.vendor} ${candidate.id} ${modelLaneLabel(candidate)}`.toLowerCase().includes(normalizedQuery);
+      `${candidate.label} ${candidate.vendor} ${candidate.id} ${candidate.provider ?? ""} ${modelLaneLabel(candidate)}`.toLowerCase().includes(normalizedQuery);
     return matchesKind && matchesQuery;
   }));
   const popularModelId = filteredModels.find((candidate) => modelPriority(candidate) < 6)?.id;
@@ -429,6 +429,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
       >
         {model.thumbnail && <img src={model.thumbnail} alt="" />}
         <span className="model-picker-name">{model.label}</span>
+        <span className="model-option-provider trigger">{model.provider ?? "fal"}</span>
         <span className={`model-picker-kind kind-${model.kind}${referenceActive ? " reference" : ""}`}>
           {referenceActive ? modelLaneLabel(model) : modelKindLabel(model)}
         </span>
@@ -506,7 +507,14 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
                   <span className="model-option-placeholder" aria-hidden="true" />
                 )}
                 <span className="model-option-copy">
-                  <b>{candidate.label}</b>
+                  <b>
+                    {candidate.label}
+                    {/* A ROTA precisa aparecer aqui: o mesmo modelo existe em
+                        mais de um provedor com cobranca diferente (Kling por
+                        credito do plano, fal por dolar/segundo), e sem isto a
+                        escolha entre eles vira adivinhacao. */}
+                    <span className="model-option-provider">{candidate.provider ?? "fal"}</span>
+                  </b>
                   <small>
                     {candidate.vendor} · {modelLaneLabel(candidate)} · {modelPrice(candidate)}
                     {candidate.capabilities?.modalities?.length ? ` · takes ${candidate.capabilities.modalities.join(" + ")}` : ""}

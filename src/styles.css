@@ -1417,3 +1417,45 @@ p { text-wrap: pretty; }
   letter-spacing: .02em; opacity: .55;
   border: 1px solid var(--line, rgba(255,255,255,.14));
 }
+
+/* Provedores como chips: filtrar e ligar/desligar no mesmo lugar, porque quase
+   toda decisao aqui e por provedor, nao modelo a modelo. */
+.provider-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.results-filter-label {
+  font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; opacity: .55;
+  margin-right: 2px;
+}
+.provider-chip-wrap {
+  display: inline-flex; align-items: stretch; border-radius: 9px; overflow: hidden;
+  border: 1px solid var(--line, rgba(255,255,255,.14));
+}
+.provider-chip-wrap.selected { border-color: var(--accent, #6D7CFF); }
+.provider-chip-wrap.unavailable { opacity: .5; }
+.provider-chip {
+  padding: 7px 11px; border: 1px solid var(--line, rgba(255,255,255,.14));
+  border-radius: 9px; background: transparent; color: inherit;
+  font: inherit; font-size: 13px; cursor: pointer;
+}
+.provider-chip-wrap .provider-chip { border: 0; border-radius: 0; }
+.provider-chip.selected, .provider-chip-wrap.selected .provider-chip { background: rgba(109,124,255,.16); }
+.provider-chip:hover { background: rgba(255,255,255,.06); }
+.provider-chip small { opacity: .55; margin-left: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.provider-switch {
+  min-width: 42px; padding: 7px 9px; border: 0; border-left: 1px solid var(--line, rgba(255,255,255,.14));
+  background: rgba(0,0,0,.28); color: var(--text-2, #b9c0cc); cursor: pointer;
+  font: inherit; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
+}
+.provider-switch:hover { background: rgba(255,255,255,.08); }
+.provider-switch.on { background: var(--accent, #6D7CFF); color: #fff; }
+
+/* Rota (provedor) ao lado do nome do modelo: o mesmo modelo existe em mais de
+   um provedor, com cobrancas diferentes. */
+.model-option-provider {
+  margin-left: 7px; padding: 1px 6px; border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase;
+  font-weight: 500; color: var(--text-2, #b9c0cc);
+  border: 1px solid var(--line, rgba(255,255,255,.16));
+  vertical-align: middle;
+}
+.model-option-provider.trigger { margin-left: 6px; opacity: .7; }
