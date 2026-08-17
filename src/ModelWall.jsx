@@ -13,7 +13,6 @@ const GROUPS = [
 ];
 
 export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, onRefresh, settings, onSettings }) {
-  const [curating, setCurating] = useState(false);
   const [showUnavailable, setShowUnavailable] = useState(false);
 
   const [provider, setProvider] = useState("all");
@@ -140,14 +139,9 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
               </select>
             </label>
           )}
-          {onToggle && (
-            <button type="button" className={curating ? "on" : ""} onClick={() => setCurating((v) => !v)}>
-              {curating ? "Done" : "Choose models"}
-            </button>
-          )}
-          {curating && onBulk && (
+          {onBulk && (
             <>
-              {filtrando && (
+              {filtrando && onToggle && (
                 <>
                   <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), true)}>Enable the {visiveis.length} filtered</button>
                   <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), false)}>Disable those {visiveis.length}</button>
@@ -177,9 +171,10 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
       </div>
       {GROUPS.map((g) => {
         const models = sortModels(visiveis.filter((m) => m.lane === g.lane))
-          // Fora da curadoria, some o que voce desligou; indisponivel so aparece
-          // se voce pedir — mas NUNCA some sem dizer por que (ver a barra acima).
-          .filter((m) => curating || (m.enabled !== false && (m.available !== false || showUnavailable)));
+          // Modelo desligado continua visivel: e assim que da para liga-lo de
+          // volta. O que ele perde e o destaque, nao a existencia. Indisponivel
+          // so aparece se voce pedir, e nunca some sem dizer por que.
+          .filter((m) => m.available !== false || showUnavailable);
         if (!models.length) return null;
         return (
           <section key={g.lane}>
@@ -191,18 +186,30 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
             </div>
             <div className="grid">
               {models.map((m) => (
+                <div className="card-wrap" key={m.id}>
+                {onToggle && (
+                  // Controle proprio, fora do botao do card: clicar aqui liga ou
+                  // desliga e NUNCA navega. Antes isso vivia dentro do card e so
+                  // aparecia num "modo curadoria" — quem clicava num card
+                  // querendo liga-lo era levado para a tela de criacao.
+                  <button
+                    type="button"
+                    className={`card-switch${m.enabled === false ? "" : " on"}`}
+                    role="switch"
+                    aria-checked={m.enabled !== false}
+                    aria-label={`${m.enabled === false ? "Enable" : "Disable"} ${m.label}`}
+                    title={m.enabled === false ? "Turn on: show in Create and MCP" : "Turn off: hide from Create and MCP"}
+                    onClick={(event) => { event.stopPropagation(); onToggle(m.id, m.enabled === false); }}
+                  >
+                    {m.enabled === false ? "off" : "on"}
+                  </button>
+                )}
                 <button
-                  key={m.id}
                   className={`card${m.id === modelId ? " on" : ""}${m.available === false ? " unavailable" : ""}${m.enabled === false ? " off" : ""}`}
-                  onClick={() => (curating && onToggle ? onToggle(m.id, m.enabled === false) : onPick(m.id))}
-                  disabled={!curating && m.available === false}
+                  onClick={() => onPick(m.id)}
+                  disabled={m.available === false}
                   title={m.available === false ? `${m.unavailable_reason}. ${m.unavailable_hint ?? ""}` : m.id}
                 >
-                  {curating && (
-                    <span className={`card-switch${m.enabled === false ? "" : " on"}`} aria-hidden="true">
-                      {m.enabled === false ? "off" : "on"}
-                    </span>
-                  )}
                   {m.thumbnail ? (
                     <img className="shot" src={m.thumbnail} alt="" loading="lazy" />
                   ) : (
@@ -236,6 +243,7 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                     )}
                   </div>
                 </button>
+                </div>
               ))}
             </div>
           </section>

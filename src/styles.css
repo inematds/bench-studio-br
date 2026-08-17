@@ -1382,11 +1382,18 @@ p { text-wrap: pretty; }
 .card.unavailable { opacity: .42; }
 .card.unavailable .shot { filter: grayscale(1); }
 .card.off { opacity: .5; }
+/* O interruptor e um botao proprio, por cima do card e fora dele: clicar aqui
+   nunca navega. Nested button dentro de button e HTML invalido, por isso o
+   .card-wrap. */
+.card-wrap { position: relative; display: grid; }
 .card-switch {
-  position: absolute; top: 10px; left: 10px; z-index: 2;
-  padding: 3px 9px; border-radius: 999px; font-size: 11px; letter-spacing: .03em;
-  background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2);
+  position: absolute; top: 9px; left: 9px; z-index: 3;
+  padding: 3px 10px; border-radius: 999px;
+  font: inherit; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-2, #b9c0cc); cursor: pointer;
+  background: rgba(0,0,0,.68); border: 1px solid rgba(255,255,255,.22);
 }
+.card-switch:hover { border-color: rgba(255,255,255,.45); }
 .card-switch.on { background: var(--accent, #6D7CFF); border-color: transparent; color: #fff; }
 .card-unavailable { display: grid; gap: 2px; margin-top: 6px; }
 .card-unavailable b { color: #ff9d8a; font-size: 12px; }
