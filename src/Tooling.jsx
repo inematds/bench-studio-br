@@ -1,6 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useT } from "./i18n/index.jsx";
+import Term from "./i18n/Term.jsx";
+
+const TOOL_NAMES = [
+  "list_models",
+  "get_model_capabilities",
+  "upload_media",
+  "create_media",
+  "list_results",
+  "get_usage",
+  "sync_models",
+  "create_website",
+  "create_document",
+  "list_projects",
+  "get_project",
+];
 
 export default function Tooling() {
+  const t = useT();
   const [config, setConfig] = useState(null);
   const [copied, setCopied] = useState(false);
   const [client, setClient] = useState("claude");
@@ -10,7 +27,7 @@ export default function Tooling() {
   }, []);
 
   const snippet = useMemo(() => {
-    if (!config) return "Loading local configuration…";
+    if (!config) return t("connect.loadingConfig");
     if (client === "codex") {
       return [
         "[mcp_servers.bench-studio]",
@@ -30,7 +47,7 @@ export default function Tooling() {
         },
       },
     }, null, 2);
-  }, [client, config]);
+  }, [client, config, t]);
 
   async function copy() {
     await navigator.clipboard.writeText(snippet);
@@ -38,76 +55,78 @@ export default function Tooling() {
     setTimeout(() => setCopied(false), 1400);
   }
 
+  const clientLabel = client === "codex" ? "Codex" : client === "cursor" ? "Cursor" : "Claude Desktop";
+
   return (
     <section className="connect-page">
       <div className="connect-hero">
         <div>
-          <div className="eyebrow">Local tools</div>
-          <h1>Use Bench from any agent.</h1>
-          <p>Claude, Codex, and Cursor can use the same model catalog, input rules, generation pipeline, costs, and local archive as this app.</p>
+          <div className="eyebrow">{t("connect.eyebrow")}</div>
+          <h1>{t("connect.title")}</h1>
+          <p>{t("connect.subtitle")}</p>
         </div>
-        <span className="local-pill"><i /> Runs on this Mac</span>
+        <span className="local-pill"><i /> {t("connect.localPill")}</span>
       </div>
 
       <div className="connect-grid">
         <article className="connect-card connect-skill">
           <div className="connect-card-head">
-            <div><span>01</span><h2>Install the Bench skill</h2></div>
-            <a className="connect-primary-action" href={config?.skill?.download_url ?? "/api/tooling/skill"} download>Download ZIP</a>
+            <div><span>01</span><h2>{t("connect.step1.title")}</h2></div>
+            <a className="connect-primary-action" href={config?.skill?.download_url ?? "/api/tooling/skill"} download>
+              {t("connect.step1.download")}
+            </a>
           </div>
-          <p>Give Codex or Claude Code the workflow: model selection, reference handling, cost discipline, and local artifact rules.</p>
+          <p>{t("connect.step1.body")}</p>
           <div className="skill-package">
             <div className="skill-package-mark" aria-hidden="true"><i /><i /><i /></div>
-            <div><strong>Bench Studio skill</strong><span>Portable · no credentials included</span></div>
+            <div><strong>{t("connect.step1.packageName")}</strong><span>{t("connect.step1.packageNote")}</span></div>
             <small>v{config?.skill?.version ?? "0.2.0"}</small>
           </div>
-          <p className="install-path">Unzip into <code>{client === "codex" ? (config?.skill?.installs?.codex ?? "~/.codex/skills/bench-studio") : (config?.skill?.installs?.claude_code ?? "~/.claude/skills/bench-studio")}</code></p>
+          <p className="install-path">
+            {t("connect.step1.unzipInto")}{" "}
+            <code>{client === "codex" ? (config?.skill?.installs?.codex ?? "~/.codex/skills/bench-studio") : (config?.skill?.installs?.claude_code ?? "~/.claude/skills/bench-studio")}</code>
+          </p>
         </article>
 
         <article className="connect-card connect-config">
           <div className="connect-card-head">
-            <div><span>02</span><h2>Connect the live tools</h2></div>
-            <button type="button" onClick={copy}>{copied ? "Copied" : "Copy config"}</button>
+            <div><span>02</span><h2>{t("connect.step2.title")}</h2></div>
+            <button type="button" onClick={copy}>{copied ? t("common.copied") : t("connect.step2.copyConfig")}</button>
           </div>
-          <p>The MCP server provides feature parity with this app. Bench stays available as a local background service; paste the config, then restart your client once.</p>
-          <div className="client-switch" role="tablist" aria-label="MCP client">
+          <p>{t("connect.step2.body")}</p>
+          <div className="client-switch" role="tablist" aria-label={t("connect.step2.clientLabel")}>
             <button type="button" role="tab" aria-selected={client === "claude"} className={client === "claude" ? "active" : ""} onClick={() => setClient("claude")}>Claude Desktop</button>
             <button type="button" role="tab" aria-selected={client === "codex"} className={client === "codex" ? "active" : ""} onClick={() => setClient("codex")}>Codex</button>
             <button type="button" role="tab" aria-selected={client === "cursor"} className={client === "cursor" ? "active" : ""} onClick={() => setClient("cursor")}>Cursor</button>
           </div>
-          <pre tabIndex="0" aria-label={`${client === "codex" ? "Codex" : client === "cursor" ? "Cursor" : "Claude Desktop"} MCP configuration`}><code>{snippet}</code></pre>
+          <pre tabIndex="0" aria-label={t("connect.step2.snippetLabel", { client: clientLabel })}><code>{snippet}</code></pre>
         </article>
 
         <article className="connect-card">
-          <div className="connect-card-head"><div><span>03</span><h2>Ask naturally</h2></div></div>
-          <p className="example-prompt">“Find a frugal video model that accepts two product images, generate a 9:16 UGC ad, and save the result locally.”</p>
-          <div className="connect-note">Skill = judgment and workflow. MCP = live catalog, generation, projects, results, and spend.</div>
+          <div className="connect-card-head"><div><span>03</span><h2>{t("connect.step3.title")}</h2></div></div>
+          <p className="example-prompt">{t("connect.step3.example")}</p>
+          <div className="connect-note">{t("connect.step3.note")}</div>
         </article>
       </div>
 
       <section className="tool-list-section">
         <div className="tool-list-head">
-          <div><h2>Full creation surface</h2><p>Eleven focused tools, backed by the same SQLite ledger and capability manifest as the app.</p></div>
-          <span>{config?.tools?.length ?? 11} tools</span>
+          <div>
+            <h2>{t("connect.tools.title")}</h2>
+            <p>{t("connect.tools.subtitle", { count: TOOL_NAMES.length })}</p>
+          </div>
+          <span>{t("connect.tools.count", { count: config?.tools?.length ?? TOOL_NAMES.length })}</span>
         </div>
         <div className="tool-list">
-          {[
-            ["list_models", "Discover current image and video models by output and accepted input."],
-            ["get_model_capabilities", "Inspect exact media fields, limits, and verification evidence."],
-            ["upload_media", "Archive a local file and prepare its fal-hosted input URL."],
-            ["create_media", "Generate with precise model parameters and mapped input assets."],
-            ["list_results", "Read recent outputs with both local and hosted URLs."],
-            ["get_usage", "Review billed spend and local archive health."],
-            ["sync_models", "Check fal for newly published endpoints."],
-            ["create_website", "Start a complete local website build from a creative brief."],
-            ["create_document", "Create an editable, print-ready PDF edition."],
-            ["list_projects", "Browse local website and document projects."],
-            ["get_project", "Check live build progress and retrieve artifacts."],
-          ].map(([name, description]) => (
-            <article key={name}><code>{name}</code><p>{description}</p></article>
+          {TOOL_NAMES.map((name) => (
+            <article key={name}><code>{name}</code><p>{t(`connect.tools.${name}`)}</p></article>
           ))}
         </div>
       </section>
+
+      <p className="connect-foot">
+        <Term id="mcp" /> — {t("connect.mcpFoot")}
+      </p>
     </section>
   );
 }

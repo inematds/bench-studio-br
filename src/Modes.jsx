@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useT } from "./i18n/index.jsx";
 
 // Aba Modes: criar e editar modos sem tocar em código.
 //
@@ -22,6 +23,7 @@ function notifyChanged() {
 }
 
 export default function Modes() {
+  const t = useT();
   const [builtin, setBuiltin] = useState([]);
   const [custom, setCustom] = useState([]);
   const [draft, setDraft] = useState(VAZIO);
@@ -59,7 +61,7 @@ export default function Modes() {
         }),
       });
       const j = await r.json();
-      if (j.error) throw new Error(j.error);
+      if (j.error || j.code) throw new Error(j.code ? t(`server.${j.code}`) : j.error);
       setDraft(VAZIO);
       setEditingId(null);
       await load();
@@ -97,59 +99,55 @@ export default function Modes() {
     <section className="modes-page">
       <div className="modes-hero">
         <div>
-          <div className="eyebrow">Modes</div>
-          <h1>{editingId ? "Edit a mode." : "Create a mode."}</h1>
-          <p>
-            The <strong>brief</strong> is the instruction the prompt refiner receives while this mode
-            is active. <strong>Sub-controls</strong> become selectors on the creation bar, and what
-            you pick enters the prompt as creative direction.
-          </p>
+          <div className="eyebrow">{t("modes.eyebrow")}</div>
+          <h1>{editingId ? t("modes.editTitle") : t("modes.createTitle")}</h1>
+          <p dangerouslySetInnerHTML={{ __html: t("modes.intro") }} />
         </div>
       </div>
 
       <div className="modes-form">
         <label>
-          <span>Mode name</span>
+          <span>{t("modes.nameLabel")}</span>
           <input
             value={draft.label}
-            placeholder="Reels INEMA"
+            placeholder={t("modes.namePlaceholder")}
             onChange={(e) => setDraft({ ...draft, label: e.target.value })}
           />
         </label>
 
         <label>
-          <span>Brief — what this mode instructs</span>
+          <span>{t("modes.briefLabel")}</span>
           <textarea
             rows={6}
             value={draft.brief}
-            placeholder="A vertical, social-native shot with a hook in the first 3 seconds, one single point, no montage and no on-image text…"
+            placeholder={t("modes.briefPlaceholder")}
             onChange={(e) => setDraft({ ...draft, brief: e.target.value })}
           />
         </label>
 
         <div className="modes-controls">
           <div className="modes-controls-head">
-            <strong>Sub-controls (optional)</strong>
+            <strong>{t("modes.subControls")}</strong>
             <button type="button" onClick={() => setDraft((d) => ({ ...d, controls: [...d.controls, { label: "", optionsText: "" }] }))}>
-              Add sub-control
+              {t("modes.addSubControl")}
             </button>
           </div>
-          {!draft.controls.length && <p className="modes-hint">With no sub-controls, the mode applies the brief alone.</p>}
+          {!draft.controls.length && <p className="modes-hint">{t("modes.noSubControlsHint")}</p>}
           {draft.controls.map((control, i) => (
             <div className="modes-control" key={i}>
               <input
                 className="modes-control-label"
                 value={control.label}
-                placeholder="Camera"
+                placeholder={t("modes.controlLabelPlaceholder")}
                 onChange={(e) => setControl(i, { label: e.target.value })}
               />
               <input
                 className="modes-control-options"
                 value={control.optionsText ?? ""}
-                placeholder="handheld selfie, locked tripod, product close-up (comma separated)"
+                placeholder={t("modes.controlOptionsPlaceholder")}
                 onChange={(e) => setControl(i, { optionsText: e.target.value })}
               />
-              <button type="button" className="modes-remove" onClick={() => setDraft((d) => ({ ...d, controls: d.controls.filter((_, j) => j !== i) }))} aria-label="Remove sub-control">×</button>
+              <button type="button" className="modes-remove" onClick={() => setDraft((d) => ({ ...d, controls: d.controls.filter((_, j) => j !== i) }))} aria-label={t("modes.removeSubControl")}>×</button>
             </div>
           ))}
         </div>
@@ -158,24 +156,24 @@ export default function Modes() {
 
         <div className="modes-actions">
           <button type="button" className="modes-save" onClick={save} disabled={saving}>
-            {saving ? "Saving…" : editingId ? "Save changes" : "Create mode"}
+            {saving ? t("common.saving") : editingId ? t("modes.saveChanges") : t("modes.createMode")}
           </button>
           {editingId && (
-            <button type="button" onClick={() => { setDraft(VAZIO); setEditingId(null); }}>Cancelar</button>
+            <button type="button" onClick={() => { setDraft(VAZIO); setEditingId(null); }}>{t("common.cancel")}</button>
           )}
         </div>
       </div>
 
       <div className="modes-list">
-        <h2>Your modes <span>{custom.length}</span></h2>
-        {!custom.length && <p className="modes-hint">No custom modes yet. The built-in ones stay available.</p>}
+        <h2>{t("modes.yourModes")} <span>{custom.length}</span></h2>
+        {!custom.length && <p className="modes-hint">{t("modes.noCustomModes")}</p>}
         {custom.map((mode) => (
           <article className="modes-card" key={mode.id}>
             <div className="modes-card-head">
               <strong>{mode.label}</strong>
               <div>
-                <button type="button" onClick={() => edit(mode)}>Edit</button>
-                <button type="button" className="danger" onClick={() => remove(mode.id)}>Delete</button>
+                <button type="button" onClick={() => edit(mode)}>{t("modes.edit")}</button>
+                <button type="button" className="danger" onClick={() => remove(mode.id)}>{t("common.delete")}</button>
               </div>
             </div>
             <p>{mode.brief}</p>
@@ -189,12 +187,12 @@ export default function Modes() {
           </article>
         ))}
 
-        <h2>Built-in <span>{builtin.length}</span></h2>
-        <p className="modes-hint">They live in code (<code>server/server.mjs</code>, <code>FORMATS</code>). Useful as examples of a well-written brief.</p>
+        <h2>{t("modes.builtin")} <span>{builtin.length}</span></h2>
+        <p className="modes-hint" dangerouslySetInnerHTML={{ __html: t("modes.builtinHint") }} />
         {builtin.map((mode) => (
           <article className="modes-card builtin" key={mode.id}>
             <div className="modes-card-head"><strong>{mode.label}</strong></div>
-            <p>{mode.brief || <em>no instruction — freeform</em>}</p>
+            <p>{mode.brief || <em>{t("modes.noInstruction")}</em>}</p>
           </article>
         ))}
       </div>

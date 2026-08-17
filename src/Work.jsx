@@ -1,15 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "./i18n/index.jsx";
 
 // Results, big. Each one keeps its own price and billing confidence.
 
-const FORMAT_LABELS = {
-  ugc: "UGC ad",
-  unboxing: "Unboxing",
-  hypermotion: "Hyper motion",
-  tvspot: "TV spot",
-  product: "Product still",
-  poster: "Ad with headline",
-};
+// Os nomes dos formatos vivem no dicionario; aqui fica so a lista dos ids que
+// o servidor pode devolver.
+const FORMAT_IDS = ["ugc", "unboxing", "hypermotion", "tvspot", "product", "poster"];
 
 // As opcoes de filtro saem dos proprios resultados: um provedor ou modelo que
 // voce nunca usou nao tem por que ocupar espaco na barra.
@@ -24,6 +20,7 @@ function optionsFrom(shots, pick) {
 }
 
 export default function Work({ job, shots, standalone = false, onDelete, onReuse }) {
+  const t = useT();
   const [kind, setKind] = useState("all");
   const [provider, setProvider] = useState("all");
   const [model, setModel] = useState("all");
@@ -55,20 +52,24 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
   return (
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
       <div className="wall-head">
-        <h2>{standalone ? "Library" : "Your results"}</h2>
-        <span>{filtered.length}{filtering ? ` of ${shots.length}` : ""} {filtered.length === 1 ? "result" : "results"}</span>
+        <h2>{standalone ? t("work.library") : t("work.yourResults")}</h2>
+        <span>
+          {filtering
+            ? t("work.countOf", { shown: filtered.length, total: shots.length })
+            : t("work.count", { count: filtered.length })}
+        </span>
         <div className="rule" />
-        <span>${spent.toFixed(3)} spent</span>
+        <span>{t("work.spent", { amount: spent.toFixed(3) })}</span>
       </div>
 
       {shots.length > 1 && (
-        <div className="results-filters" role="group" aria-label="Filtrar resultados">
-          <Filter label="Type" value={kind} onChange={setKind} options={kinds} total={shots.length} />
-          <Filter label="Provider" value={provider} onChange={setProvider} options={providers} total={shots.length} />
-          {models.length > 1 && <Filter label="Model" value={model} onChange={setModel} options={models} total={filtered.length} wide />}
+        <div className="results-filters" role="group" aria-label={t("work.filterResults")}>
+          <Filter label={t("work.filterType")} value={kind} onChange={setKind} options={kinds} total={shots.length} allLabel={t("work.all")} />
+          <Filter label={t("work.filterProvider")} value={provider} onChange={setProvider} options={providers} total={shots.length} allLabel={t("work.all")} />
+          {models.length > 1 && <Filter label={t("work.filterModel")} value={model} onChange={setModel} options={models} total={filtered.length} allLabel={t("work.all")} wide />}
           {filtering && (
             <button type="button" className="results-filter-clear" onClick={() => { setKind("all"); setProvider("all"); setModel("all"); }}>
-              Clear
+              {t("work.clear")}
             </button>
           )}
         </div>
@@ -76,9 +77,9 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
 
       {!job && !shots.length ? (
         <div className="results-empty">
-          <strong>No results yet</strong>
-          <span>Your generated images and videos will appear here.</span>
-          <a href="#create">Create your first shot</a>
+          <strong>{t("work.emptyTitle")}</strong>
+          <span>{t("work.emptyBody")}</span>
+          <a href="#create">{t("work.emptyCta")}</a>
         </div>
       ) : (
         <div className="masonry">
@@ -92,13 +93,13 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
   );
 }
 
-function Filter({ label, value, onChange, options, total, wide }) {
+function Filter({ label, value, onChange, options, total, allLabel, wide }) {
   if (!options.length) return null;
   return (
     <label className={`results-filter${wide ? " wide" : ""}`}>
       <span>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="all">All ({total})</option>
+        <option value="all">{allLabel} ({total})</option>
         {options.map(([option, count]) => (
           <option key={option} value={option}>{option} ({count})</option>
         ))}
@@ -108,13 +109,14 @@ function Filter({ label, value, onChange, options, total, wide }) {
 }
 
 function Job({ job }) {
+  const t = useT();
   return (
     <div className="job">
       <div className="ph pulse">{job.status ?? job.phase}</div>
       <div className="meta">
         <span>{job.model ?? ""}</span>
         <span>
-          {job.queue_position != null ? `queue ${job.queue_position}` : ""}
+          {job.queue_position != null ? t("work.queue", { position: job.queue_position }) : ""}
           {job.estimate?.cost != null ? ` · ~$${job.estimate.cost.toFixed(3)}` : ""}
         </span>
       </div>
@@ -124,13 +126,14 @@ function Job({ job }) {
 }
 
 function Shot({ shot, onDelete, onReuse }) {
+  const t = useT();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const verified = shot.cost_confidence === "verified";
-  const formatLabel = FORMAT_LABELS[shot.format];
+  const formatLabel = FORMAT_IDS.includes(shot.format) ? t(`work.formats.${shot.format}`) : null;
   const idea = String(shot.raw_idea || shot.prompt || "").trim();
-  const resultLabel = shot.label || "Untitled result";
+  const resultLabel = shot.label || t("work.untitled");
   // `params` carrega o prompt junto porque e o payload enviado ao provider; aqui
   // interessa so o que e ajuste de controle.
   //
@@ -170,7 +173,7 @@ function Shot({ shot, onDelete, onReuse }) {
 
       <span className="work-tag" title={shot.cost_basis}>
         <span className={`dot ${verified ? "verified" : "estimated"}`} />
-        {verified ? "Billed" : "Est."} ${Number(shot.cost ?? 0).toFixed(3)}
+        {verified ? t("ledger.billed") : t("work.estShort")} ${Number(shot.cost ?? 0).toFixed(3)}
       </span>
 
       <div className="work-foot">
@@ -181,17 +184,17 @@ function Shot({ shot, onDelete, onReuse }) {
           </div>
           <div className="work-actions">
             <button type="button" onClick={() => setDetailsOpen((value) => !value)} aria-expanded={detailsOpen}>
-              {detailsOpen ? "Hide details" : "Details"}
+              {detailsOpen ? t("work.hideDetails") : t("work.details")}
             </button>
             {onReuse && (
-              <button type="button" onClick={() => onReuse(shot)} aria-label={`Reuse settings from ${resultLabel}`} title="Carrega modelo, prompt, controles e referencias deste resultado no Create">
-                Redo
+              <button type="button" onClick={() => onReuse(shot)} aria-label={t("work.reuseAria", { name: resultLabel })} title={t("work.reuseTitle")}>
+                {t("work.redo")}
               </button>
             )}
-            <a href={shot.outputs[0]?.local_url || shot.outputs[0]?.url} download aria-label={`Download ${resultLabel}`}>Download</a>
+            <a href={shot.outputs[0]?.local_url || shot.outputs[0]?.url} download aria-label={t("work.downloadAria", { name: resultLabel })}>{t("work.download")}</a>
             {onDelete && shot.archive_id && (
-              <button type="button" className="work-delete" onClick={() => setConfirmingDelete(true)} aria-label={`Delete ${resultLabel}`}>
-                Delete
+              <button type="button" className="work-delete" onClick={() => setConfirmingDelete(true)} aria-label={t("work.deleteAria", { name: resultLabel })}>
+                {t("common.delete")}
               </button>
             )}
           </div>
@@ -200,22 +203,22 @@ function Shot({ shot, onDelete, onReuse }) {
         {detailsOpen && (
           <div className="work-details">
             <dl>
-              <div><dt>Model</dt><dd>{shot.label}</dd></div>
-              <div><dt>Cost</dt><dd>{verified ? "Verified billed amount" : "Estimate"} · ${Number(shot.cost ?? 0).toFixed(4)}</dd></div>
-              {shot.request_id && <div><dt>Request</dt><dd>{shot.request_id}</dd></div>}
-              <div><dt>Archive</dt><dd>{shot.outputs.some((output) => output.local_url) ? "Saved locally" : "Remote copy only"}</dd></div>
+              <div><dt>{t("work.model")}</dt><dd>{shot.label}</dd></div>
+              <div><dt>{t("work.cost")}</dt><dd>{verified ? t("work.verifiedAmount") : t("work.estimate")} · ${Number(shot.cost ?? 0).toFixed(4)}</dd></div>
+              {shot.request_id && <div><dt>{t("work.request")}</dt><dd>{shot.request_id}</dd></div>}
+              <div><dt>{t("work.archive")}</dt><dd>{shot.outputs.some((output) => output.local_url) ? t("work.savedLocally") : t("work.remoteOnly")}</dd></div>
             </dl>
             {shot.raw_idea && shot.raw_idea !== shot.prompt && (
               <>
-                <strong>Your idea</strong>
+                <strong>{t("work.yourIdea")}</strong>
                 <p>{shot.raw_idea}</p>
               </>
             )}
-            <strong>Prompt sent</strong>
+            <strong>{t("work.promptSent")}</strong>
             <p>{shot.prompt}</p>
             {reusableParams.length > 0 && (
               <>
-                <strong>Settings</strong>
+                <strong>{t("work.settings")}</strong>
                 <dl>
                   {reusableParams.map(([name, value]) => (
                     <div key={name}><dt>{name.replace(/_/g, " ")}</dt><dd>{String(value)}</dd></div>
@@ -225,32 +228,32 @@ function Shot({ shot, onDelete, onReuse }) {
             )}
             {shot.input_assets?.length > 0 && (
               <>
-                <strong>References used ({shot.input_assets.length})</strong>
+                <strong>{t("work.referencesUsed", { count: shot.input_assets.length })}</strong>
                 <div className="work-refs">
                   {shot.input_assets.map((asset, i) => (
-                    <img key={i} src={asset.local_url || asset.url} alt={`Reference ${i + 1}`} loading="lazy" />
+                    <img key={i} src={asset.local_url || asset.url} alt={t("work.referenceAlt", { n: i + 1 })} loading="lazy" />
                   ))}
                 </div>
               </>
             )}
             {onReuse && (
               <button type="button" className="work-reuse-wide" onClick={() => onReuse(shot)}>
-                Redo with these exact settings
+                {t("work.redoWide")}
               </button>
             )}
-            {shot.outputs[0]?.remote_url && <a className="hosted-copy" href={shot.outputs[0].remote_url} target="_blank" rel="noreferrer">Open fal-hosted copy ↗</a>}
+            {shot.outputs[0]?.remote_url && <a className="hosted-copy" href={shot.outputs[0].remote_url} target="_blank" rel="noreferrer">{t("work.openHosted")}</a>}
           </div>
         )}
         {confirmingDelete && (
-          <div className="work-delete-confirm" role="group" aria-label={`Confirm deletion of ${resultLabel}`}>
+          <div className="work-delete-confirm" role="group" aria-label={t("work.confirmDeleteAria", { name: resultLabel })}>
             <div>
-              <strong>Delete this result?</strong>
-              <span>Removes it from Bench and deletes the local copy. The fal-hosted copy may remain.</span>
+              <strong>{t("work.confirmDeleteTitle")}</strong>
+              <span>{t("work.confirmDeleteBody")}</span>
             </div>
             <div>
-              <button type="button" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Keep it</button>
+              <button type="button" onClick={() => setConfirmingDelete(false)} disabled={deleting}>{t("work.keepIt")}</button>
               <button type="button" className="danger" onClick={removeResult} disabled={deleting}>
-                {deleting ? "Deleting…" : "Delete result"}
+                {deleting ? t("work.deleting") : t("work.deleteResult")}
               </button>
             </div>
           </div>
@@ -261,6 +264,7 @@ function Shot({ shot, onDelete, onReuse }) {
 }
 
 function VideoPreview({ src }) {
+  const t = useT();
   const videoRef = useRef(null);
   const soundEnabledRef = useRef(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -318,16 +322,16 @@ function VideoPreview({ src }) {
         playsInline
         preload="metadata"
         onVolumeChange={keepSoundIntentional}
-        aria-label="Generated video preview"
+        aria-label={t("work.videoPreviewAria")}
       />
       <button
         type="button"
         className={`work-sound-toggle${soundEnabled ? " enabled" : ""}`}
         onClick={() => setSoundEnabled((enabled) => !enabled)}
         aria-pressed={soundEnabled}
-        aria-label={soundEnabled ? "Mute this video" : "Unmute this video"}
+        aria-label={soundEnabled ? t("work.mute") : t("work.unmute")}
       >
-        {soundEnabled ? "Sound on" : "Muted"}
+        {soundEnabled ? t("work.soundOn") : t("work.muted")}
       </button>
     </div>
   );

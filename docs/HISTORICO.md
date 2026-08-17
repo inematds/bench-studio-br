@@ -1,4 +1,4 @@
-# Histórico: do kit original ao 1.3.2
+# Histórico: do kit original ao 1.4.2
 
 O que foi construído em cima do Bench Studio original, e todos os defeitos
 encontrados no caminho — **separando os que já existiam dos que eu introduzi**.
@@ -229,8 +229,8 @@ repassa. Quem abre o socket é o proxy, na mesma máquina — então todo mundo
 parecia local. Medido com o estúdio em `--lan`:
 
 ```
-http://192.168.1.172:5200/api/config → writable = true    ← a porta que se usa
-http://192.168.1.172:8787/api/config → writable = false   ← a porta que testei
+http://SEU-IP-LOCAL:5200/api/config → writable = true    ← a porta que se usa
+http://SEU-IP-LOCAL:8787/api/config → writable = false   ← a porta que testei
 ```
 
 **A lição:** testei a porta que provava meu ponto, não a porta que as pessoas

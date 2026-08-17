@@ -19,6 +19,11 @@ export default defineConfig({
     // opts into the separate `test:e2e:headed` script.
     browserName: "chromium",
     headless: true,
+    // A interface e bilingue e escolhe o idioma pelo navegador quando ninguem
+    // escolheu antes. Sem fixar o locale aqui, a suite passaria ou quebraria
+    // conforme a maquina que a roda — os testes abaixo afirmam o texto EM
+    // INGLES. O caminho em portugues tem teste proprio, que forca `?lang=pt-BR`.
+    locale: "en-US",
     colorScheme: "dark",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",

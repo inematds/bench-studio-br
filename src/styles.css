@@ -193,6 +193,10 @@ p { text-wrap: pretty; }
 .ghost-btn:hover,
 .ghost-btn.on { color: var(--text); border-color: var(--text-2); background: var(--panel-raised); }
 
+/* Duas letras ("PT"/"EN") nao precisam do padding de um botao de texto; o
+   seletor de idioma entra na barra sem empurrar o resto para fora. */
+.lang-btn { padding: 9px 10px; min-width: 40px; text-align: center; font-family: var(--mono); letter-spacing: 0.06em; }
+
 .credit-btn { display: inline-flex; align-items: center; min-height: 35px; padding: 0 12px; border: 1px solid var(--line-bright); border-radius: var(--r-sm); color: var(--text-2); font-size: 12px; font-weight: 700; white-space: nowrap; transition: color .15s, border-color .15s, background .15s, transform .15s; }
 .credit-btn:hover, .credit-btn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 .credit-btn:active { transform: translateY(1px); }
@@ -1086,7 +1090,11 @@ p { text-wrap: pretty; }
 }
 
 @media (max-width: 980px) {
-  .top { padding: 0 20px; }
+  .top { padding: 0 20px; gap: 18px; }
+  /* A marca e a primeira a ceder: o nome continua legivel com menos
+     reserva, e sem isto o seletor de idioma estourava a linha em 768px. */
+  .brand { min-width: 120px; }
+  .lang-btn { padding: 8px 9px; min-width: 36px; }
   .top-nav {
     position: fixed;
     left: 50%;
@@ -1116,14 +1124,20 @@ p { text-wrap: pretty; }
 
 @media (max-width: 660px) {
   .shell { grid-template-rows: 60px 1fr; }
-  .top { height: 60px; gap: 12px; padding: 0 15px; }
-  .brand { min-width: 0; }
+  /* No celular a barra do topo e uma linha so, sem quebra: cada controle a
+     mais empurra o resto para fora da tela (a versao 1.3.2 ja estourava por
+     ~63px aqui; o seletor de idioma teria levado isso a 108px). Os controles
+     encolhem juntos e a marca perde a versao, que ninguem le num telefone. */
+  .top { height: 60px; gap: 8px; padding: 0 12px; }
+  .brand { min-width: 0; font-size: 15px; }
   .brand small { display: none; }
+  .brand-version { display: none; }
   .usage { gap: 0; font-size: 10px; }
   .usage > span { display: none; }
   .usage strong { font-size: 12px; }
-  .credit-btn { min-height: 34px; padding: 0 9px; font-size: 11px; }
-  .ghost-btn { padding: 8px 10px; font-size: 11px; }
+  .credit-btn { min-height: 34px; padding: 0 8px; font-size: 10.5px; }
+  .ghost-btn { padding: 8px 8px; font-size: 10.5px; }
+  .lang-btn { padding: 8px 6px; min-width: 28px; font-size: 10.5px; }
   .top-nav {
     position: fixed;
     left: 50%;
@@ -1177,6 +1191,10 @@ p { text-wrap: pretty; }
   .connect-card { padding: 18px; }
   .connect-card-head { align-items: flex-start; }
   .tool-list { grid-template-columns: 1fr; }
+  /* Mesmo encolhidos, os controles nao cabem num telefone estreito (360px).
+     O bloco Usage e o primeiro a sair: o mesmo numero esta no painel de
+     custos, a um toque de distancia. */
+  .usage { display: none; }
   .top-nav { max-width: calc(100vw - 20px); overflow-x: auto; }
   .top-nav a { min-width: auto; white-space: nowrap; }
   .creative-head h1 { font-size: 40px; }

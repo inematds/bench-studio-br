@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useT } from "./i18n/index.jsx";
 
 // What the studio needs in order to work, and where each piece came from.
 //
@@ -6,13 +7,17 @@ import React, { useCallback, useEffect, useState } from "react";
 // four-character tail; the values themselves stay on disk, behind the operating
 // system's permissions. An input left untouched sends nothing.
 
-const SOURCE_LABEL = {
-  exported: "shell environment",
-  project_env: ".env",
-  home_env: "~/.env",
-};
-
 export default function Config({ onClose }) {
+  const t = useT();
+  // O servidor descreve os campos em ingles (e o contrato que o MCP e a skill
+  // tambem consomem). A interface prefere a traducao quando existe e cai no
+  // texto do servidor quando o campo e novo — assim um provider adicionado
+  // amanha aparece legivel, so que em ingles, em vez de sumir.
+  const tr = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
+
   const [state, setState] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [busy, setBusy] = useState(false);
@@ -23,10 +28,10 @@ export default function Config({ onClose }) {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/config");
-      if (!res.ok) throw new Error(`Could not read configuration (${res.status})`);
+      if (!res.ok) throw new Error(t("config.readFailed", { status: res.status }));
       setState(await res.json());
     } catch (e) { setError(String(e.message ?? e)); }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -39,7 +44,7 @@ export default function Config({ onClose }) {
     const patch = Object.fromEntries(
       Object.entries(drafts).filter(([k, v]) => v !== undefined && !(secret.has(k) && v.trim() === "")),
     );
-    if (!Object.keys(patch).length) { setNotice("Nothing changed."); return; }
+    if (!Object.keys(patch).length) { setNotice(t("config.nothingChanged")); return; }
     setBusy(true); setError(null); setNotice(null);
     try {
       const res = await fetch("/api/config", {
@@ -48,26 +53,26 @@ export default function Config({ onClose }) {
         body: JSON.stringify(patch),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || `Save failed (${res.status})`);
+      if (!res.ok) throw new Error(body.error || t("config.saveFailed", { status: res.status }));
       setState(body);
       setDrafts({});
-      setNotice(`Saved to .env. Restart the server for the change to take effect — half of it is read at boot.`);
+      setNotice(t("config.savedNotice"));
     } catch (e) { setError(String(e.message ?? e)); }
     finally { setBusy(false); }
   }
 
   async function testProvider(id) {
-    setTests((t) => ({ ...t, [id]: { testing: true } }));
+    setTests((prev) => ({ ...prev, [id]: { testing: true } }));
     try {
       const res = await fetch(`/api/config/test/${id}`, { method: "POST" });
       const body = await res.json();
-      setTests((t) => ({ ...t, [id]: body }));
+      setTests((prev) => ({ ...prev, [id]: body }));
     } catch (e) {
-      setTests((t) => ({ ...t, [id]: { available: false, reason: String(e.message ?? e) } }));
+      setTests((prev) => ({ ...prev, [id]: { available: false, reason: String(e.message ?? e) } }));
     }
   }
 
-  if (!state && !error) return <aside className="sheet"><div className="sheet-body"><p>Loading configuration…</p></div></aside>;
+  if (!state && !error) return <aside className="sheet"><div className="sheet-body"><p>{t("config.loading")}</p></div></aside>;
 
   const readOnly = state && !state.writable;
 
@@ -75,11 +80,11 @@ export default function Config({ onClose }) {
     <aside className="sheet config-sheet">
       <div className="sheet-head">
         <div className="sheet-title">
-          <h3>Configuration</h3>
-          <span>Keys, local models and paths. Values are never sent to this screen.</span>
+          <h3>{t("config.title")}</h3>
+          <span>{t("config.subtitle")}</span>
         </div>
         <span className="spacer" />
-        <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+        <button type="button" className="ghost-btn" onClick={onClose}>{t("common.close")}</button>
       </div>
 
       <div className="sheet-body">
@@ -88,23 +93,18 @@ export default function Config({ onClose }) {
 
         {state?.lan_exposed && (
           <p className="config-alert danger" role="alert">
-            <strong>This studio is published on your local network and has no authentication.</strong>{" "}
-            Anyone who reaches this port can generate with your keys and read your history. Reach it over
-            Tailscale or a password-protected proxy instead of an open port.
+            <strong>{t("config.lanTitle")}</strong>{" "}
+            {t("config.lanBody")}
           </p>
         )}
 
         {readOnly && (
           <p className="config-alert danger" role="alert">
-            <strong>Read-only from here.</strong> Settings can only be changed from the machine running the
-            studio. This request came from the network.
+            <strong>{t("config.readOnlyTitle")}</strong> {t("config.readOnlyBody")}
           </p>
         )}
 
-        <p className="config-note">
-          Reading order: what the shell exported wins, then <code>.env</code> in the project, then <code>~/.env</code>.
-          Saving writes <code>{state?.project_env_path}</code> with owner-only permissions.
-        </p>
+        <p className="config-note" dangerouslySetInnerHTML={{ __html: t("config.readingOrder", { path: state?.project_env_path ?? "" }) }} />
 
         <PasswordCard state={state} readOnly={readOnly} onChanged={load} />
 
@@ -113,13 +113,14 @@ export default function Config({ onClose }) {
           if (!fields.length) return null;
           return (
             <section key={group.id} className="config-group">
-              <h4>{group.label}</h4>
-              <p className="config-note">{group.note}</p>
+              <h4>{tr(`config.groups.${group.id}.label`, group.label)}</h4>
+              <p className="config-note">{tr(`config.groups.${group.id}.note`, group.note)}</p>
 
               {fields.filter((f) => f.key !== "BENCH_PASSWORD").map((field) => (
                 <ConfigField
                   key={field.key}
                   field={field}
+                  effect={tr(`config.fields.${field.key}`, field.effect)}
                   draft={drafts[field.key]}
                   readOnly={readOnly}
                   onDraft={(v) => setDrafts((d) => ({ ...d, [field.key]: v }))}
@@ -134,10 +135,10 @@ export default function Config({ onClose }) {
 
         <div className="config-actions">
           <button type="button" onClick={save} disabled={busy || readOnly}>
-            {busy ? "Saving…" : "Save to .env"}
+            {busy ? t("common.saving") : t("config.saveToEnv")}
           </button>
           <button type="button" className="ghost-btn" onClick={() => { setDrafts({}); setNotice(null); setError(null); }} disabled={busy}>
-            Discard changes
+            {t("config.discard")}
           </button>
         </div>
       </div>
@@ -148,6 +149,7 @@ export default function Config({ onClose }) {
 // The password is not an env var like the others: you type a password and what
 // gets stored is a hash of it, so it has its own action and its own endpoint.
 function PasswordCard({ state, readOnly, onChanged }) {
+  const t = useT();
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -163,9 +165,9 @@ function PasswordCard({ state, readOnly, onChanged }) {
         body: JSON.stringify({ password }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || `Failed (${res.status})`);
+      if (!res.ok) throw new Error(body.error || t("config.genericFailed", { status: res.status }));
       setValue("");
-      setMsg(body.message);
+      setMsg(body.code ? t(`server.${body.code}`) : body.message);
       onChanged();
     } catch (e) { setErr(String(e.message ?? e)); }
     finally { setBusy(false); }
@@ -173,24 +175,17 @@ function PasswordCard({ state, readOnly, onChanged }) {
 
   return (
     <section className="config-group">
-      <h4>Access</h4>
-      <p className="config-note">
-        The studio ships with no password, on purpose: talking to your own machine should not need one.
-        A password protects the API — models, results, media, ledger and settings. The interface shell is
-        still served to anyone who reaches the port, but without a session it shows nothing.
-      </p>
+      <h4>{t("config.access.title")}</h4>
+      <p className="config-note">{t("config.access.note")}</p>
 
       <div className={`config-field ${active ? "set" : "missing"}`}>
         <div className="config-field-head">
-          <strong>Studio password</strong>
+          <strong>{t("config.access.fieldLabel")}</strong>
           <code>BENCH_PASSWORD</code>
           <span className="spacer" />
-          <span className={`config-badge ${active ? "on" : "off"}`}>{active ? "password set" : "no password"}</span>
+          <span className={`config-badge ${active ? "on" : "off"}`}>{active ? t("config.access.isSet") : t("config.access.notSet")}</span>
         </div>
-        <p className="config-note">
-          Stored as a scrypt hash — the password itself is never written down, so nobody reads it out of
-          the file. Setting or changing it signs everyone else out immediately.
-        </p>
+        <p className="config-note">{t("config.access.hashNote")}</p>
 
         {msg && <p className="config-alert" role="status">{msg}</p>}
         {err && <p className="config-alert danger" role="alert">{err}</p>}
@@ -200,17 +195,17 @@ function PasswordCard({ state, readOnly, onChanged }) {
             type="password"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={active ? "type a new password to replace it" : "at least 4 characters"}
+            placeholder={active ? t("config.access.replacePlaceholder") : t("config.access.newPlaceholder")}
             disabled={readOnly || busy}
             autoComplete="new-password"
-            aria-label="Studio password"
+            aria-label={t("login.passwordLabel")}
           />
           <button type="button" className="ghost-btn small" onClick={() => send(value)} disabled={readOnly || busy || value.length < 4}>
-            {active ? "Replace" : "Set password"}
+            {active ? t("config.access.replace") : t("config.access.set")}
           </button>
           {active && (
             <button type="button" className="ghost-btn small" onClick={() => send("")} disabled={readOnly || busy}>
-              Remove
+              {t("config.access.remove")}
             </button>
           )}
         </div>
@@ -231,9 +226,11 @@ function providerOf(key) {
 
 // Um endereco em valor padrao continua testavel: e justamente ali que "esta no
 // ar?" e a pergunta que importa, porque ninguem digitou nada.
-function ConfigField({ field, draft, readOnly, onDraft, onTest, test, live }) {
+function ConfigField({ field, effect, draft, readOnly, onDraft, onTest, test, live }) {
+  const t = useT();
   const changed = draft !== undefined;
   const estado = field.present ? (field.shadowed ? "shadowed" : "set") : "missing";
+  const sourceLabel = t(`config.sources.${field.source}`);
 
   return (
     <div className={`config-field ${estado}`}>
@@ -243,52 +240,48 @@ function ConfigField({ field, draft, readOnly, onDraft, onTest, test, live }) {
         <span className="spacer" />
         {field.present ? (
           <span className="config-badge on">
-            set{field.masked_tail ? ` ${field.masked_tail}` : ""} · {SOURCE_LABEL[field.source] ?? field.source}
+            {t("config.setBadge")}{field.masked_tail ? ` ${field.masked_tail}` : ""} · {sourceLabel === `config.sources.${field.source}` ? field.source : sourceLabel}
           </span>
         ) : field.using_fallback ? (
-          <span className="config-badge">using default {field.fallback}</span>
+          <span className="config-badge">{t("config.usingDefault", { value: field.fallback })}</span>
         ) : (
-          <span className="config-badge off">not set</span>
+          <span className="config-badge off">{t("config.notSet")}</span>
         )}
         {onTest && (
           <button type="button" className="ghost-btn small" onClick={onTest} disabled={!field.present && !field.using_fallback}>
-            {test?.testing ? "Testing…" : "Test"}
+            {test?.testing ? t("config.testing") : t("config.test")}
           </button>
         )}
       </div>
 
-      <p className="config-note">{field.effect}</p>
+      <p className="config-note">{effect}</p>
 
       {field.shadowed && (
-        <p className="config-alert danger">
-          The shell exported a different value for this key, and the shell wins. Saving here changes the file
-          but not what the studio is using — that needs a restart without that export (your <code>dev.sh</code> sets
-          several of these).
-        </p>
+        <p className="config-alert danger" dangerouslySetInnerHTML={{ __html: t("config.shadowed") }} />
       )}
 
       {(test && !test.testing) && (
         <p className={`config-alert${test.available ? "" : " danger"}`}>
-          {test.available ? "Answered — this provider is reachable." : `Failed: ${test.reason ?? "no answer"}`}
+          {test.available ? t("config.testOk") : t("config.testFailed", { reason: test.reason ?? t("config.noAnswer") })}
         </p>
       )}
       {!test && live && live.available === false && (
-        <p className="config-alert danger">Currently unavailable: {live.reason}{live.hint ? ` — ${live.hint}` : ""}</p>
+        <p className="config-alert danger">{t("config.unavailableNow", { reason: live.reason })}{live.hint ? ` — ${live.hint}` : ""}</p>
       )}
 
       <div className="config-field-edit">
         <input
           type={field.secret ? "password" : "text"}
           value={changed ? draft : (field.secret ? "" : (field.value ?? ""))}
-          placeholder={field.secret ? (field.present ? "leave empty to keep the current key" : "paste the key") : "not set"}
+          placeholder={field.secret ? (field.present ? t("config.keepKeyPlaceholder") : t("config.pasteKeyPlaceholder")) : t("config.notSet")}
           onChange={(e) => onDraft(e.target.value)}
           disabled={readOnly}
           autoComplete="off"
           spellCheck={false}
           aria-label={field.label}
         />
-        {field.help && <a href={field.help} target="_blank" rel="noreferrer">where to get it</a>}
-        {changed && <span className="config-badge on">will be saved</span>}
+        {field.help && <a href={field.help} target="_blank" rel="noreferrer">{t("config.whereToGet")}</a>}
+        {changed && <span className="config-badge on">{t("config.willBeSaved")}</span>}
       </div>
     </div>
   );

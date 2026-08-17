@@ -29,12 +29,27 @@ export const MODEL_PRIORITY = [
   "fal-ai/nano-banana-2",
 ];
 
-export function modelKindLabel(model) {
-  return MODEL_KIND_LABELS[model?.kind] ?? "Model";
+// As duas recebem o `t` da interface quando quem chama tem um; sem ele voltam
+// ao ingles dos rotulos acima. Isso mantem o modulo utilizavel fora do React
+// (os testes de contrato o importam direto, sem provider de idioma).
+export function modelKindLabel(model, t) {
+  const kind = model?.kind;
+  if (t) {
+    const key = kind ? `catalog.kindLabels.${kind}` : "catalog.kindLabels.unknown";
+    const label = t(key);
+    if (label !== key) return label;
+  }
+  return MODEL_KIND_LABELS[kind] ?? "Model";
 }
 
-export function modelLaneLabel(model) {
-  return MODEL_LANE_LABELS[model?.lane] ?? "General generation";
+export function modelLaneLabel(model, t) {
+  const lane = model?.lane;
+  if (t) {
+    const key = lane ? `catalog.laneLabels.${lane}` : "catalog.laneLabels.unknown";
+    const label = t(key);
+    if (label !== key) return label;
+  }
+  return MODEL_LANE_LABELS[lane] ?? "General generation";
 }
 
 // These two fields are generated from the endpoint's live OpenAPI schema. A

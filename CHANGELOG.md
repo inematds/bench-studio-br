@@ -4,6 +4,47 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.4.2
+
+### Novo
+- **Interface bilíngue (pt-BR / en), com o português como padrão.** Nenhuma
+  frase voltou a ser escrita dentro do JSX: cada texto virou uma chave e as duas
+  traduções moram em `src/i18n/pt-BR.js` e `src/i18n/en.js`. O merge com o
+  upstream (`promptadvisers/bench-studio-public`) segue limpo — quando ele mexe
+  num componente, o conflito é no código, nunca em cada frase da tela.
+  - Ordem de escolha do idioma: `?lang=` na URL → escolha guardada no navegador
+    → idioma do navegador → pt-BR. Quem chega de fora cai em inglês sozinho.
+  - Seletor **PT/EN** no canto direito da barra do topo (e na tela de senha).
+  - O inglês é o único fallback de chave faltando: uma chave sem tradução
+    aparece em inglês, nunca em português no meio da interface em inglês.
+- **Glossário embutido** (`<Termo id="seed" />`). O jargão que a pessoa vai
+  reencontrar em qualquer outra ferramenta — *prompt*, *seed*, *upscale*,
+  *engine*, *provider*, *aspect ratio*, *MCP* — continua em inglês, mas com a
+  explicação pendurada nele, no idioma da interface e disponível ao leitor de
+  tela.
+- **Erros do servidor agora carregam um `code`** estável junto da frase original.
+  A interface traduz pelo código e cai na frase crua quando o código é novo. O
+  campo `error` continua idêntico, então o MCP, a skill e qualquer outro
+  consumidor não regridem.
+
+### Corrigido
+- **A barra do topo não cabia mais na tela do celular** — e isso já era verdade
+  antes desta versão: em 390px o conteúdo do cabeçalho media 498px, com 63px
+  sobrando para fora (o seletor de idioma teria levado isso a 108px). Agora os
+  controles encolhem juntos abaixo de 660px, a marca perde a versão e o bloco
+  `Usage` sai (o mesmo número está no painel de custos). Medido em 360px, 390px
+  e 414px: zero de transbordo. O teste `mobile layouts have no horizontal
+  overflow`, que reprovava, passa.
+- Em 768px o seletor também estourava a linha; abaixo de 980px a marca cede
+  espaço e o botão de idioma ficou compacto.
+
+### Notas
+- Os **valores** enviados aos modelos continuam em inglês de propósito (é onde
+  eles rendem melhor): os submodos de cena, os enums de parâmetro e o prompt
+  final saem em inglês mesmo com a interface em português.
+- A suíte Playwright fixa `locale: "en-US"` e afirma o texto em inglês; o
+  caminho em português tem dois testes próprios, que forçam `?lang=pt-BR`.
+
 ## 1.3.2
 
 ### Novo

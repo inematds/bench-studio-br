@@ -3,7 +3,7 @@
 Documento de referência. O `README.md` é para instalar e usar; este é para
 entender por que o sistema é assim, e onde mexer quando precisar mudá-lo.
 
-Versão descrita: **1.3.2**. Medições feitas em 2026-08-17.
+Versão descrita: **1.4.2**. Medições feitas em 2026-08-17.
 
 ---
 
@@ -239,8 +239,8 @@ o proxy, na mesma máquina, então olhar só o socket faz **todo mundo parecer
 local**. Medido com o estúdio em `--lan`:
 
 ```
-http://192.168.1.172:5200/api/config → writable = true    ← a porta que se usa
-http://192.168.1.172:8787/api/config → writable = false   ← a porta que ninguém usa
+http://SEU-IP-LOCAL:5200/api/config → writable = true    ← a porta que se usa
+http://SEU-IP-LOCAL:8787/api/config → writable = false   ← a porta que ninguém usa
 ```
 
 A correção tem duas metades: o Vite repassa a origem (`xfwd`), e a API só aceita

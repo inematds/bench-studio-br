@@ -1,4 +1,5 @@
 import React from "react";
+import { useT } from "./i18n/index.jsx";
 
 /**
  * Sem isto, uma excecao em QUALQUER canto da interface desmonta a arvore
@@ -27,12 +28,25 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <section className="view-page error-card" role="alert">
-        <h2>{this.props.name ?? "This workspace"} could not be displayed.</h2>
-        <p>The rest of the studio is still working — switch to another tab and carry on.</p>
-        <pre>{String(this.state.error?.message ?? this.state.error)}</pre>
-        <button type="button" onClick={() => this.setState({ error: null })}>Try again</button>
-      </section>
+      // Classe nao usa hook; o cartao e um filho funcional so para poder
+      // traduzir pelo contexto de idioma.
+      <ErrorCard
+        name={this.props.name}
+        error={this.state.error}
+        onRetry={() => this.setState({ error: null })}
+      />
     );
   }
+}
+
+function ErrorCard({ name, error, onRetry }) {
+  const t = useT();
+  return (
+    <section className="view-page error-card" role="alert">
+      <h2>{t("error.title", { name: name ?? t("error.fallbackName") })}</h2>
+      <p>{t("error.body")}</p>
+      <pre>{String(error?.message ?? error)}</pre>
+      <button type="button" onClick={onRetry}>{t("common.retry")}</button>
+    </section>
+  );
 }

@@ -9,183 +9,171 @@ import {
   modelPriority,
   sortModels,
 } from "./modelCatalog.js";
+import { useT } from "./i18n/index.jsx";
 
 // One bar, one action. Everything that changes the output is a chip inside it,
 // including the model, so you never leave the thing you are typing in.
 
-function prettyParam(name, value) {
+// Os valores destes controles VAO PARA O PROMPT e por isso continuam em ingles
+// (`square_hd`, `landscape_16_9`); o que se traduz e como eles aparecem na
+// tela. Chave desconhecida cai no proprio valor, formatado — assim um enum
+// novo do provedor aparece legivel em vez de sumir.
+function prettyParam(name, value, t) {
   const raw = String(value);
-  const named = {
-    square_hd: "Square HD",
-    square: "Square",
-    portrait_4_3: "Portrait 4:3",
-    portrait_16_9: "Portrait 16:9",
-    landscape_4_3: "Landscape 4:3",
-    landscape_16_9: "Landscape 16:9",
-  };
-  if (name === "image_size" && named[raw]) return named[raw];
+  const named = ["square_hd", "square", "portrait_4_3", "portrait_16_9", "landscape_4_3", "landscape_16_9"];
+  if (name === "image_size" && named.includes(raw)) {
+    const label = t(`prompt.sizes.${raw}`);
+    if (label !== `prompt.sizes.${raw}`) return label;
+  }
   if (name === "duration") {
-    if (raw.toLowerCase() === "auto") return "Auto";
+    if (raw.toLowerCase() === "auto") return t("prompt.auto");
     if (/^\d+(\.\d+)?s$/i.test(raw)) return raw;
-    return `${raw} ${raw === "1" ? "second" : "seconds"}`;
+    return t("prompt.seconds", { n: raw });
   }
   if (name === "fps") return `${raw} fps`;
-  if (name === "num_images") return `${raw} ${raw === "1" ? "image" : "images"}`;
+  if (name === "num_images") return t("prompt.images", { n: raw });
   if (["generate_audio", "enable_prompt_expansion", "auto_fix"].includes(name)) {
-    return raw === "true" ? "On" : raw === "false" ? "Off" : raw;
+    return raw === "true" ? t("prompt.on") : raw === "false" ? t("prompt.off") : raw;
   }
   return raw
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function paramLabel(name) {
-  const labels = {
-    aspect_ratio: "Aspect ratio",
-    duration: "Duration",
-    resolution: "Resolution",
-    image_size: "Image size",
-    camera_motion: "Camera motion",
-    shot_type: "Shot type",
-    quality: "Quality",
-    thinking_level: "Thinking level",
-    fps: "Frame rate",
-    num_images: "Number of images",
-    generate_audio: "Generate audio",
-    enable_prompt_expansion: "Prompt expansion",
-    auto_fix: "Auto fix",
-  };
-  return labels[name] ?? prettyParam("", name);
+function paramLabel(name, t) {
+  const label = t(`prompt.params.${name}`);
+  return label === `prompt.params.${name}` ? prettyParam("", name, t) : label;
 }
 
+// Os submodos de fabrica. O `value` de cada opcao ENTRA NO PROMPT e por isso
+// continua em ingles, palavra por palavra como antes; o que muda de idioma e
+// so o rotulo, resolvido pela chave `key` no dicionario (`prompt.shot.opt.*`).
 export const SHOT_DIRECTION = {
   ugc: [
     {
       id: "creator",
-      label: "Creator",
       options: [
-        { value: "any creator", label: "Any creator" },
-        { value: "a woman in her 20s", label: "Woman in her 20s" },
-        { value: "a man in his 30s", label: "Man in his 30s" },
-        { value: "a founder or expert", label: "Founder or expert" },
+        { value: "any creator", key: "anyCreator" },
+        { value: "a woman in her 20s", key: "woman20s" },
+        { value: "a man in his 30s", key: "man30s" },
+        { value: "a founder or expert", key: "founder" },
       ],
     },
     {
       id: "setting",
-      label: "Setting",
       options: [
-        { value: "a real home setting", label: "Real home" },
-        { value: "a bathroom mirror", label: "Bathroom mirror" },
-        { value: "a kitchen counter", label: "Kitchen counter" },
-        { value: "the front seat of a car", label: "Car interior" },
+        { value: "a real home setting", key: "realHome" },
+        { value: "a bathroom mirror", key: "bathroomMirror" },
+        { value: "a kitchen counter", key: "kitchenCounter" },
+        { value: "the front seat of a car", key: "carInterior" },
       ],
     },
     {
       id: "beat",
-      label: "Beat",
       options: [
-        { value: "a problem, product proof, then a reaction", label: "Problem → proof → reaction" },
-        { value: "a quick honest testimonial", label: "Quick testimonial" },
-        { value: "a product demonstration with one clear result", label: "Product demonstration" },
-        { value: "an unexpected first impression", label: "First impression" },
+        { value: "a problem, product proof, then a reaction", key: "problemProofReaction" },
+        { value: "a quick honest testimonial", key: "quickTestimonial" },
+        { value: "a product demonstration with one clear result", key: "productDemo" },
+        { value: "an unexpected first impression", key: "firstImpression" },
       ],
     },
     {
       id: "camera",
-      label: "Camera",
       options: [
-        { value: "a front-facing selfie camera", label: "Front-facing selfie" },
-        { value: "a friend filming handheld", label: "Friend filming" },
-        { value: "a close handheld product detail", label: "Close handheld" },
-        { value: "a locked-off phone on a surface", label: "Phone on surface" },
+        { value: "a front-facing selfie camera", key: "frontSelfie" },
+        { value: "a friend filming handheld", key: "friendFilming" },
+        { value: "a close handheld product detail", key: "closeHandheld" },
+        { value: "a locked-off phone on a surface", key: "phoneOnSurface" },
       ],
     },
   ],
   unboxing: [
     {
       id: "view",
-      label: "View",
       options: [
-        { value: "top-down hands opening the package", label: "Top-down hands" },
-        { value: "an over-the-shoulder unboxing", label: "Over the shoulder" },
-        { value: "a close handheld reveal", label: "Close reveal" },
+        { value: "top-down hands opening the package", key: "topDownHands" },
+        { value: "an over-the-shoulder unboxing", key: "overShoulder" },
+        { value: "a close handheld reveal", key: "closeReveal" },
       ],
     },
     {
       id: "surface",
-      label: "Surface",
       options: [
-        { value: "a warm kitchen table", label: "Kitchen table" },
-        { value: "a clean desk by a window", label: "Desk by a window" },
-        { value: "a soft bedroom surface", label: "Bedroom surface" },
+        { value: "a warm kitchen table", key: "kitchenTable" },
+        { value: "a clean desk by a window", key: "deskByWindow" },
+        { value: "a soft bedroom surface", key: "bedroomSurface" },
       ],
     },
     {
       id: "moment",
-      label: "Moment",
       options: [
-        { value: "the satisfying reveal of the product", label: "Satisfying reveal" },
-        { value: "the first use straight from the box", label: "First use" },
-        { value: "a close look at the packaging details", label: "Packaging details" },
+        { value: "the satisfying reveal of the product", key: "satisfyingReveal" },
+        { value: "the first use straight from the box", key: "firstUse" },
+        { value: "a close look at the packaging details", key: "packagingDetails" },
       ],
     },
   ],
   hypermotion: [
     {
       id: "movement",
-      label: "Movement",
       options: [
-        { value: "a fast push-in with a sharp orbit", label: "Push-in + orbit" },
-        { value: "a whip-pan between product details", label: "Whip-pan details" },
-        { value: "a smooth floating macro move", label: "Floating macro" },
+        { value: "a fast push-in with a sharp orbit", key: "pushInOrbit" },
+        { value: "a whip-pan between product details", key: "whipPan" },
+        { value: "a smooth floating macro move", key: "floatingMacro" },
       ],
     },
     {
       id: "light",
-      label: "Light",
       options: [
-        { value: "a crisp electric blue rim light", label: "Electric blue rim" },
-        { value: "hard studio light with deep shadows", label: "Hard studio light" },
-        { value: "warm sunset light with bright highlights", label: "Warm highlights" },
+        { value: "a crisp electric blue rim light", key: "blueRim" },
+        { value: "hard studio light with deep shadows", key: "hardStudio" },
+        { value: "warm sunset light with bright highlights", key: "warmHighlights" },
       ],
     },
   ],
   tvspot: [
     {
       id: "camera",
-      label: "Camera",
       options: [
-        { value: "a locked-off hero composition", label: "Locked hero" },
-        { value: "a slow, deliberate dolly forward", label: "Slow dolly" },
-        { value: "a graceful product orbit", label: "Product orbit" },
+        { value: "a locked-off hero composition", key: "lockedHero" },
+        { value: "a slow, deliberate dolly forward", key: "slowDolly" },
+        { value: "a graceful product orbit", key: "productOrbit" },
       ],
     },
     {
       id: "mood",
-      label: "Mood",
       options: [
-        { value: "quiet, refined and confident", label: "Quiet + refined" },
-        { value: "bold and high-contrast", label: "Bold + high contrast" },
-        { value: "warm, optimistic and human", label: "Warm + human" },
+        { value: "quiet, refined and confident", key: "quietRefined" },
+        { value: "bold and high-contrast", key: "boldContrast" },
+        { value: "warm, optimistic and human", key: "warmHuman" },
       ],
     },
   ],
 };
 
 function ShotDirection({ format, values, onChange, customControls }) {
+  const t = useT();
   // Modos de fabrica trazem os submodos daqui; os criados na aba Modes trazem
-  // os deles pelo catalogo, ja no mesmo formato.
-  const fields = SHOT_DIRECTION[format] ?? customControls ?? [];
+  // os deles pelo catalogo, ja no mesmo formato — e os rotulos deles sao o
+  // texto que a propria pessoa escreveu, entao nao passam pelo dicionario.
+  const builtin = SHOT_DIRECTION[format];
+  const fields = builtin
+    ? builtin.map((field) => ({
+        id: field.id,
+        label: t(`prompt.shot.field.${field.id}`),
+        options: field.options.map((o) => ({ value: o.value, label: t(`prompt.shot.opt.${o.key}`) })),
+      }))
+    : customControls ?? [];
   if (!fields.length) return null;
 
   return (
-    <section className="shot-direction" aria-label="Shot direction">
+    <section className="shot-direction" aria-label={t("prompt.shot.aria")}>
       <div className="shot-direction-head">
         <div>
-          <strong>Direct the shot</strong>
-          <span>Optional choices that guide the rewrite</span>
+          <strong>{t("prompt.shot.title")}</strong>
+          <span>{t("prompt.shot.subtitle")}</span>
         </div>
-        <span className="shot-direction-mode">{format === "ugc" ? "UGC recipe" : "Creative recipe"}</span>
+        <span className="shot-direction-mode">{format === "ugc" ? t("prompt.shot.ugcRecipe") : t("prompt.shot.creativeRecipe")}</span>
       </div>
       <div className="shot-direction-fields">
         {fields.map((field) => (
@@ -288,26 +276,36 @@ function MenuSelect({ value, options, onChange, placeholder, ariaLabel, classNam
   );
 }
 
+// Chave de dicionario por unidade de cobranca. Unidade que o provedor invente
+// amanha cai no proprio nome cru, em vez de sumir da tela.
 const PRICE_UNITS = {
   images: "image",
   megapixels: "megapixel",
-  "processed megapixels": "processed megapixel",
+  "processed megapixels": "processedMegapixel",
   seconds: "second",
-  "compute seconds": "compute second",
+  "compute seconds": "computeSecond",
   units: "unit",
 };
 
-function modelPrice(model) {
+function priceUnit(unit, t) {
+  const key = PRICE_UNITS[unit];
+  if (!key) return unit;
+  const label = t(`prompt.priceUnits.${key}`);
+  return label === `prompt.priceUnits.${key}` ? unit : label;
+}
+
+function modelPrice(model, t) {
   const pricing = model?.pricing;
-  if (!pricing) return "Price unavailable";
+  if (!pricing) return t("prompt.priceUnavailable");
   const amount = Number(pricing.price);
   const value = amount < 0.01
     ? amount.toFixed(5).replace(/0+$/, "").replace(/\.$/, "")
     : amount.toFixed(amount < 0.1 ? 3 : 2).replace(/0+$/, "").replace(/\.$/, "");
-  return `$${value} / ${PRICE_UNITS[pricing.unit] ?? pricing.unit}`;
+  return `$${value} / ${priceUnit(pricing.unit, t)}`;
 }
 
 function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [popoverStyle, setPopoverStyle] = useState(null);
@@ -330,7 +328,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
   const filteredModels = sortModels(models.filter((candidate) => {
     const matchesKind = normalizedQuery || kindFilter === "all" || candidate.kind === kindFilter;
     const matchesQuery = !normalizedQuery ||
-      `${candidate.label} ${candidate.vendor} ${candidate.id} ${candidate.provider ?? ""} ${modelLaneLabel(candidate)}`.toLowerCase().includes(normalizedQuery);
+      `${candidate.label} ${candidate.vendor} ${candidate.id} ${candidate.provider ?? ""} ${modelLaneLabel(candidate, t)}`.toLowerCase().includes(normalizedQuery);
     return matchesKind && matchesQuery;
   }));
   const popularModelId = filteredModels.find((candidate) => modelPriority(candidate) < 6)?.id;
@@ -415,7 +413,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
       <button
         type="button"
         className="model-picker-trigger"
-        aria-label={`Change model, current ${model.label}, ${modelKindLabel(model)}`}
+        aria-label={t("prompt.changeModel", { model: model.label, kind: modelKindLabel(model, t) })}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((current) => {
@@ -431,7 +429,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
         <span className="model-picker-name">{model.label}</span>
         <span className="model-option-provider trigger">{model.provider ?? "fal"}</span>
         <span className={`model-picker-kind kind-${model.kind}${referenceActive ? " reference" : ""}`}>
-          {referenceActive ? modelLaneLabel(model) : modelKindLabel(model)}
+          {referenceActive ? modelLaneLabel(model, t) : modelKindLabel(model, t)}
         </span>
         <i className="menu-chevron" aria-hidden="true" />
       </button>
@@ -440,39 +438,39 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
         <div ref={popoverRef} className="model-picker-popover" style={popoverStyle ?? undefined}>
           <div className="model-picker-head">
             <div className="model-picker-head-copy">
-              <strong>Choose a model</strong>
-              <span>Start with the output type</span>
+              <strong>{t("prompt.chooseModel")}</strong>
+              <span>{t("prompt.startWithOutput")}</span>
             </div>
             <div className="model-picker-head-actions">
-              <span className="model-picker-count">{models.length} available</span>
+              <span className="model-picker-count">{t("prompt.nAvailable", { count: models.length })}</span>
               {kindFilter !== "all" && (
                 <button
                   type="button"
                   className={`model-filter-pin${pinnedFilter === kindFilter ? " active" : ""}`}
                   aria-pressed={pinnedFilter === kindFilter}
                   onClick={togglePinnedFilter}
-                  title={pinnedFilter === kindFilter ? "Remove this default" : `Open ${modelKindLabel({ kind: kindFilter })} models by default`}
+                  title={pinnedFilter === kindFilter ? t("prompt.removeDefault") : t("prompt.openByDefault", { kind: modelKindLabel({ kind: kindFilter }, t) })}
                 >
                   <i aria-hidden="true" />
-                  {pinnedFilter === kindFilter ? "Default" : "Make default"}
+                  {pinnedFilter === kindFilter ? t("prompt.default") : t("prompt.makeDefault")}
                 </button>
               )}
             </div>
           </div>
-          <div className="model-kind-filter" role="group" aria-label="Filter models by output type">
-            <span className="model-kind-filter-label">Output</span>
+          <div className="model-kind-filter" role="group" aria-label={t("prompt.filterByOutput")}>
+            <span className="model-kind-filter-label">{t("catalog.output")}</span>
             <div className="model-kind-filter-options">
               {[
-                { id: "all", label: "All", count: models.length },
-                { id: "image", label: "Image", count: kindCounts.image ?? 0 },
-                { id: "video", label: "Video", count: kindCounts.video ?? 0 },
+                { id: "all", label: t("work.all"), count: models.length },
+                { id: "image", label: t("catalog.image"), count: kindCounts.image ?? 0 },
+                { id: "video", label: t("catalog.video"), count: kindCounts.video ?? 0 },
               ].filter((filter) => filter.id === "all" || filter.count > 0).map((filter) => (
                 <button
                   key={filter.id}
                   type="button"
                   className={`model-kind-filter-button${kindFilter === filter.id ? " active" : ""}`}
                   aria-pressed={kindFilter === filter.id}
-                  aria-label={filter.id === "all" ? "Show all models" : `Switch output to ${filter.label}`}
+                  aria-label={filter.id === "all" ? t("prompt.showAllModels") : t("prompt.switchOutput", { kind: filter.label })}
                   onClick={() => chooseFilter(filter.id)}
                 >
                   <span className={`model-kind-filter-mark ${filter.id}`} aria-hidden="true" />
@@ -487,11 +485,11 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
             className="model-search"
             type="search"
             value={query}
-            placeholder="Search models"
-            aria-label="Search models"
+            placeholder={t("prompt.searchModels")}
+            aria-label={t("prompt.searchModels")}
             onChange={(event) => setQuery(event.target.value)}
           />
-          <div className="model-list" role="listbox" aria-label="Available models">
+          <div className="model-list" role="listbox" aria-label={t("prompt.availableModels")}>
             {filteredModels.map((candidate) => (
               <button
                 type="button"
@@ -516,21 +514,21 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
                     <span className="model-option-provider">{candidate.provider ?? "fal"}</span>
                   </b>
                   <small>
-                    {candidate.vendor} · {modelLaneLabel(candidate)} · {modelPrice(candidate)}
-                    {candidate.capabilities?.modalities?.length ? ` · takes ${candidate.capabilities.modalities.join(" + ")}` : ""}
+                    {candidate.vendor} · {modelLaneLabel(candidate, t)} · {modelPrice(candidate, t)}
+                    {candidate.capabilities?.modalities?.length ? t("prompt.takesInline", { list: candidate.capabilities.modalities.join(" + ") }) : ""}
                   </small>
                 </span>
                 <span className="model-option-tail">
-                  <span className={`model-option-kind kind-${candidate.kind}`}>{modelKindLabel(candidate)}</span>
-                  {candidate.id === popularModelId && <em className="model-option-recommended">Popular</em>}
-                  {candidate.tier === "fastest" && <em>Fast</em>}
-                  {candidate.id === model.id && <strong aria-label="Selected">✓</strong>}
+                  <span className={`model-option-kind kind-${candidate.kind}`}>{modelKindLabel(candidate, t)}</span>
+                  {candidate.id === popularModelId && <em className="model-option-recommended">{t("prompt.popular")}</em>}
+                  {candidate.tier === "fastest" && <em>{t("creative.fast")}</em>}
+                  {candidate.id === model.id && <strong aria-label={t("prompt.selected")}>✓</strong>}
                 </span>
               </button>
             ))}
             {!filteredModels.length && (
               <div className="model-empty">
-                No {kindFilter === "all" ? "models" : `${kindFilter} models`} match “{query}”.
+                {t("prompt.noMatch", { query, kind: kindFilter === "all" ? t("prompt.anyKind") : t(`catalog.${kindFilter}`) })}
               </div>
             )}
           </div>
@@ -546,6 +544,7 @@ export default function PromptBar({
   rewritten, setRewritten, onOptimize, onGenerate,
   quote, busy, running, onPickModel, referenceModel, shotSettings, setShotSettings,
 }) {
+  const t = useT();
   const fileRef = useRef(null);
   const [openRewrite, setOpenRewrite] = useState(true);
   const [showDropzone, setShowDropzone] = useState(false);
@@ -557,10 +556,10 @@ export default function PromptBar({
         <div className="bar-loading" aria-busy="true">
           <span className="loading-orb" aria-hidden="true" />
           <div>
-            <strong>Connecting to the model catalog</strong>
-            <span>Loading the controls for your first shot.</span>
+            <strong>{t("prompt.connecting")}</strong>
+            <span>{t("prompt.connectingBody")}</span>
           </div>
-          <small>Just a moment</small>
+          <small>{t("prompt.justAMoment")}</small>
         </div>
       </div>
     );
@@ -600,17 +599,17 @@ export default function PromptBar({
     audio: "audio/mpeg,audio/wav,audio/x-wav",
     document: "application/pdf",
   }[type])).filter(Boolean).join(",");
-  const acceptedLabel = acceptedModalities.map((type) => type === "document" ? "PDF" : type).join(", ");
+  const acceptedLabel = acceptedModalities.map((type) => type === "document" ? "PDF" : t(`prompt.media.${type}`)).join(", ");
   const attachmentHint = directInputs.length === 0 && referenceModel
-    ? `Attaching an image switches to ${referenceModel.label}`
+    ? t("prompt.switchesTo", { model: referenceModel.label })
     : acceptedLabel
-    ? `This model accepts ${acceptedLabel}`
-    : "Choose a compatible model first";
+    ? t("prompt.modelAccepts", { list: acceptedLabel })
+    : t("prompt.pickCompatible");
   const quickFormats = [
-    { id: "ugc", label: "UGC ad" },
-    { id: "none", label: "Freeform" },
-    { id: "unboxing", label: "Unboxing" },
-    { id: "product", label: "Product still" },
+    { id: "ugc", label: t("work.formats.ugc") },
+    { id: "none", label: t("prompt.freeform") },
+    { id: "unboxing", label: t("work.formats.unboxing") },
+    { id: "product", label: t("work.formats.product") },
   ];
   const quickFormatIds = new Set(quickFormats.map(({ id }) => id));
   const otherFormats = (catalog.formats ?? []).filter(({ id }) => !quickFormatIds.has(id));
@@ -624,8 +623,8 @@ export default function PromptBar({
   return (
     <div className="bar-wrap">
       <div className="bar">
-        <div className="preset-row" aria-label="Creation mode">
-          <span className="preset-label">Mode</span>
+        <div className="preset-row" aria-label={t("prompt.creationMode")}>
+          <span className="preset-label">{t("prompt.modeLabel")}</span>
           {quickFormats.map((preset) => (
             <button
               key={preset.id}
@@ -636,14 +635,14 @@ export default function PromptBar({
               {preset.label}
             </button>
           ))}
-          {format === "ugc" && <span className="preset-detail">one creator / one beat / phone-native</span>}
+          {format === "ugc" && <span className="preset-detail">{t("prompt.ugcDetail")}</span>}
           {otherFormats.length > 0 && (
             <div className={`preset-more${quickFormatIds.has(format) ? "" : " on"}`}>
               <MenuSelect
                 value={quickFormatIds.has(format) ? "" : format}
                 options={otherFormatOptions}
-                placeholder="More modes"
-                ariaLabel="More creation modes"
+                placeholder={t("prompt.moreModes")}
+                ariaLabel={t("prompt.moreModesAria")}
                 onChange={setFormat}
               />
             </div>
@@ -674,8 +673,8 @@ export default function PromptBar({
                     type="button"
                     className="attach-remove"
                     onClick={() => onRemoveRef(i)}
-                    aria-label={`Remove ${r.name}`}
-                    title="Remove reference"
+                    aria-label={t("prompt.removeNamed", { name: r.name })}
+                    title={t("prompt.removeReference")}
                   >×</button>
                 </span>
               ))}
@@ -689,13 +688,13 @@ export default function PromptBar({
               onClick={() => setShowDropzone(true)}
               disabled={busy || !canAttachMedia}
               aria-expanded={false}
-              aria-label="Add input media"
+              aria-label={t("prompt.addMedia")}
               title={
                 imageInputFor(model)
-                  ? `Attach a reference image using ${modelLaneLabel(model)}`
+                  ? t("prompt.attachUsing", { lane: modelLaneLabel(model, t) })
                   : referenceModel
-                  ? `Attach a reference image, this switches to ${modelLaneLabel(referenceModel)}`
-                  : "This model does not take a reference image"
+                  ? t("prompt.attachSwitches", { lane: modelLaneLabel(referenceModel, t) })
+                  : t("prompt.noReferenceInput")
               }
             >
               +
@@ -717,7 +716,7 @@ export default function PromptBar({
             id="prompt-idea"
             name="prompt"
             value={idea}
-            placeholder="Describe what you want to make..."
+            placeholder={t("prompt.ideaPlaceholder")}
             onChange={(e) => setIdea(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -732,7 +731,7 @@ export default function PromptBar({
           />
 
           <button type="button" className="go" onClick={rewritten ? onGenerate : onOptimize} disabled={busy || !ready}>
-            {running ? "Running" : busy ? "Working" : rewritten ? "Generate" : "Refine prompt"}
+            {running ? t("prompt.running") : busy ? t("prompt.working") : rewritten ? t("prompt.generate") : t("prompt.refine")}
           </button>
         </div>
 
@@ -742,7 +741,7 @@ export default function PromptBar({
               className={`dropzone${dragging ? " dragging" : ""}`}
               role="button"
               tabIndex={canAttachMedia ? 0 : -1}
-              aria-label="Add input media"
+              aria-label={t("prompt.addMedia")}
               aria-disabled={!canAttachMedia}
               onClick={() => {
                 if (canAttachMedia && !busy) fileRef.current?.click();
@@ -770,26 +769,26 @@ export default function PromptBar({
                 <span className="dropzone-sweep" />
               </div>
               <div className="dropzone-copy">
-                <strong>{dragging ? "Release to attach" : "Drop media here"}</strong>
-                <span>{attachmentHint} · or click to browse</span>
+                <strong>{dragging ? t("prompt.releaseToAttach") : t("prompt.dropHere")}</strong>
+                <span>{attachmentHint} · {t("prompt.orBrowse")}</span>
               </div>
               {refs.length > 0 && (
                 <span className="dropzone-count">
-                  {refs.length} {refs.length === 1 ? "file" : "files"} attached · matched to {modelLaneLabel(model)}
+                  {t("prompt.filesAttached", { count: refs.length, lane: modelLaneLabel(model, t) })}
                 </span>
               )}
             </div>
             <button
               type="button"
               className="dropzone-close"
-              aria-label="Close input media area"
+              aria-label={t("prompt.closeMediaArea")}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowDropzone(false);
                 setDragging(false);
               }}
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         )}
@@ -810,8 +809,8 @@ export default function PromptBar({
             <span className="chip" key={name} title={spec.description}>
               <MenuSelect
                 value={params[name] ?? spec.default ?? spec.enum[0]}
-                options={spec.enum.map((o) => ({ value: String(o), label: prettyParam(name, o) }))}
-                ariaLabel={paramLabel(name)}
+                options={spec.enum.map((o) => ({ value: String(o), label: prettyParam(name, o, t) }))}
+                ariaLabel={paramLabel(name, t)}
                 onChange={(value) => setParams((p) => ({ ...p, [name]: value }))}
               />
             </span>
@@ -819,58 +818,58 @@ export default function PromptBar({
 
           {quote?.cost != null ? (
             <span className="bar-price exact" title={quote.basis}>
-              <span>Estimated total</span>
+              <span>{t("prompt.estimatedTotal")}</span>
               <b>${quote.cost.toFixed(3)}</b>
             </span>
           ) : quote?.confidence === "unquotable" ? (
             <span className="bar-price metered" title={quote.basis}>
-              <span className="bar-price-label">Usage-based pricing</span>
+              <span className="bar-price-label">{t("prompt.usageBased")}</span>
               <span className="bar-price-rate">
                 <strong>${quote.unit_price}</strong>
-                <span>per {PRICE_UNITS[quote.unit] ?? quote.unit}</span>
+                <span>{t("prompt.perUnit", { unit: priceUnit(quote.unit, t) })}</span>
               </span>
-              <small>Exact total shown after generation</small>
+              <small>{t("prompt.exactAfter")}</small>
             </span>
           ) : null}
         </div>
       </div>
 
       {rewritten && (
-        <section className="rewrite" aria-label="Editable prompt draft">
+        <section className="rewrite" aria-label={t("prompt.draftAria")}>
           <div className="rewrite-head">
             <div className="rewrite-title">
-              <strong>Prompt draft</strong>
+              <strong>{t("prompt.draft")}</strong>
               <span>
                 {rewritten.optimized
-                  ? `Tuned for ${model.label}`
-                  : `Sent as written · ${rewritten.reason}`}
+                  ? t("prompt.tunedFor", { model: model.label })
+                  : t("prompt.asWritten", { reason: rewritten.reason })}
               </span>
             </div>
             <div className="rewrite-actions">
-              <button type="button" className="rewrite-action" onClick={() => setRewritten(null)}>Discard</button>
+              <button type="button" className="rewrite-action" onClick={() => setRewritten(null)}>{t("prompt.discard")}</button>
               <button
                 type="button"
                 className="rewrite-action"
                 aria-expanded={openRewrite}
                 onClick={() => setOpenRewrite((v) => !v)}
               >
-                {openRewrite ? "Hide" : "Edit draft"}
+                {openRewrite ? t("prompt.hide") : t("prompt.editDraft")}
               </button>
             </div>
           </div>
           {openRewrite && (
             <div className="rewrite-body">
-              <label htmlFor="rewritten-prompt">Edit the wording before you generate.</label>
+              <label htmlFor="rewritten-prompt">{t("prompt.editWording")}</label>
               <textarea
                 id="rewritten-prompt"
                 name="rewritten-prompt"
-                aria-label="Editable rewritten prompt"
+                aria-label={t("prompt.rewrittenAria")}
                 value={rewritten.prompt}
                 onChange={(e) => setRewritten({ ...rewritten, prompt: e.target.value })}
               />
               <div className="rewrite-foot">
-                <span>{rewriteWords} {rewriteWords === 1 ? "word" : "words"}</span>
-                <span>Your edits are used for the next generation.</span>
+                <span>{t("prompt.words", { count: rewriteWords })}</span>
+                <span>{t("prompt.editsUsed")}</span>
               </div>
             </div>
           )}

@@ -124,7 +124,7 @@ export function createAuth({ hash = process.env.BENCH_PASSWORD ?? "" } = {}) {
 
     if (!verifyPassword(senha, senhaHash)) {
       erros.set(origem, (erros.get(origem) ?? 0) + 1);
-      return { ok: false, error: "Wrong password." };
+      return { ok: false, code: "wrongPassword", error: "Wrong password." };
     }
     erros.delete(origem);
     abrirSessao(res);

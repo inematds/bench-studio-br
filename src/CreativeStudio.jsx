@@ -1,56 +1,44 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useT, translate, detectLang } from "./i18n/index.jsx";
 
-const CONFIG = {
-  website: {
-    eyebrow: "Website builder",
-    headline: "From brief to working site.",
-    subhead: "Describe the brand, audience, and desired feeling. Bench builds the complete site locally, with source you can inspect and edit.",
-    titleLabel: "Project name",
-    titlePlaceholder: "Amethyst jewellery maison",
-    briefPlaceholder: "A cinematic jewellery house built around raw amethyst. The opening should feel like entering a mineral formation, then settle into a precise black-and-violet product catalogue…",
-    button: "Build website",
-    templates: [
-      ["immersive", "Immersive", "Spatial motion and strong art direction"],
-      ["editorial", "Editorial", "Type-led, restrained, image-conscious"],
-      ["product", "Product", "Commerce-ready hierarchy and product focus"],
-    ],
-  },
-  document: {
-    eyebrow: "Document builder",
-    headline: "From brief to finished PDF.",
-    subhead: "Describe the argument and audience. Bench creates the designed PDF, editable HTML source, and a verified local archive.",
-    titleLabel: "Document title",
-    titlePlaceholder: "The State of Creative AI",
-    briefPlaceholder: "A 16-page field report for creative directors. Build a clear argument around the collapse of production cost, include an executive opening, four evidence chapters, and a practical closing playbook…",
-    button: "Create document",
-    templates: [
-      ["editorial-report", "Editorial report", "Art-book pacing with substantive analysis"],
-      ["presentation", "Presentation", "Landscape narrative designed for a room"],
-      ["field-guide", "Field guide", "Practical, structured, and easy to scan"],
-    ],
-  },
+// Os textos de cada modo vivem no dicionario (`creative.website.*` e
+// `creative.document.*`); aqui fica so a estrutura — quais direcoes iniciais
+// existem, na ordem em que aparecem.
+const TEMPLATES = {
+  website: ["immersive", "editorial", "product"],
+  document: ["editorial-report", "presentation", "field-guide"],
 };
 
 async function json(url, options) {
   const response = await fetch(url, options);
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
+  if (!response.ok) {
+    // Mesma regra do App: codigo traduzido quando existir, frase do servidor
+    // quando nao. Aqui o `t` nao esta disponivel (a funcao vive fora do
+    // componente), entao resolve pelo idioma detectado.
+    const key = payload.code ? `server.${payload.code}` : null;
+    const translated = key ? translate(detectLang(), key) : null;
+    throw new Error((translated && translated !== key ? translated : null)
+      || payload.error
+      || `${response.status}`);
+  }
   return payload;
 }
 
-function relativeTime(value) {
+function relativeTime(value, t) {
   const seconds = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 1000));
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86400)}d ago`;
+  if (seconds < 60) return t("creative.justNow");
+  if (seconds < 3600) return t("creative.minutesAgo", { n: Math.floor(seconds / 60) });
+  if (seconds < 86400) return t("creative.hoursAgo", { n: Math.floor(seconds / 3600) });
+  return t("creative.daysAgo", { n: Math.floor(seconds / 86400) });
 }
 
 export default function CreativeStudio({ kind }) {
-  const config = CONFIG[kind];
+  const t = useT();
+  const templates = TEMPLATES[kind];
   const [title, setTitle] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [template, setTemplate] = useState(config.templates[0][0]);
+  const [template, setTemplate] = useState(templates[0]);
   const [reasoning, setReasoning] = useState("low");
   const [projects, setProjects] = useState([]);
   const [reference, setReference] = useState(null);
@@ -88,7 +76,7 @@ export default function CreativeStudio({ kind }) {
   const history = useMemo(() => projects.filter((project) => !["complete", "queued", "running", "failed"].includes(project.status)), [projects]);
 
   useEffect(() => {
-    setTemplate(config.templates[0][0]);
+    setTemplate(TEMPLATES[kind][0]);
     setError("");
   }, [kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -102,7 +90,7 @@ export default function CreativeStudio({ kind }) {
       }
     }).catch(() => {
       if (!dead) {
-        setLibraryError("The local project archive is unavailable. Bench will retry automatically.");
+        setLibraryError(t("creative.archiveOfflineBody"));
         setLoadingProjects(false);
       }
     });
@@ -111,7 +99,7 @@ export default function CreativeStudio({ kind }) {
     loadReferenceRef.current = () => json("/api/creative-references").then((r) => setReference(r[kind])).catch(() => {});
     const timer = setInterval(load, 1800);
     return () => { dead = true; clearInterval(timer); };
-  }, [kind]);
+  }, [kind, t]);
 
   async function build() {
     setSubmitting(true);
@@ -141,30 +129,30 @@ export default function CreativeStudio({ kind }) {
     <section className={`creative-studio creative-${kind}`}>
       <header className="creative-head">
         <div>
-          <div className="eyebrow">{config.eyebrow}</div>
-          <h1>{config.headline}</h1>
-          <p>{config.subhead}</p>
+          <div className="eyebrow">{t(`creative.${kind}.eyebrow`)}</div>
+          <h1>{t(`creative.${kind}.headline`)}</h1>
+          <p>{t(`creative.${kind}.subhead`)}</p>
         </div>
       </header>
 
       <div className="creative-composer">
         <div className="creative-form">
           <label>
-            <span>{config.titleLabel}</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={config.titlePlaceholder} />
+            <span>{t(`creative.${kind}.titleLabel`)}</span>
+            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t(`creative.${kind}.titlePlaceholder`)} />
           </label>
           <label>
-            <span>Creative brief</span>
-            <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={config.briefPlaceholder} />
-            <small>Name the audience, purpose, desired feeling, and anything the result must include.</small>
+            <span>{t("creative.brief")}</span>
+            <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={t(`creative.${kind}.briefPlaceholder`)} />
+            <small>{t("creative.briefHint")}</small>
           </label>
 
           <fieldset className="direction-picker">
-            <legend>Starting direction</legend>
+            <legend>{t("creative.startingDirection")}</legend>
             <div>
-              {config.templates.map(([id, label, description]) => (
+              {templates.map((id) => (
                 <button type="button" key={id} className={template === id ? "active" : ""} onClick={() => setTemplate(id)}>
-                  <strong>{label}</strong><span>{description}</span>
+                  <strong>{t(`creative.templates.${id}.label`)}</strong><span>{t(`creative.templates.${id}.note`)}</span>
                 </button>
               ))}
             </div>
@@ -172,12 +160,12 @@ export default function CreativeStudio({ kind }) {
 
           <div className="creative-submit-row">
             <div className="craft-control">
-              <span>Build depth</span>
-              <button type="button" className={reasoning === "low" ? "active" : ""} onClick={() => setReasoning("low")}>Fast</button>
-              <button type="button" className={reasoning === "medium" ? "active" : ""} onClick={() => setReasoning("medium")}>Considered</button>
+              <span>{t("creative.buildDepth")}</span>
+              <button type="button" className={reasoning === "low" ? "active" : ""} onClick={() => setReasoning("low")}>{t("creative.fast")}</button>
+              <button type="button" className={reasoning === "medium" ? "active" : ""} onClick={() => setReasoning("medium")}>{t("creative.considered")}</button>
             </div>
             <button type="button" className="creative-primary" onClick={build} disabled={submitting || Boolean(active) || !title.trim() || prompt.trim().length < 20}>
-              {submitting ? "Starting…" : active ? "Build in progress" : config.button}
+              {submitting ? t("creative.starting") : active ? t("creative.inProgress") : t(`creative.${kind}.button`)}
             </button>
           </div>
           {error && <p className="creative-error" role="alert">{error}</p>}
@@ -186,17 +174,17 @@ export default function CreativeStudio({ kind }) {
         <aside className="creative-reference">
           <div className="reference-frame">
             {kind === "website" && reference?.preview_url ? (
-              <iframe title="Local website reference" src={reference.preview_url} loading="lazy" />
+              <iframe title={t("creative.websiteReference")} src={reference.preview_url} loading="lazy" />
             ) : reference?.preview_url ? (
-              <object title="Local document reference" data={reference.preview_url} type="application/pdf" />
-            ) : <div className="reference-offline">Add an optional local reference in ~/.env.</div>}
+              <object title={t("creative.documentReference")} data={reference.preview_url} type="application/pdf" />
+            ) : <div className="reference-offline">{t("creative.noReference")}</div>}
           </div>
           <ReferenceConfig kind={kind} reference={reference} onSaved={() => loadReferenceRef.current()} />
           <div className="reference-copy">
-            <span>Craft reference</span>
-            <strong>{reference?.name ?? (kind === "website" ? "Local website reference" : "Local document reference")}</strong>
+            <span>{t("creative.craftReference")}</span>
+            <strong>{reference?.name ?? (kind === "website" ? t("creative.websiteReference") : t("creative.documentReference"))}</strong>
             <p>{reference?.description}</p>
-            {reference?.preview_url && <a href={reference.preview_url} target="_blank" rel="noreferrer">Open reference ↗</a>}
+            {reference?.preview_url && <a href={reference.preview_url} target="_blank" rel="noreferrer">{t("creative.openReferenceArrow")}</a>}
           </div>
         </aside>
       </div>
@@ -206,19 +194,19 @@ export default function CreativeStudio({ kind }) {
       <section className="project-library">
         <div className="project-library-head">
           <div>
-            <span className="project-library-kicker">Completed work</span>
-            <h2>{kind === "website" ? "Your websites" : "Your documents"}</h2>
+            <span className="project-library-kicker">{t("creative.completedWork")}</span>
+            <h2>{kind === "website" ? t("creative.yourWebsites") : t("creative.yourDocuments")}</h2>
           </div>
-          <span>{loadingProjects ? "Loading…" : libraryError ? "Archive offline" : kind === "website"
-            ? `${completed.length} generated${reference?.preview_url ? " · 1 reference" : ""}`
-            : `${completed.length} PDFs`}</span>
+          <span>{loadingProjects ? t("common.loading") : libraryError ? t("creative.archiveOffline") : kind === "website"
+            ? `${t("creative.nGenerated", { count: completed.length })}${reference?.preview_url ? t("creative.plusOneReference") : ""}`
+            : t("creative.nPdfs", { count: completed.length })}</span>
         </div>
         {libraryError ? (
-          <div className="project-empty project-empty-error"><strong>Project archive offline</strong><span>{libraryError}</span></div>
+          <div className="project-empty project-empty-error"><strong>{t("creative.archiveOfflineTitle")}</strong><span>{libraryError}</span></div>
         ) : loadingProjects ? (
-          <div className="project-loading" aria-label="Loading local projects"><i /><i /><i /></div>
+          <div className="project-loading" aria-label={t("creative.loadingProjects")}><i /><i /><i /></div>
         ) : !completed.length && !(kind === "website" && reference?.preview_url) ? (
-          <div className="project-empty">Your first completed {kind} will appear here with a live preview and its source files.</div>
+          <div className="project-empty">{kind === "website" ? t("creative.emptyWebsite") : t("creative.emptyDocument")}</div>
         ) : (
           <div className="project-grid">
             {kind === "website" && reference?.preview_url && <WebsiteReferenceCard reference={reference} />}
@@ -234,11 +222,11 @@ export default function CreativeStudio({ kind }) {
 
         {history.length > 0 && (
           <details className="project-history">
-            <summary>Build history <span>{history.length}</span></summary>
+            <summary>{t("creative.buildHistory")} <span>{history.length}</span></summary>
             <div>
               {history.map((project) => (
                 <article key={project.id}>
-                  <div><strong>{project.title}</strong><span>{project.status} · {relativeTime(project.updated_at)}</span></div>
+                  <div><strong>{project.title}</strong><span>{project.status} · {relativeTime(project.updated_at, t)}</span></div>
                   {project.error && <p>{project.error}</p>}
                 </article>
               ))}
@@ -258,6 +246,7 @@ export default function CreativeStudio({ kind }) {
 // poder corrigir a mao evita refazer (e repagar) a geracao inteira por causa de
 // um detalhe.
 function ProjectFiles({ project, onRevise, onRevert }) {
+  const t = useT();
   const [editing, setEditing] = useState(null);
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("");
@@ -278,7 +267,7 @@ function ProjectFiles({ project, onRevise, onRevert }) {
   }
 
   async function saveFile() {
-    setStatus("Saving…");
+    setStatus(t("common.saving"));
     try {
       const r = await fetch(`/api/projects/${project.id}/file`, {
         method: "PUT",
@@ -287,7 +276,7 @@ function ProjectFiles({ project, onRevise, onRevert }) {
       });
       const j = await r.json();
       if (j.error) throw new Error(j.error);
-      setStatus("Saved.");
+      setStatus(t("common.saved"));
     } catch (e) { setStatus(String(e.message ?? e)); }
   }
 
@@ -302,28 +291,28 @@ function ProjectFiles({ project, onRevise, onRevert }) {
     <div className="project-files">
       {onRevise && (
         <div className="project-revise">
-          <label htmlFor={`revise-${project.id}`}>Ask for a change</label>
+          <label htmlFor={`revise-${project.id}`}>{t("creative.askChange")}</label>
           <textarea
             id={`revise-${project.id}`}
             rows={2}
             value={instruction}
-            placeholder="e.g. make the background darker and enlarge the first section heading"
+            placeholder={t("creative.askChangePlaceholder")}
             onChange={(e) => setInstruction(e.target.value)}
           />
           <div className="project-revise-actions">
             <button type="button" className="project-revise-send" onClick={revise} disabled={sending || instruction.trim().length < 4}>
-              {sending ? "Sending…" : "Apply change"}
+              {sending ? t("creative.sending") : t("creative.applyChange")}
             </button>
             {project.snapshots?.length > 0 && onRevert && (
-              <button type="button" onClick={() => onRevert(project.id)} title={`Back to the state from ${relativeTime(project.snapshots[0].at)}`}>
-                Undo last ({project.snapshots.length})
+              <button type="button" onClick={() => onRevert(project.id)} title={t("creative.undoTitle", { when: relativeTime(project.snapshots[0].at, t) })}>
+                {t("creative.undoLast", { count: project.snapshots.length })}
               </button>
             )}
-            <span>Current files are copied before any change.</span>
+            <span>{t("creative.copyBeforeChange")}</span>
           </div>
         </div>
       )}
-            {!produced.length && <p className="modes-hint">No files were produced — the build stopped before writing.</p>}
+            {!produced.length && <p className="modes-hint">{t("creative.noFiles")}</p>}
             {produced.map((f) => (
               <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)} disabled={!f.editable}>
                 <b>{f.name}</b><small>{(f.size_bytes / 1024).toFixed(1)} kB</small>
@@ -331,12 +320,12 @@ function ProjectFiles({ project, onRevise, onRevert }) {
             ))}
             {project.bundle_url && (
               <a className="project-file project-file-download" href={`${project.bundle_url}?download=1`}>
-                <b>Download all (.zip)</b><small>{produced.length} files</small>
+                <b>{t("creative.downloadAll")}</b><small>{t("creative.nFiles", { count: produced.length })}</small>
               </a>
             )}
             {logs.length > 0 && (
               <details className="project-logs">
-                <summary>Build log ({logs.length})</summary>
+                <summary>{t("creative.buildLog", { count: logs.length })}</summary>
                 {logs.map((f) => (
                   <button type="button" key={f.name} className="project-file" onClick={() => openFile(f)}>
                     <b>{f.name}</b><small>{(f.size_bytes / 1024).toFixed(1)} kB</small>
@@ -350,8 +339,8 @@ function ProjectFiles({ project, onRevise, onRevert }) {
             <strong>{editing.name}</strong>
             <div>
               <span>{status}</span>
-              <button type="button" onClick={saveFile}>Save</button>
-              <button type="button" onClick={() => { setEditing(null); setStatus(""); }}>Close</button>
+              <button type="button" onClick={saveFile}>{t("common.save")}</button>
+              <button type="button" onClick={() => { setEditing(null); setStatus(""); }}>{t("common.close")}</button>
             </div>
           </div>
           <textarea value={content} onChange={(e) => setContent(e.target.value)} spellCheck={false} />
@@ -362,20 +351,21 @@ function ProjectFiles({ project, onRevise, onRevert }) {
 }
 
 function FailedCard({ project, onDelete, onRevise, onRevert }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const produced = (project.files ?? []).filter((f) => !f.internal);
   return (
     <article className="project-card project-card-failed">
       <div className="project-card-body">
-        <div><span className="project-status failed">Build failed</span><small>{relativeTime(project.updated_at)}</small></div>
+        <div><span className="project-status failed">{t("creative.buildFailed")}</span><small>{relativeTime(project.updated_at, t)}</small></div>
         <h3>{project.title}</h3>
         {project.error && <p className="project-failed-reason">{project.error}</p>}
         <div className="project-actions">
           <button type="button" onClick={() => setOpen((v) => !v)}>
-            {open ? "Hide files" : `Files (${produced.length})`}
+            {open ? t("creative.hideFiles") : t("creative.filesCount", { count: produced.length })}
           </button>
           {produced.some((f) => /index\.html?$/i.test(f.name)) && (
-            <a className="project-open" href={`/projects/${project.id}/index.html`} target="_blank" rel="noreferrer">Open anyway ↗</a>
+            <a className="project-open" href={`/projects/${project.id}/index.html`} target="_blank" rel="noreferrer">{t("creative.openAnyway")}</a>
           )}
           {onDelete && <DeleteProject project={project} onDelete={onDelete} />}
         </div>
@@ -388,19 +378,20 @@ function FailedCard({ project, onDelete, onRevise, onRevert }) {
 // Apagar e irreversivel e leva os arquivos do disco junto, entao pede confirmacao
 // no lugar de um clique solto ao lado de "Open".
 function DeleteProject({ project, onDelete }) {
+  const t = useT();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  if (!confirming) return <button type="button" className="project-delete" onClick={() => setConfirming(true)}>Delete</button>;
+  if (!confirming) return <button type="button" className="project-delete" onClick={() => setConfirming(true)}>{t("common.delete")}</button>;
   return (
     <span className="project-delete-confirm">
-      <span>Delete “{project.title}” and its files?</span>
-      <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Keep</button>
+      <span>{t("creative.confirmDelete", { title: project.title })}</span>
+      <button type="button" onClick={() => setConfirming(false)} disabled={busy}>{t("creative.keep")}</button>
       <button
         type="button"
         className="danger"
         disabled={busy}
         onClick={async () => { setBusy(true); try { await onDelete(project.id); } finally { setBusy(false); } }}
-      >{busy ? "Deleting…" : "Delete"}</button>
+      >{busy ? t("work.deleting") : t("common.delete")}</button>
     </span>
   );
 }
@@ -410,6 +401,7 @@ function DeleteProject({ project, onDelete }) {
 // ou assets. Antes so dava para apontar por variavel de ambiente, o que exigia
 // editar arquivo e reiniciar — e por isso ficava vazia para sempre.
 function ReferenceConfig({ kind, reference, onSaved }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [path, setPath] = useState("");
   const [url, setUrl] = useState("");
@@ -430,7 +422,7 @@ function ReferenceConfig({ kind, reference, onSaved }) {
         : { document_reference: path };
       await json("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       await onSaved();
-      setStatus("Saved.");
+      setStatus(t("common.saved"));
       setOpen(false);
     } catch (e) { setStatus(String(e.message ?? e)); }
     finally { setSaving(false); }
@@ -439,31 +431,31 @@ function ReferenceConfig({ kind, reference, onSaved }) {
   return (
     <div className="reference-config">
       <button type="button" className="reference-config-toggle" onClick={() => setOpen((v) => !v)}>
-        {open ? "Close" : reference?.path ? "Change reference" : "Set a reference"}
+        {open ? t("common.close") : reference?.path ? t("creative.changeReference") : t("creative.setReference")}
       </button>
       {reference?.path && !open && (
         <span className={`reference-state${reference.exists ? "" : " missing"}`}>
-          {reference.exists ? reference.path : `not found: ${reference.path}`}
+          {reference.exists ? reference.path : t("creative.referenceNotFound", { path: reference.path })}
         </span>
       )}
       {open && (
         <div className="reference-config-form">
           <label>
-            <span>{kind === "website" ? "Path to a site of yours (folder or index.html)" : "Path to a document of yours (.html or .pdf)"}</span>
-            <input value={path} placeholder="/home/you/projects/site/guia/index.html" onChange={(e) => setPath(e.target.value)} />
+            <span>{kind === "website" ? t("creative.pathToSite") : t("creative.pathToDocument")}</span>
+            <input value={path} placeholder="/home/voce/projetos/site/guia/index.html" onChange={(e) => setPath(e.target.value)} />
           </label>
           {kind === "website" && (
             <label>
-              <span>Preview URL (optional — only used to render the panel above)</span>
+              <span>{t("creative.previewUrl")}</span>
               <input value={url} placeholder="http://localhost:5300/" onChange={(e) => setUrl(e.target.value)} />
             </label>
           )}
           <div className="reference-config-actions">
-            <button type="button" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
-            <button type="button" onClick={() => { setPath(""); setUrl(""); }}>Clear</button>
+            <button type="button" onClick={save} disabled={saving}>{saving ? t("common.saving") : t("common.save")}</button>
+            <button type="button" onClick={() => { setPath(""); setUrl(""); }}>{t("work.clear")}</button>
             {status && <span>{status}</span>}
           </div>
-          <p>The builder is told it may inspect this for craft and interaction ideas, and that it must not copy brand, text, structure or assets. Model engines (local Qwen, OpenRouter) receive the file content inline, since they cannot open files.</p>
+          <p>{t("creative.referenceRules")}</p>
         </div>
       )}
     </div>
@@ -471,18 +463,19 @@ function ReferenceConfig({ kind, reference, onSaved }) {
 }
 
 function WebsiteReferenceCard({ reference }) {
+  const t = useT();
   return (
     <article className="project-card project-reference-card">
       <div className="project-preview">
-        <iframe title={`${reference.name} craft reference`} src={reference.preview_url} loading="lazy" />
-        <span className="project-type project-type-reference">Craft reference</span>
+        <iframe title={t("creative.referenceFrameTitle", { name: reference.name })} src={reference.preview_url} loading="lazy" />
+        <span className="project-type project-type-reference">{t("creative.craftReference")}</span>
       </div>
       <div className="project-card-body">
-        <div><span className="project-status">Reference</span><small>Design benchmark</small></div>
+        <div><span className="project-status">{t("creative.reference")}</span><small>{t("creative.designBenchmark")}</small></div>
         <h3>{reference.name}</h3>
         <p>{reference.description}</p>
         <div className="project-actions">
-          <a className="project-open" href={reference.preview_url} target="_blank" rel="noreferrer">Open reference</a>
+          <a className="project-open" href={reference.preview_url} target="_blank" rel="noreferrer">{t("creative.openReference")}</a>
         </div>
       </div>
     </article>
@@ -490,17 +483,19 @@ function WebsiteReferenceCard({ reference }) {
 }
 
 function BuildProgress({ project, onCancel }) {
+  const t = useT();
   return (
     <section className="build-progress" aria-live="polite">
-      <div className="build-progress-copy"><span>Building now</span><strong>{project.title}</strong><small>{project.stage}</small></div>
+      <div className="build-progress-copy"><span>{t("creative.buildingNow")}</span><strong>{project.title}</strong><small>{project.stage}</small></div>
       <div className="build-meter"><i style={{ width: `${Math.max(3, project.progress)}%` }} /></div>
       <b>{project.progress}%</b>
-      <button type="button" onClick={onCancel}>Cancel</button>
+      <button type="button" onClick={onCancel}>{t("common.cancel")}</button>
     </section>
   );
 }
 
 function ProjectCard({ project, onDelete, onRevise, onRevert }) {
+  const t = useT();
   const [showFiles, setShowFiles] = useState(false);
   const complete = project.status === "complete";
   const isWebsite = project.kind === "website";
@@ -509,29 +504,29 @@ function ProjectCard({ project, onDelete, onRevise, onRevert }) {
     <article className={`project-card status-${project.status}`}>
       <div className="project-preview">
         {complete && isWebsite && project.preview_url ? (
-          <iframe title={`${project.title} website preview`} src={project.preview_url} loading="lazy" />
+          <iframe title={t("creative.sitePreviewTitle", { title: project.title })} src={project.preview_url} loading="lazy" />
         ) : complete && project.artifact_file ? (
-          <object title={`${project.title} PDF preview`} data={`${project.artifact_file}#page=1&view=FitH`} type="application/pdf">
-            <a href={project.artifact_file}>Open {project.title}</a>
+          <object title={t("creative.pdfPreviewTitle", { title: project.title })} data={`${project.artifact_file}#page=1&view=FitH`} type="application/pdf">
+            <a href={project.artifact_file}>{t("creative.openNamed", { title: project.title })}</a>
           </object>
         ) : <span>{project.progress}%</span>}
-        {complete && <span className="project-type">{isWebsite ? "Live site" : "PDF"}</span>}
+        {complete && <span className="project-type">{isWebsite ? t("creative.liveSite") : "PDF"}</span>}
       </div>
       <div className="project-card-body">
-        <div><span className="project-status">Ready</span><small>{relativeTime(project.updated_at)}</small></div>
+        <div><span className="project-status">{t("creative.ready")}</span><small>{relativeTime(project.updated_at, t)}</small></div>
         <h3>{project.title}</h3>
         <p>{project.prompt}</p>
         <div className="project-actions">
-          {complete && resultUrl && <a className="project-open" href={resultUrl} target="_blank" rel="noreferrer">{isWebsite ? "Open site" : "Open PDF"}</a>}
-          {complete && !isWebsite && project.artifact_file && <a href={project.artifact_file} download>Download</a>}
-          {complete && !isWebsite && project.preview_url && <a href={project.preview_url} target="_blank" rel="noreferrer">Editable HTML</a>}
+          {complete && resultUrl && <a className="project-open" href={resultUrl} target="_blank" rel="noreferrer">{isWebsite ? t("creative.openSite") : t("creative.openPdf")}</a>}
+          {complete && !isWebsite && project.artifact_file && <a href={project.artifact_file} download>{t("work.download")}</a>}
+          {complete && !isWebsite && project.preview_url && <a href={project.preview_url} target="_blank" rel="noreferrer">{t("creative.editableHtml")}</a>}
           {complete && (
             <button type="button" onClick={() => setShowFiles((v) => !v)}>
-              {showFiles ? "Hide source" : `Source (${(project.files ?? []).filter((f) => !f.internal).length})`}
+              {showFiles ? t("creative.hideSource") : t("creative.sourceCount", { count: (project.files ?? []).filter((f) => !f.internal).length })}
             </button>
           )}
           {onDelete && <DeleteProject project={project} onDelete={onDelete} />}
-          {project.status === "failed" && <span title={project.error}>Build failed</span>}
+          {project.status === "failed" && <span title={project.error}>{t("creative.buildFailed")}</span>}
         </div>
         {showFiles && <ProjectFiles project={project} onRevise={onRevise} onRevert={onRevert} />}
       </div>

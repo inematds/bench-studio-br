@@ -1,18 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { sortModels } from "./modelCatalog.js";
+import { useT } from "./i18n/index.jsx";
 
 // The roster, as pictures. Every tile is a real sample frame published by the
 // model itself, and the price is on the tile because that is the whole point.
 
-const GROUPS = [
-  { lane: "t2i", head: "Image models", note: "Start with a description" },
-  { lane: "i2i", head: "Image edits", note: "Change a reference" },
-  { lane: "t2v", head: "Video models", note: "Start with a description" },
-  { lane: "i2v", head: "Image to video", note: "Animate an image" },
-  { lane: "r2v", head: "Reference video", note: "Keep a look consistent" },
-];
+const GROUPS = ["t2i", "i2i", "t2v", "i2v", "r2v"];
 
 export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, onRefresh, settings, onSettings }) {
+  const t = useT();
   const [showUnavailable, setShowUnavailable] = useState(false);
 
   const [provider, setProvider] = useState("all");
@@ -82,15 +78,15 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
 
   return (
     <div className="wall model-wall">
-      <div className="catalog-filters" role="group" aria-label="Filter catalog">
-        <div className="provider-chips" role="group" aria-label="Providers">
-          <span className="results-filter-label">Provider</span>
+      <div className="catalog-filters" role="group" aria-label={t("catalog.filterCatalog")}>
+        <div className="provider-chips" role="group" aria-label={t("catalog.providers")}>
+          <span className="results-filter-label">{t("catalog.provider")}</span>
           <button
             type="button"
             className={`provider-chip${provider === "all" ? " selected" : ""}`}
             onClick={() => setProvider("all")}
           >
-            All <small>{stats.total}</small>
+            {t("work.all")} <small>{stats.total}</small>
           </button>
           {providerOptions.map((p) => (
             <span className={`provider-chip-wrap${provider === p.id ? " selected" : ""}${p.available ? "" : " unavailable"}`} key={p.id}>
@@ -98,7 +94,7 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                 type="button"
                 className="provider-chip"
                 onClick={() => setProvider(provider === p.id ? "all" : p.id)}
-                title={p.available ? `Show only ${p.label}` : `${p.label} is unavailable`}
+                title={p.available ? t("catalog.showOnly", { provider: p.label }) : t("catalog.providerUnavailable", { provider: p.label })}
               >
                 {p.id} <small>{p.on}/{p.total}</small>
               </button>
@@ -111,74 +107,74 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                   className={`provider-switch${p.on === p.total ? " on" : ""}`}
                   role="switch"
                   aria-checked={p.on === p.total}
-                  aria-label={`${p.on === p.total ? "Disable" : "Enable"} all ${p.label} models`}
-                  title={p.on === p.total ? `Turn off all ${p.total}` : `Turn on all ${p.total}`}
+                  aria-label={p.on === p.total ? t("catalog.disableAllOf", { provider: p.label }) : t("catalog.enableAllOf", { provider: p.label })}
+                  title={p.on === p.total ? t("catalog.turnOffAll", { count: p.total }) : t("catalog.turnOnAll", { count: p.total })}
                   onClick={() => onToggle(p.ids, p.on !== p.total)}
                 >
-                  {p.on === p.total ? "on" : p.on === 0 ? "off" : `${p.on}`}
+                  {p.on === p.total ? t("catalog.on") : p.on === 0 ? t("catalog.off") : `${p.on}`}
                 </button>
               )}
             </span>
           ))}
         </div>
         <label className="results-filter">
-          <span>Output</span>
+          <span>{t("catalog.output")}</span>
           <select value={output} onChange={(e) => setOutput(e.target.value)}>
-            <option value="all">All</option>
-            <option value="image">Image</option>
-            <option value="video">Video</option>
+            <option value="all">{t("work.all")}</option>
+            <option value="image">{t("catalog.image")}</option>
+            <option value="video">{t("catalog.video")}</option>
           </select>
         </label>
         <label className="results-filter">
-          <span>Status</span>
+          <span>{t("catalog.status")}</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">All</option>
-            <option value="on">Enabled</option>
-            <option value="off">Disabled ({stats.off})</option>
-            <option value="unavailable">Unavailable ({stats.unavailable})</option>
+            <option value="all">{t("work.all")}</option>
+            <option value="on">{t("catalog.enabled")}</option>
+            <option value="off">{t("catalog.disabled")} ({stats.off})</option>
+            <option value="unavailable">{t("catalog.unavailable")} ({stats.unavailable})</option>
           </select>
         </label>
         <label className="results-filter wide">
-          <span>Search</span>
-          <input value={query} placeholder="name, vendor or id" onChange={(e) => setQuery(e.target.value)} />
+          <span>{t("catalog.search")}</span>
+          <input value={query} placeholder={t("catalog.searchPlaceholder")} onChange={(e) => setQuery(e.target.value)} />
         </label>
         {filtrando && (
           <button type="button" className="results-filter-clear" onClick={() => { setProvider("all"); setOutput("all"); setStatus("all"); setQuery(""); }}>
-            Clear
+            {t("work.clear")}
           </button>
         )}
       </div>
 
       <div className="catalog-toolbar">
         <div>
-          <strong>{filtrando ? `${visiveis.length} of ${stats.total}` : stats.total} models</strong>
-          {stats.unavailable > 0 && <span>{stats.unavailable} unavailable</span>}
-          {stats.off > 0 && <span>{stats.off} turned off by you</span>}
+          <strong>{filtrando ? t("catalog.modelsOf", { shown: visiveis.length, total: stats.total }) : t("catalog.models", { count: stats.total })}</strong>
+          {stats.unavailable > 0 && <span>{t("catalog.nUnavailable", { count: stats.unavailable })}</span>}
+          {stats.off > 0 && <span>{t("catalog.nTurnedOff", { count: stats.off })}</span>}
         </div>
         <div className="catalog-toolbar-actions">
           {stats.unavailable > 0 && (
             <label className="catalog-switch-inline">
               <input type="checkbox" checked={showUnavailable} onChange={(e) => setShowUnavailable(e.target.checked)} />
-              Show unavailable
+              {t("catalog.showUnavailable")}
             </label>
           )}
           {onRefresh && (
-            <button type="button" onClick={() => onRefresh()} title="Discovers new models, pulls live prices, and rechecks keys">
-              Refresh catalog
+            <button type="button" onClick={() => onRefresh()} title={t("catalog.refreshTitle")}>
+              {t("catalog.refresh")}
             </button>
           )}
           {onSettings && (
-            <label className="catalog-switch-inline" title="How often the catalog refreshes on its own">
-              auto
+            <label className="catalog-switch-inline" title={t("catalog.autoTitle")}>
+              {t("catalog.auto")}
               <select
                 value={String(settings?.catalog_refresh_hours ?? 6)}
                 onChange={(e) => onSettings({ catalog_refresh_hours: Number(e.target.value) })}
               >
-                <option value="0">manual only</option>
+                <option value="0">{t("catalog.manualOnly")}</option>
                 <option value="1">1h</option>
                 <option value="6">6h</option>
                 <option value="24">24h</option>
-                <option value="168">weekly</option>
+                <option value="168">{t("catalog.weekly")}</option>
               </select>
             </label>
           )}
@@ -186,56 +182,56 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
             <>
               {filtrando && onToggle && (
                 <>
-                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), true)}>Enable the {visiveis.length} filtered</button>
-                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), false)}>Disable those {visiveis.length}</button>
+                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), true)}>{t("catalog.enableFiltered", { count: visiveis.length })}</button>
+                  <button type="button" onClick={() => onToggle(visiveis.map((m) => m.id), false)}>{t("catalog.disableFiltered", { count: visiveis.length })}</button>
                 </>
               )}
               <button
                 type="button"
                 className={allOn(freeIds) ? "on" : ""}
                 onClick={() => onToggle(freeIds, !allOn(freeIds))}
-                title={`${freeIds.length} models that cost nothing on your current plan — this reflects today's billing, not a permanent property`}
+                title={t("catalog.noCostTitle", { count: freeIds.length })}
               >
-                No cost
+                {t("catalog.noCost")}
               </button>
               {creditIds.length > 0 && (
                 <button
                   type="button"
                   className={allOn(creditIds) ? "on" : ""}
                   onClick={() => onToggle(creditIds, !allOn(creditIds))}
-                  title={`${creditIds.length} models billed as credits from a plan you already pay`}
+                  title={t("catalog.planCreditsTitle", { count: creditIds.length })}
                 >
-                  Plan credits
+                  {t("catalog.planCredits")}
                 </button>
               )}
               <button
                 type="button"
                 className={allOn(localIds) ? "on" : ""}
                 onClick={() => onToggle(localIds, !allOn(localIds))}
-                title={`${localIds.length} models running on your own machine`}
+                title={t("catalog.localTitle", { count: localIds.length })}
               >
-                Local
+                {t("catalog.local")}
               </button>
-              <button type="button" onClick={() => onBulk({ only: [] })}>Clear all</button>
-              <button type="button" onClick={() => onBulk({ reset: true })}>Enable all</button>
+              <button type="button" onClick={() => onBulk({ only: [] })}>{t("catalog.clearAll")}</button>
+              <button type="button" onClick={() => onBulk({ reset: true })}>{t("catalog.enableAll")}</button>
             </>
           )}
         </div>
       </div>
-      {GROUPS.map((g) => {
-        const models = sortModels(visiveis.filter((m) => m.lane === g.lane))
+      {GROUPS.map((lane) => {
+        const models = sortModels(visiveis.filter((m) => m.lane === lane))
           // Modelo desligado continua visivel: e assim que da para liga-lo de
           // volta. O que ele perde e o destaque, nao a existencia. Indisponivel
           // so aparece se voce pedir, e nunca some sem dizer por que.
           .filter((m) => m.available !== false || showUnavailable);
         if (!models.length) return null;
         return (
-          <section key={g.lane}>
+          <section key={lane}>
             <div className="wall-head">
-              <h2>{g.head}</h2>
-              <span>{g.note}</span>
+              <h2>{t(`catalog.lanes.${lane}.head`)}</h2>
+              <span>{t(`catalog.lanes.${lane}.note`)}</span>
               <div className="rule" />
-              <span>{models.length} {models.length === 1 ? "model" : "models"}</span>
+              <span>{t("catalog.models", { count: models.length })}</span>
             </div>
             <div className="grid">
               {models.map((m) => (
@@ -250,11 +246,11 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                     className={`card-switch${m.enabled === false ? "" : " on"}`}
                     role="switch"
                     aria-checked={m.enabled !== false}
-                    aria-label={`${m.enabled === false ? "Enable" : "Disable"} ${m.label}`}
-                    title={m.enabled === false ? "Turn on: show in Create and MCP" : "Turn off: hide from Create and MCP"}
+                    aria-label={m.enabled === false ? t("catalog.enableModel", { model: m.label }) : t("catalog.disableModel", { model: m.label })}
+                    title={m.enabled === false ? t("catalog.turnOnHint") : t("catalog.turnOffHint")}
                     onClick={(event) => { event.stopPropagation(); onToggle(m.id, m.enabled === false); }}
                   >
-                    {m.enabled === false ? "off" : "on"}
+                    {m.enabled === false ? t("catalog.off") : t("catalog.on")}
                   </button>
                 )}
                 <button
@@ -272,22 +268,22 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                     <div className="t">
                       <span
                         className={`pip${m.has_profile ? "" : " hollow"}`}
-                        title={m.has_profile ? "Prompt profile ready" : "Prompt profile not available"}
+                        title={m.has_profile ? t("catalog.profileReady") : t("catalog.profileMissing")}
                       />
                       {m.label}
                     </div>
                     <div className="s">
                       <span>{m.vendor}</span>
-                      <b>{price(m) || COST_LABEL[m.cost_class] || ""}</b>
+                      <b>{price(m, t) || (m.cost_class ? t(`catalog.cost.${m.cost_class}`) : "")}</b>
                     </div>
                     <div className="card-capabilities">
-                      <span>{m.kind === "video" ? "Video output" : "Image output"}</span>
+                      <span>{m.kind === "video" ? t("catalog.videoOutput") : t("catalog.imageOutput")}</span>
                       <span>{m.capabilities?.modalities?.length
-                        ? `Takes ${m.capabilities.modalities.map((item) => item === "document" ? "PDF" : item).join(" + ")}`
-                        : "Prompt only"}</span>
+                        ? t("catalog.takes", { list: m.capabilities.modalities.map((item) => item === "document" ? "PDF" : item).join(" + ") })
+                        : t("catalog.promptOnly")}</span>
                     </div>
-                    <span className="card-evidence">{m.capabilities?.inputs?.length ? "Schema checked" : "No media input in schema"}</span>
-                    {m.tier === "fastest" && <span className="card-tier">Fast lane</span>}
+                    <span className="card-evidence">{m.capabilities?.inputs?.length ? t("catalog.schemaChecked") : t("catalog.noMediaInput")}</span>
+                    {m.tier === "fastest" && <span className="card-tier">{t("catalog.fastLane")}</span>}
                     {m.available === false && (
                       <span className="card-unavailable">
                         <b>{m.unavailable_reason}</b>
@@ -311,24 +307,19 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
 // Nem todo provedor cobra em dolar. Sem isto, um modelo do Kling (credito de
 // plano) e um da Agnes (zero hoje) apareciam com o preco em branco, como se a
 // informacao nao existisse.
-const COST_LABEL = {
-  free: "no cost",
-  credits: "plan credits",
-  unknown: "priced after run",
+const UNIT_KEYS = {
+  images: "images",
+  megapixels: "megapixels",
+  "processed megapixels": "megapixels",
+  seconds: "seconds",
+  "compute seconds": "computeSeconds",
+  units: "units",
 };
 
-const UNIT_LABEL = {
-  images: "/img",
-  megapixels: "/MP",
-  "processed megapixels": "/MP",
-  seconds: "/sec",
-  "compute seconds": "/compute sec",
-  units: "/unit",
-};
-
-function price(m) {
+function price(m, t) {
   const p = m.pricing;
   if (!p) return "";
   const n = p.price < 0.01 ? p.price.toFixed(5).replace(/0+$/, "") : String(p.price);
-  return `$${n}${UNIT_LABEL[p.unit] ?? ""}`;
+  const key = UNIT_KEYS[p.unit];
+  return `$${n}${key ? t(`catalog.units.${key}`) : ""}`;
 }

@@ -1380,7 +1380,7 @@ app.use((req, res, next) => {
   if (auth.authenticated(req)) return next();
   // Uma requisicao de mídia sem sessao nao deve devolver JSON: quem pediu era um
   // <img>, e um 401 seco e a resposta honesta.
-  if (req.path.startsWith("/api/")) return res.status(401).json({ error: "Authentication required.", auth_required: true });
+  if (req.path.startsWith("/api/")) return res.status(401).json({ code: "authRequired", error: "Authentication required.", auth_required: true });
   res.status(401).end();
 });
 
@@ -1459,7 +1459,7 @@ app.post("/api/catalog/enabled", (req, res) => {
   const allIds = registry.models.map((m) => m.id);
   if (reset) return res.json({ disabled: catalogPrefs.reset() });
   if (Array.isArray(only)) return res.json({ disabled: catalogPrefs.keepOnly(only, allIds) });
-  if (!ids) return res.status(400).json({ error: "Informe ids, only ou reset." });
+  if (!ids) return res.status(400).json({ code: "bulkArgsRequired", error: "Informe ids, only ou reset." });
   res.json({ disabled: catalogPrefs.setEnabled(ids, Boolean(enabled)) });
 });
 
@@ -1488,14 +1488,14 @@ app.get("/api/projects", (req, res) => {
 
 app.get("/api/projects/:id", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
   res.json(publicProject(project));
 });
 
 // Arquivos de um projeto — visiveis mesmo quando a build falhou.
 app.get("/api/projects/:id/files", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
   res.json({ files: projectFiles(project) });
 });
 
@@ -1510,26 +1510,26 @@ function projectFilePath(project, name) {
 
 app.get("/api/projects/:id/file", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
   const full = projectFilePath(project, req.query.name);
-  if (!full || !existsSync(full)) return res.status(404).json({ error: "File not found" });
+  if (!full || !existsSync(full)) return res.status(404).json({ code: "fileNotFound", error: "File not found" });
   res.json({ name: req.query.name, content: readFileSync(full, "utf8") });
 });
 
 app.put("/api/projects/:id/file", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
   const { name, content } = req.body ?? {};
   const full = projectFilePath(project, name);
-  if (!full) return res.status(400).json({ error: "Invalid file name" });
-  if (typeof content !== "string") return res.status(400).json({ error: "content must be a string" });
+  if (!full) return res.status(400).json({ code: "invalidFileName", error: "Invalid file name" });
+  if (typeof content !== "string") return res.status(400).json({ code: "contentMustBeString", error: "content must be a string" });
   writeFileSync(full, content);
   res.json({ ok: true, name, size_bytes: Buffer.byteLength(content) });
 });
 
 app.get("/api/projects/:id/bundle", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project || project.kind !== "website" || project.status !== "complete") return res.status(404).json({ error: "Website bundle not found" });
+  if (!project || project.kind !== "website" || project.status !== "complete") return res.status(404).json({ code: "websiteBundleNotFound", error: "Website bundle not found" });
   const files = ["index.html", "styles.css", "app.js"].filter((name) => existsSync(join(project.output_dir, name)));
   const payload = files.map((name) => ({ name, content: readFileSync(join(project.output_dir, name), "utf8") }));
   if (req.query.download === "1") {
@@ -1566,9 +1566,9 @@ app.get("/api/project-engines", (_req, res) => {
 
 app.post("/api/projects", (req, res) => {
   const { kind, title, prompt, template = kind === "website" ? "immersive" : "editorial-report", engine = "codex", model, reasoning = "low" } = req.body ?? {};
-  if (!["website", "document"].includes(kind)) return res.status(400).json({ error: "kind must be website or document" });
-  if (!String(title ?? "").trim()) return res.status(400).json({ error: "Give this project a title." });
-  if (String(prompt ?? "").trim().length < 20) return res.status(400).json({ error: "Describe the audience, purpose, and desired look in a little more detail." });
+  if (!["website", "document"].includes(kind)) return res.status(400).json({ code: "invalidKind", error: "kind must be website or document" });
+  if (!String(title ?? "").trim()) return res.status(400).json({ code: "titleRequired", error: "Give this project a title." });
+  if (String(prompt ?? "").trim().length < 20) return res.status(400).json({ code: "briefTooShort", error: "Describe the audience, purpose, and desired look in a little more detail." });
   if (!ENGINES[engine]) return res.status(400).json({ error: `Motor desconhecido. Disponíveis: ${Object.keys(ENGINES).join(", ")}` });
   // A validação de modelo era `^gpt-` fixo, o que só faz sentido para o Codex.
   // Cada motor tem seu próprio vocabulário de nomes (qwen3.6:35b-a3b,
@@ -1576,13 +1576,13 @@ app.post("/api/projects", (req, res) => {
   // rejeitaria modelos perfeitamente válidos dos outros.
   const chosenModel = String(model ?? "").trim() || DEFAULT_ENGINE_MODEL[engine] || "";
   if (engine === "codex" && !/^gpt-[a-zA-Z0-9._-]+$/.test(chosenModel)) {
-    return res.status(400).json({ error: "Unsupported Codex model" });
+    return res.status(400).json({ code: "unsupportedCodexModel", error: "Unsupported Codex model" });
   }
   if (chosenModel && !/^[a-zA-Z0-9._:\/-]{1,80}$/.test(chosenModel)) {
     return res.status(400).json({ error: "Nome de modelo inválido" });
   }
-  if (!["low", "medium"].includes(reasoning)) return res.status(400).json({ error: "Reasoning must be low or medium" });
-  if (projectProcesses.size >= 2) return res.status(429).json({ error: "Two creative builds are already running. Let one finish first." });
+  if (!["low", "medium"].includes(reasoning)) return res.status(400).json({ code: "invalidReasoning", error: "Reasoning must be low or medium" });
+  if (projectProcesses.size >= 2) return res.status(429).json({ code: "twoBuildsRunning", error: "Two creative builds are already running. Let one finish first." });
   const id = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
   const outputDir = join(PROJECTS, id);
   mkdirSync(outputDir, { recursive: true });
@@ -1604,13 +1604,13 @@ app.post("/api/projects", (req, res) => {
 // existem, pelo mesmo motor que construiu (ou outro, se a pessoa preferir).
 app.post("/api/projects/:id/revise", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
-  if (["queued", "running"].includes(project.status)) return res.status(409).json({ error: "Esta build ainda esta rodando." });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
+  if (["queued", "running"].includes(project.status)) return res.status(409).json({ code: "buildStillRunning", error: "Esta build ainda esta rodando." });
   const instruction = String(req.body?.instruction ?? "").trim();
-  if (instruction.length < 4) return res.status(400).json({ error: "Diga o que mudar." });
+  if (instruction.length < 4) return res.status(400).json({ code: "sayWhatToChange", error: "Diga o que mudar." });
   const engine = req.body?.engine || project.metadata?.engine_id || "codex";
   if (!ENGINES[engine]) return res.status(400).json({ error: `Motor desconhecido. Disponiveis: ${Object.keys(ENGINES).join(", ")}` });
-  if (projectProcesses.size >= 2) return res.status(429).json({ error: "Duas builds ja estao rodando. Espere uma terminar." });
+  if (projectProcesses.size >= 2) return res.status(429).json({ code: "twoBuildsRunning", error: "Duas builds ja estao rodando. Espere uma terminar." });
 
   const snapshot = snapshotProject(project);
   const updated = store.updateProject(project.id, {
@@ -1631,12 +1631,12 @@ app.post("/api/projects/:id/revise", (req, res) => {
 // Voltar para o estado anterior a uma revisao.
 app.post("/api/projects/:id/revert", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
   const snapshots = projectSnapshots(project);
   const target = req.body?.snapshot || snapshots[0]?.id;
-  if (!target) return res.status(404).json({ error: "Nao ha versao anterior guardada." });
+  if (!target) return res.status(404).json({ code: "noPreviousVersion", error: "Nao ha versao anterior guardada." });
   const dir = join(project.output_dir, "history", String(target));
-  if (!existsSync(dir)) return res.status(404).json({ error: "Versao nao encontrada." });
+  if (!existsSync(dir)) return res.status(404).json({ code: "versionNotFound", error: "Versao nao encontrada." });
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.isFile()) copyFileSync(join(dir, entry.name), join(project.output_dir, entry.name));
   }
@@ -1646,7 +1646,7 @@ app.post("/api/projects/:id/revert", (req, res) => {
 
 app.delete("/api/projects/:id", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
   // Uma build em andamento tem processo vivo: matar antes, senao ele continua
   // escrevendo numa pasta que acabou de deixar de existir.
   const running = projectProcesses.get(project.id);
@@ -1659,7 +1659,7 @@ app.delete("/api/projects/:id", (req, res) => {
 
 app.post("/api/projects/:id/cancel", (req, res) => {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (!project) return res.status(404).json({ code: "projectNotFound", error: "Project not found" });
   const child = projectProcesses.get(project.id);
   if (child?.pid) {
     try { process.kill(-child.pid, "SIGTERM"); } catch {}
@@ -1705,7 +1705,7 @@ app.get("/api/creative-references", async (_req, res) => {
 app.get("/api/creative-references/document.pdf", (_req, res) => {
   const source = creativeReferences().document;
   const path = source ? (source.endsWith(".pdf") ? source : source.replace(/\.html$/, ".pdf")) : null;
-  if (!path || !existsSync(path)) return res.status(404).json({ error: "Reference PDF is unavailable" });
+  if (!path || !existsSync(path)) return res.status(404).json({ code: "referencePdfUnavailable", error: "Reference PDF is unavailable" });
   res.sendFile(resolve(path));
 });
 
@@ -1732,7 +1732,7 @@ app.get("/api/tooling", (_req, res) => {
 app.get("/api/tooling/skill", (_req, res) => {
   const folder = join(SKILL_PACKAGES, "bench-studio");
   if (!existsSync(join(folder, "SKILL.md"))) {
-    return res.status(404).json({ error: "The Bench skill package is unavailable" });
+    return res.status(404).json({ code: "skillPackageUnavailable", error: "The Bench skill package is unavailable" });
   }
 
   res.attachment("bench-studio-skill.zip");
@@ -1782,11 +1782,11 @@ app.get("/api/config", async (req, res) => {
 
 app.post("/api/config", (req, res) => {
   if (!isLoopback(req)) {
-    return res.status(403).json({ error: "Settings can only be changed from this machine. This request came from the network." });
+    return res.status(403).json({ code: "settingsLocalOnly", error: "Settings can only be changed from this machine. This request came from the network." });
   }
   const { error, patch } = validatePatch(req.body);
   if (error) return res.status(400).json({ error });
-  if (!Object.keys(patch).length) return res.status(400).json({ error: "Nothing to change." });
+  if (!Object.keys(patch).length) return res.status(400).json({ code: "nothingToChange", error: "Nothing to change." });
 
   // Caminho que nao existe e pior do que caminho vazio: a build passa a citar no
   // prompt um arquivo que o agente nao vai achar. Mesma regra de /api/settings.
@@ -1826,7 +1826,7 @@ app.post("/api/config/test/:provider", async (req, res) => {
 // que trocar a tranca exija estar do lado de dentro dela.
 app.post("/api/config/password", (req, res) => {
   if (!isLoopback(req)) {
-    return res.status(403).json({ error: "The password can only be changed from this machine." });
+    return res.status(403).json({ code: "passwordLocalOnly", error: "The password can only be changed from this machine." });
   }
   const nova = String(req.body?.password ?? "");
   try {
@@ -1865,7 +1865,7 @@ app.post("/api/settings", (req, res) => {
   if (req.body?.catalog_refresh_hours !== undefined) {
     const hours = Number(req.body.catalog_refresh_hours);
     if (!Number.isFinite(hours) || hours < 0 || hours > 24 * 7) {
-      return res.status(400).json({ error: "Intervalo invalido (0 = so manual, ate 168h)." });
+      return res.status(400).json({ code: "invalidInterval", error: "Intervalo invalido (0 = so manual, ate 168h)." });
     }
     patch.catalog_refresh_hours = hours;
   }
@@ -1925,7 +1925,7 @@ app.get("/api/ledger", (_req, res) => {
 
 app.delete("/api/results/:id", (req, res) => {
   const removed = store.deleteGeneration(req.params.id);
-  if (!removed) return res.status(404).json({ error: "Result not found" });
+  if (!removed) return res.status(404).json({ code: "resultNotFound", error: "Result not found" });
 
   const deletedFiles = [];
   const outputRoot = `${resolve(OUTPUTS)}/`;
@@ -1988,7 +1988,7 @@ app.post("/api/reload", (_req, res) => { reloadKnowledge(); res.json({ ok: true,
 
 app.post("/api/upload", upload.single("file"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "no file" });
+    if (!req.file) return res.status(400).json({ code: "noFile", error: "no file" });
     const local = localUploadCopy(req.file);
     const url = await falUpload(req.file.buffer, req.file.originalname, req.file.mimetype);
     const record = { ...local, remote_url: url };
@@ -2012,7 +2012,7 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 app.post("/api/optimize", async (req, res) => {
   try {
     const { idea, modelId, format = "none", hasReference = false, refCount = 0, params = {}, shotSettings = {} } = req.body ?? {};
-    if (!idea || !modelId) return res.status(400).json({ error: "idea and modelId required" });
+    if (!idea || !modelId) return res.status(400).json({ code: "ideaAndModelRequired", error: "idea and modelId required" });
     const model = byId.get(modelId);
     if ((hasReference || refCount > 0) && model && !imageInputForModel(model)) {
       const pair = model.pair ? byId.get(model.pair) : null;
@@ -2039,7 +2039,7 @@ app.post("/api/generate", async (req, res) => {
   const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {} } = req.body ?? {};
   const model = byId.get(modelId);
   if (!model) return res.status(400).json({ error: `unknown model ${modelId}` });
-  if (!prompt) return res.status(400).json({ error: "prompt required" });
+  if (!prompt) return res.status(400).json({ code: "promptRequired", error: "prompt required" });
 
   // Indisponivel e DESLIGADO merecem tratamentos opostos.
   //

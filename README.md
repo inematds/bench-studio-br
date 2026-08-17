@@ -85,8 +85,8 @@ anything:
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/promptadvisers/bench-studio-public.git
-cd bench-studio-public
+git clone https://github.com/inematds/bench-studio-br.git
+cd bench-studio-br
 npm install
 ```
 
@@ -479,9 +479,43 @@ states, model transitions, and visual snapshots.
 npm run test:release
 ```
 
-## License
+## Language / Idioma
 
-Bench Studio Public is available under the [MIT License](LICENSE).
+The interface speaks **Portuguese (pt-BR) and English**. It picks the language
+in this order: `?lang=pt-BR` in the URL → the choice stored in this browser →
+your browser's language → pt-BR. Use the **PT/EN** button on the right of the
+top bar to switch at any time; the choice sticks.
+
+A interface é **bilíngue (pt-BR / en)**, com o português como padrão. Quem chega
+com o navegador em outro idioma cai em inglês sozinho. O botão **PT/EN** no
+canto direito da barra do topo troca a qualquer momento.
+
+Jargão como *prompt*, *seed*, *upscale*, *engine* e *provider* fica em inglês de
+propósito — é o vocabulário que você vai reencontrar em qualquer outra
+ferramenta — mas com a explicação disponível ao passar o mouse.
+
+O que **não** muda de idioma: os valores enviados aos modelos. Os submodos de
+cena, os enums de parâmetro e o prompt final saem sempre em inglês, que é onde
+esses modelos rendem melhor.
+
+Traduções vivem em `src/i18n/pt-BR.js` e `src/i18n/en.js` — nenhuma frase é
+escrita dentro do JSX. Para acrescentar um idioma, copie um dos dois arquivos,
+registre-o em `src/i18n/index.jsx` e pronto.
+
+## Fork and license
+
+This is a fork of **[promptadvisers/bench-studio-public](https://github.com/promptadvisers/bench-studio-public)** (MIT).
+What this fork adds on top of upstream:
+
+- Four extra providers beyond fal — **Agnes AI** (zero cost), **kie.ai**,
+  **Kling** (official CLI / OAuth) and **inemaimg** (your own local GPU).
+- An optional **studio password** (scrypt hash) and a LAN-exposure warning.
+- The **Config** screen: which keys are present, where each came from, and what
+  it enables — without ever sending a secret to the browser.
+- The **bilingual interface** described above.
+
+The upstream copyright and the [MIT License](LICENSE) are preserved unchanged.
+Bugs in this fork are ours, not upstream's — report them here.
 
 ---
 

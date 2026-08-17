@@ -9,6 +9,13 @@ import Modes from "./Modes.jsx";
 import CreativeStudio from "./CreativeStudio.jsx";
 import Config from "./Config.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import { useI18n, useT, translate, detectLang } from "./i18n/index.jsx";
+
+// `readJson` roda fora da arvore React (e chamada de handlers e de efeitos),
+// entao nao tem contexto de idioma para consultar. Estas duas mensagens sao as
+// unicas do arquivo nessa situacao; resolvem pelo idioma detectado, que e o
+// mesmo que o provider usa no primeiro render.
+const tr = (key, vars) => translate(detectLang(), key, vars);
 import Login from "./Login.jsx";
 import { assignInputFields, imageInputFor, mediaInputsFor, mediaTypeForFile, pairedImageModel, retainCompatibleAssets, sortModels } from "./modelCatalog.js";
 
@@ -80,60 +87,66 @@ async function readJson(url, options) {
     let message = `${response.status} ${response.statusText || "request failed"}`;
     try {
       const payload = JSON.parse(text);
-      message = payload.error || payload.detail || message;
+      // O servidor manda `code` (estavel, traduzivel) junto com `error` (a
+      // frase original, que o MCP e a skill continuam recebendo). A interface
+      // prefere o codigo e cai na frase crua quando ele e novo ou nao existe.
+      const translated = payload.code ? tr(`server.${payload.code}`) : null;
+      message = (translated && translated !== `server.${payload.code}` ? translated : null)
+        || payload.error || payload.detail || message;
     } catch {
       if (text.trim()) message = text.trim();
     }
     throw new Error(message);
   }
-  if (!text.trim()) throw new Error("The server returned an empty response");
+  if (!text.trim()) throw new Error(tr("app.emptyResponse"));
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error("The server returned an invalid response");
+    throw new Error(tr("app.invalidResponse"));
   }
 }
 
-function errorDetails(error) {
+function errorDetails(error, t) {
   const raw = String(error?.message ?? error ?? "");
   const lower = raw.toLowerCase();
   if (lower.includes("exhausted balance") || lower.includes("user is locked") || lower.includes("fal balance is empty")) {
     return {
-      title: lower.includes("upload failed") ? "Reference upload paused" : "Generation paused",
+      title: lower.includes("upload failed") ? t("app.err.uploadPaused") : t("app.err.generationPaused"),
       message: lower.includes("upload failed")
-        ? "The reference cannot be uploaded while your fal balance is empty. Add funds, then try the upload again."
-        : "Your fal balance is empty. Add funds, then return here and try again.",
-      action: "Open fal billing",
+        ? t("app.err.uploadNoBalance")
+        : t("app.err.noBalance"),
+      action: t("app.err.openBilling"),
       href: "https://fal.ai/dashboard/billing",
     };
   }
   if (lower.includes("server is unavailable") || lower.includes("failed to fetch") || lower.includes("cannot reach")) {
     return {
-      title: "Studio is offline",
-      message: "The local generation server is not responding. Restart it, then retry.",
+      title: t("app.err.offlineTitle"),
+      message: t("app.err.offlineBody"),
     };
   }
   if (lower.includes("reference") && (lower.includes("switched") || lower.includes("selected instead"))) {
     return {
-      title: lower.includes("removed") ? "Model switched" : "Reference-ready model selected",
+      title: lower.includes("removed") ? t("app.err.modelSwitched") : t("app.err.referenceModel"),
       message: raw,
       tone: "info",
     };
   }
   if (lower.includes("cannot use the current attachments")) {
     return {
-      title: "Choose a compatible model",
+      title: t("prompt.pickCompatible"),
       message: raw,
     };
   }
   return {
-    title: "Something stopped this run",
-    message: raw.replace(/^error:\s*/i, "") || "Please try again.",
+    title: t("app.err.stopped"),
+    message: raw.replace(/^error:\s*/i, "") || t("app.err.tryAgain"),
   };
 }
 
 function ErrorNotice({ error, onClose }) {
-  const details = errorDetails(error);
+  const t = useT();
+  const details = errorDetails(error, t);
   return (
     <section className={`error-notice${details.tone === "info" ? " info" : ""}`} role="alert">
       <div>
@@ -144,48 +157,49 @@ function ErrorNotice({ error, onClose }) {
         {details.href && (
           <a href={details.href} target="_blank" rel="noreferrer">{details.action}</a>
         )}
-        <button type="button" onClick={onClose} aria-label="Dismiss message">Dismiss</button>
+        <button type="button" onClick={onClose} aria-label={t("app.dismissAria")}>{t("app.dismiss")}</button>
       </div>
     </section>
   );
 }
 
-function relativeTime(iso) {
+function relativeTime(iso, t) {
   const elapsed = Date.now() - Date.parse(iso || "");
-  if (!Number.isFinite(elapsed) || elapsed < 0) return "pending";
+  if (!Number.isFinite(elapsed) || elapsed < 0) return t("app.pending");
   const minutes = Math.floor(elapsed / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t("creative.justNow");
+  if (minutes < 60) return t("creative.minutesAgo", { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return t("creative.hoursAgo", { n: hours });
+  return t("creative.daysAgo", { n: Math.floor(hours / 24) });
 }
 
 function CatalogStatus({ catalog, syncing, onSync }) {
+  const t = useT();
   const status = catalog?.catalog_sync;
   const newCount = status?.new_endpoint_count;
   return (
     <details className="catalog-status">
       <summary>
-        <span>{status?.synced_at ? `Catalog updated ${relativeTime(status.synced_at)}` : "Checking model catalog"}</span>
+        <span>{status?.synced_at ? t("app.catalogUpdated", { when: relativeTime(status.synced_at, t) }) : t("app.checkingCatalog")}</span>
       </summary>
       <div className="catalog-status-popover">
         <div className="catalog-status-head">
           <div>
-            <strong>Live model discovery</strong>
-            <span>Automatic refresh every {status?.refresh_hours ?? 6} hours</span>
+            <strong>{t("app.liveDiscovery")}</strong>
+            <span>{t("app.autoRefresh", { hours: status?.refresh_hours ?? 6 })}</span>
           </div>
-          <button type="button" onClick={onSync} disabled={syncing}>{syncing ? "Syncing…" : "Sync now"}</button>
+          <button type="button" onClick={onSync} disabled={syncing}>{syncing ? t("app.syncing") : t("app.syncNow")}</button>
         </div>
         <dl>
-          <div><dt>Production ready</dt><dd>{catalog?.models?.length ?? 0}</dd></div>
-          <div><dt>Relevant on fal</dt><dd>{status?.relevant_active_endpoints ?? "—"}</dd></div>
-          <div><dt>Awaiting validation</dt><dd>{newCount ?? "—"}</dd></div>
+          <div><dt>{t("app.productionReady")}</dt><dd>{catalog?.models?.length ?? 0}</dd></div>
+          <div><dt>{t("app.relevantOnFal")}</dt><dd>{status?.relevant_active_endpoints ?? "—"}</dd></div>
+          <div><dt>{t("app.awaitingValidation")}</dt><dd>{newCount ?? "—"}</dd></div>
         </dl>
-        <p>{status?.policy ?? "The production roster stays stable while fal is checked for new image and video endpoints."}</p>
+        <p>{status?.policy ?? t("app.rosterPolicy")}</p>
         {status?.newest?.length > 0 && (
           <div className="catalog-newest">
-            <span>Newest detected</span>
+            <span>{t("app.newestDetected")}</span>
             {status.newest.slice(0, 4).map((item) => (
               <a key={item.id} href={item.model_url} target="_blank" rel="noreferrer">
                 <b>{item.label}</b><small>{item.category_label}</small>
@@ -199,43 +213,45 @@ function CatalogStatus({ catalog, syncing, onSync }) {
 }
 
 function CreditPanel({ billing, locked, refreshing, onRefresh, onClose }) {
+  const { t, lang } = useI18n();
   const balance = billing?.available && billing.current_balance != null
-    ? new Intl.NumberFormat(undefined, {
+    ? new Intl.NumberFormat(lang, {
         style: "currency",
         currency: billing.currency || "USD",
         maximumFractionDigits: 2,
       }).format(billing.current_balance)
     : null;
   return (
-    <aside className="credit-sheet" aria-label="fal credits">
+    <aside className="credit-sheet" aria-label={t("app.credits.aria")}>
       <div className="credit-sheet-head">
         <div>
-          <h3>fal credits</h3>
-          <span>Generation balance for this studio</span>
+          <h3>{t("app.credits.title")}</h3>
+          <span>{t("app.credits.subtitle")}</span>
         </div>
-        <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+        <button type="button" className="ghost-btn" onClick={onClose}>{t("common.close")}</button>
       </div>
       <div className="credit-sheet-body">
         <section className={`balance-card${locked ? " locked" : ""}`}>
-          <span>{locked ? "Generation paused" : balance ? "Available balance" : "Balance"}</span>
-          <strong>{locked ? "Credits required" : balance ?? "Not available to this key"}</strong>
+          <span>{locked ? t("app.err.generationPaused") : balance ? t("app.credits.available") : t("app.credits.balance")}</span>
+          <strong>{locked ? t("app.credits.required") : balance ?? t("app.credits.notAvailable")}</strong>
           <p>{locked
-            ? "fal reported that this account is out of credits. Adding credits will unlock generation and reference uploads."
-            : billing?.reason ?? "Balance data refreshes directly from fal."}</p>
+            ? t("app.credits.lockedBody")
+            : billing?.reason ?? t("app.credits.refreshNote")}</p>
         </section>
         <a className="topup-button" href={billing?.top_up_url ?? "https://fal.ai/dashboard/billing"} target="_blank" rel="noreferrer">
-          Continue to secure top-up <span aria-hidden="true">↗</span>
+          {t("app.credits.topUp")} <span aria-hidden="true">↗</span>
         </a>
         <button type="button" className="refresh-balance" onClick={onRefresh} disabled={refreshing}>
-          {refreshing ? "Checking fal…" : "I’ve added credits — refresh balance"}
+          {refreshing ? t("app.credits.checking") : t("app.credits.added")}
         </button>
-        <p className="credit-security">Payment and card details stay on fal. Bench never receives or stores them.</p>
+        <p className="credit-security">{t("app.credits.security")}</p>
       </div>
     </aside>
   );
 }
 
 export default function App() {
+  const t = useT();
   const [activeView, setActiveView] = useState(() => viewFromHash());
   const [catalog, setCatalog] = useState(null);
   const [modelId, setModelId] = useState(null);
@@ -315,7 +331,7 @@ export default function App() {
     async function loadCatalog(attempt = 0) {
       try {
         const c = await readJson("/api/models");
-        if (!c.models?.length) throw new Error("The model catalog is empty");
+        if (!c.models?.length) throw new Error(t("app.emptyCatalog"));
         if (dead) return;
         setCatalog(c);
         setModelId((current) => {
@@ -336,7 +352,7 @@ export default function App() {
         if (attempt < 12) {
           retryTimer = setTimeout(() => loadCatalog(attempt + 1), Math.min(1800, 450 + attempt * 125));
         } else {
-          setError("The studio server is unavailable. Start the app again and retry.");
+          setError(t("app.serverUnavailable"));
         }
       }
     }
@@ -418,7 +434,7 @@ export default function App() {
   }
 
   async function deleteResult(shot) {
-    if (!shot?.archive_id) throw new Error("This result is not in the local archive.");
+    if (!shot?.archive_id) throw new Error(t("app.notInArchive"));
     try {
       const result = await readJson(`/api/results/${encodeURIComponent(shot.archive_id)}`, { method: "DELETE" });
       setShots((current) => current.filter((candidate) => candidate.archive_id !== shot.archive_id));
@@ -489,13 +505,13 @@ export default function App() {
     setBusy(true); setError(null);
     try {
       const mediaType = mediaTypeForFile(file);
-      if (mediaType === "file") throw new Error("Use an image, video, audio file, or PDF.");
+      if (mediaType === "file") throw new Error(t("app.unsupportedFile"));
       let targetModel = model;
       if (!mediaInputsFor(targetModel, mediaType).length && mediaType === "image" && referenceModel) {
         targetModel = referenceModel;
       }
       if (!mediaInputsFor(targetModel, mediaType).length) {
-        throw new Error(`${model?.label ?? "This model"} does not accept ${mediaType} input. Choose a compatible model first.`);
+        throw new Error(t("app.modelRejectsInput", { model: model?.label ?? t("app.thisModel"), type: mediaType }));
       }
       const fd = new FormData();
       fd.append("file", file);
@@ -745,7 +761,7 @@ export default function App() {
 
   return (
     <div className="shell">
-      <a className="skip-link" href="#main-content">Skip to workspace</a>
+      <a className="skip-link" href="#main-content">{t("app.skipLink")}</a>
       <TopBar
         summary={ledger.summary}
         activeView={activeView}
@@ -766,18 +782,18 @@ export default function App() {
               {activeView === "create" && <section className="hero view-page" id="create">
                 <div className="workspace-head">
                   <div className="hero-copy">
-                    <div className="eyebrow">Create</div>
-                    <h1>Create a <em>shot</em>.</h1>
-                    <p>Choose a model, add a reference if you have one, and describe the result.</p>
+                    <div className="eyebrow">{t("topbar.create")}</div>
+                    <h1 dangerouslySetInnerHTML={{ __html: t("app.createTitle") }} />
+                    <p>{t("app.createSubtitle")}</p>
                   </div>
                 </div>
 
                 <div className="creator">
                   <div className="creator-head">
-                    <h2>Describe your shot</h2>
+                    <h2>{t("app.describeShot")}</h2>
                     {catalog ? (
                       <CatalogStatus catalog={catalog} syncing={syncingCatalog} onSync={syncCatalog} />
-                    ) : <span>Loading models</span>}
+                    ) : <span>{t("app.loadingModels")}</span>}
                   </div>
                   <PromptBar
                     catalog={catalog}
@@ -812,10 +828,10 @@ export default function App() {
 
                 {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
                 {!error && !shots.length && !job && (
-                  <div className="hint"><span><b>Add a reference</b> if it helps. Then describe the shot in your own words.</span></div>
+                  <div className="hint"><span dangerouslySetInnerHTML={{ __html: t("app.hint") }} /></div>
                 )}
                 {(job || shots.length > 0) && (
-                  <section className="create-results" id="create-results" aria-label="Generated media">
+                  <section className="create-results" id="create-results" aria-label={t("app.generatedMedia")}>
                     <Work job={job} shots={shots} onDelete={deleteResult} onReuse={reuseShot} />
                   </section>
                 )}
@@ -825,14 +841,14 @@ export default function App() {
                 <section className="view-page" id="work">
                   <div className="view-heading">
                     <div>
-                      <div className="eyebrow">Results</div>
-                      <h1>Everything you made.</h1>
-                      <p>Images and videos, with the model, prompt, local copy, and actual billed cost attached.</p>
+                      <div className="eyebrow">{t("topbar.work")}</div>
+                      <h1>{t("app.resultsTitle")}</h1>
+                      <p>{t("app.resultsSubtitle")}</p>
                     </div>
-                    <a className="view-action" href="#create">Create another</a>
+                    <a className="view-action" href="#create">{t("app.createAnother")}</a>
                   </div>
                   {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
-                  <ErrorBoundary name="Results"><Work job={job} shots={shots} standalone onDelete={deleteResult} onReuse={reuseShot} /></ErrorBoundary>
+                  <ErrorBoundary name={t("app.boundary.Results")}><Work job={job} shots={shots} standalone onDelete={deleteResult} onReuse={reuseShot} /></ErrorBoundary>
                 </section>
               )}
 
@@ -840,12 +856,12 @@ export default function App() {
                 <section className="view-page" id="models">
                   <div className="view-heading">
                     <div>
-                      <div className="eyebrow">Model catalog</div>
-                      <h1>Pick the right model.</h1>
-                      <p>Compare output type, accepted inputs, speed, and pricing before you commit to a run.</p>
+                      <div className="eyebrow">{t("topbar.models")}</div>
+                      <h1>{t("app.catalogTitle")}</h1>
+                      <p>{t("app.catalogSubtitle")}</p>
                     </div>
                   </div>
-                  <ErrorBoundary name="Model catalog"><ModelWall
+                  <ErrorBoundary name={t("app.boundary.Modelcatalog")}><ModelWall
                     catalog={catalog}
                     modelId={modelId}
                     onToggle={toggleModel}
@@ -860,10 +876,10 @@ export default function App() {
                   /></ErrorBoundary>
                 </section>
               )}
-              {activeView === "modes" && <ErrorBoundary name="Modes"><Modes /></ErrorBoundary>}
-              {activeView === "connect" && <ErrorBoundary name="Connect"><Tooling /></ErrorBoundary>}
-              {activeView === "websites" && <ErrorBoundary name="Websites"><CreativeStudio kind="website" /></ErrorBoundary>}
-              {activeView === "documents" && <ErrorBoundary name="Documents"><CreativeStudio kind="document" /></ErrorBoundary>}
+              {activeView === "modes" && <ErrorBoundary name={t("app.boundary.Modes")}><Modes /></ErrorBoundary>}
+              {activeView === "connect" && <ErrorBoundary name={t("app.boundary.Connect")}><Tooling /></ErrorBoundary>}
+              {activeView === "websites" && <ErrorBoundary name={t("app.boundary.Websites")}><CreativeStudio kind="website" /></ErrorBoundary>}
+              {activeView === "documents" && <ErrorBoundary name={t("app.boundary.Documents")}><CreativeStudio kind="document" /></ErrorBoundary>}
             </div>
           </main>
         </div>
@@ -872,7 +888,7 @@ export default function App() {
       {showConfig && (
         <>
           <div className="modal-scrim" onClick={() => setShowConfig(false)} />
-          <ErrorBoundary name="Configuration">
+          <ErrorBoundary name={t("app.boundary.Configuration")}>
             <Config onClose={() => setShowConfig(false)} />
           </ErrorBoundary>
         </>
