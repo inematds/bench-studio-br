@@ -28,7 +28,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // API nenhuma, então isto é tabela offline — rotulada como estimada, nunca como
 // verificada. A tabela mora no gerador, junto da lista de modelos, para não
 // existirem duas listas discordando.
-import { PRECO_ESTIMADO as PRICE } from "./kie_sync.mjs";
+import { PRECO_ESTIMADO as PRICE, USD_POR_CREDITO } from "./kie_sync.mjs";
 
 function key() {
   const k = process.env.KIE_API_KEY;
@@ -196,9 +196,15 @@ export function createKieProvider({ modelById } = {}) {
   submit: (modelId, input) => submit(modelId, input, modelById?.(modelId)),
   poll,
   quote: (modelId) => {
-    const price = priceOf(modelId);
-    if (price == null) return { cost: null, confidence: "unknown", basis: "sem preço na tabela offline do kie" };
-    return { cost: price, confidence: "estimated (tabela offline)", basis: `~$${price} por geração (tabela local, o kie.ai não publica preço por API)` };
+    // Preço publicado pelo kie quando existe (9 dos 99 grupos), estimativa
+    // local quando não — e a diferença aparece no rótulo, não some.
+    const p = modelById?.(modelId)?.pricing;
+    if (p?.confidence === "published") {
+      return { cost: p.usd, confidence: "published (kie)", basis: `$${p.usd} por ${p.unit} — preço publicado pelo kie (${p.credits} créditos)` };
+    }
+    const price = p?.usd ?? priceOf(modelId);
+    if (price == null) return { cost: null, confidence: "unknown", basis: "sem preço para este modelo" };
+    return { cost: price, confidence: "estimated (tabela offline)", basis: `~$${price} por geração (estimativa local; o kie publica preço só de alguns grupos)` };
   },
   // O kie.ai cobra em CRÉDITOS e não expõe a taxa crédito->dólar. Medimos os
   // créditos realmente consumidos (delta de saldo) e os registramos, mas NÃO
@@ -206,16 +212,30 @@ export function createKieProvider({ modelById } = {}) {
   // tabela, explicitamente rotulada. Misturar crédito com dólar no campo `cost`
   // corromperia o total gasto do ledger, que é o número que dá sentido ao app.
   actual: (modelId, billableUnits) => {
-    const price = priceOf(modelId);
-    if (price == null && billableUnits == null) return null;
+    // MUDOU em 2026-08-18: os créditos consumidos já eram medidos pelo delta de
+    // saldo, mas viravam um dólar estimado porque a taxa não era publicada. Ela
+    // é — nos nove grupos com preço, credits x US$ dá 0,005 em todos. Com a
+    // taxa, crédito medido vira dólar VERIFICADO, e o ledger para de somar
+    // estimativa onde tinha medição.
+    const p = modelById?.(modelId)?.pricing;
+    const estimado = p?.usd ?? priceOf(modelId);
+    if (billableUnits != null) {
+      const cost = Number((billableUnits * USD_POR_CREDITO).toFixed(4));
+      return {
+        cost,
+        confidence: "verified (créditos medidos × taxa publicada)",
+        basis: `${billableUnits} créditos consumidos (medido pelo saldo) × US$ ${USD_POR_CREDITO}/crédito, taxa que o próprio kie publica`,
+        unit: "credits",
+        billable_units: billableUnits,
+      };
+    }
+    if (estimado == null) return null;
     return {
-      cost: price,
-      confidence: billableUnits == null ? "estimated (tabela offline)" : "estimated (créditos medidos)",
-      basis: billableUnits == null
-        ? `~$${price} por geração (tabela local)`
-        : `${billableUnits} créditos kie consumidos (medido pelo saldo) · ~$${price} pela tabela local`,
+      cost: estimado,
+      confidence: p?.confidence === "published" ? "published (kie)" : "estimated (tabela offline)",
+      basis: `~$${estimado} por geração (saldo não pôde ser medido)`,
       unit: "credits",
-      billable_units: billableUnits,
+      billable_units: null,
     };
   },
   };

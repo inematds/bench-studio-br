@@ -1,11 +1,11 @@
 {
   "_meta": {
     "provider": "kie",
-    "generated_at": "2026-08-18T11:01:50.194Z",
+    "generated_at": "2026-08-18T11:57:38.082Z",
     "source": "OpenAPI de cada pagina da doc (docs.kie.ai/<caminho>.md)",
     "regenerate": "node server/providers/kie_sync.mjs",
-    "lista_curada": "o kie NAO tem API de listagem de modelos (/models, /jobs/models e /market/models dao 404), entao os CAMINHOS sao curados a mao em CATALOGO; o resto e derivado",
-    "preco": "estimado, nunca verificado: nao ha API de preco por modelo. O consumo real e medido pelo delta de saldo em /api/v1/chat/credit depois da geracao",
+    "lista_curada": "existe listagem em /api/v1/playground/model-paths (241 ids), mas ela nao traz lane, params nem campos de imagem — por isso os CAMINHOS da doc continuam curados a mao em CATALOGO, e o resto e derivado do OpenAPI de cada pagina",
+    "preco": "quando o kie publica (9 dos 99 grupos em playground/pagePlaygroundGroup) o valor entra como publicado; senao e estimativa local. A taxa credito->dolar (US$ 0,005) sai dos pares publicados e bate nos nove, entao o consumo MEDIDO em creditos vira dolar sem chute",
     "validacao": "cada id e conferido com createTask de input vazio, que erra por CAMPO quando o modelo existe e por MODELO quando nao existe — sem enfileirar tarefa nem gastar credito",
     "auditoria_2026_08_18": "nano-banana-pro/edit e veo3_fast estavam registrados e NAO existem em /jobs/createTask; o Veo tem API propria (POST /api/v1/veo/generate), fora do alcance deste adapter"
   },
@@ -45,6 +45,13 @@
           "name": "nsfw_checker",
           "type": "string"
         }
+      },
+      "pricing": {
+        "usd": 0.004,
+        "credits": 0.8,
+        "unit": "imagem",
+        "source": "publicado pelo kie (playground/pagePlaygroundGroup)",
+        "confidence": "published"
       }
     },
     {
@@ -129,6 +136,13 @@
           ],
           "default": "jpg"
         }
+      },
+      "pricing": {
+        "usd": 0.05,
+        "credits": 10,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     },
     {
@@ -210,6 +224,13 @@
           ],
           "default": "png"
         }
+      },
+      "pricing": {
+        "usd": 0.09,
+        "credits": 18,
+        "unit": "imagem",
+        "source": "publicado pelo kie (playground/pagePlaygroundGroup)",
+        "confidence": "published"
       }
     },
     {
@@ -298,6 +319,13 @@
           ],
           "default": "1:1"
         }
+      },
+      "pricing": {
+        "usd": 0.02,
+        "credits": 4,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     },
     {
@@ -378,6 +406,13 @@
           "name": "nsfw_checker",
           "type": "string"
         }
+      },
+      "pricing": {
+        "usd": 0.03,
+        "credits": 6,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     },
     {
@@ -448,6 +483,13 @@
           "name": "nsfw_checker",
           "type": "string"
         }
+      },
+      "pricing": {
+        "usd": 0.025,
+        "credits": 5,
+        "unit": "imagem",
+        "source": "publicado pelo kie (playground/pagePlaygroundGroup)",
+        "confidence": "published"
       }
     },
     {
@@ -528,6 +570,13 @@
           "name": "nsfw_checker",
           "type": "string"
         }
+      },
+      "pricing": {
+        "usd": 0.3,
+        "credits": 60,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     },
     {
@@ -629,6 +678,13 @@
           "name": "nsfw_checker",
           "type": "string"
         }
+      },
+      "pricing": {
+        "usd": 0.25,
+        "credits": 50,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     },
     {
@@ -707,6 +763,13 @@
           "min": 0,
           "max": 2147483647
         }
+      },
+      "pricing": {
+        "usd": 0.2,
+        "credits": 40,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     },
     {
@@ -787,6 +850,13 @@
           ],
           "default": "2K"
         }
+      },
+      "pricing": {
+        "usd": 0.3,
+        "credits": 60,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     },
     {
@@ -848,6 +918,13 @@
           "name": "nsfw_checker",
           "type": "string"
         }
+      },
+      "pricing": {
+        "usd": 0.15,
+        "credits": 30,
+        "unit": "6s",
+        "source": "publicado pelo kie (playground/pagePlaygroundGroup)",
+        "confidence": "published"
       }
     },
     {
@@ -901,6 +978,13 @@
           ],
           "default": "720p"
         }
+      },
+      "pricing": {
+        "usd": 0.35,
+        "credits": 70,
+        "unit": "geração",
+        "source": "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+        "confidence": "estimated"
       }
     }
   ]

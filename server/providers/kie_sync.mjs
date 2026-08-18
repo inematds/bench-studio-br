@@ -42,10 +42,26 @@ const CATALOGO = [
   { path: "market/kling/v3-turbo-image-to-video", lane: "i2v", label: "Kling v3 turbo i2v" },
 ];
 
-// Preco ESTIMADO, em US$ por geracao. O kie nao publica preco por modelo em
-// API nenhuma (a pagina de precos e montada no navegador), entao isto e uma
-// tabela offline — e o adapter a rotula como estimada, nunca como verificada.
-// O consumo real e medido pelo delta de saldo em /chat/credit, depois de rodar.
+// TAXA CREDITO -> DOLAR, derivada dos pares que o proprio kie publica em
+// `pagePlaygroundGroup.priceInfoJson`. Nove grupos trazem preco e creditos
+// juntos, e a razao bate em todos: 0.8cr/$0.004, 5cr/$0.025, 18cr/$0.09,
+// 20cr/$0.10, 30cr/$0.15, 55cr/$0.28... Ou seja **US$ 0,005 por credito**.
+//
+// Isso muda o que o adapter consegue afirmar: o consumo em creditos ja era
+// MEDIDO pelo delta de saldo depois de cada geracao; com a taxa publicada, esse
+// numero vira dolar sem chute. O `quote` antes de rodar continua estimado.
+export const USD_POR_CREDITO = 0.005;
+
+// Preco por geracao, em US$. Os que o kie publica entram como PUBLICADO; o
+// resto e estimativa nossa e o adapter rotula como tal. Nao ha endpoint de
+// preco por MODELO — o que existe e por GRUPO, e so 9 dos 99 grupos preenchem.
+export const PRECO_PUBLICADO = {
+  "z-image": { usd: 0.004, creditos: 0.8, unidade: "imagem" },
+  "nano-banana-pro": { usd: 0.09, creditos: 18, unidade: "imagem" },
+  "flux-2/flex-image-to-image": { usd: 0.025, creditos: 5, unidade: "imagem" },
+  "hailuo/2-3-image-to-video-pro": { usd: 0.15, creditos: 30, unidade: "6s" },
+};
+
 export const PRECO_ESTIMADO = {
   "z-image": 0.004,
   "nano-banana-2": 0.05,
@@ -234,6 +250,29 @@ async function modeloDe(entry) {
     image_param: principal?.name ?? null,
     required: ["prompt"],
     params: params(props),
+    pricing: precoDe(id),
+  };
+}
+
+function precoDe(id) {
+  const publicado = PRECO_PUBLICADO[id];
+  if (publicado) {
+    return {
+      usd: publicado.usd,
+      credits: publicado.creditos,
+      unit: publicado.unidade,
+      source: "publicado pelo kie (playground/pagePlaygroundGroup)",
+      confidence: "published",
+    };
+  }
+  const estimado = PRECO_ESTIMADO[id];
+  if (estimado == null) return null;
+  return {
+    usd: estimado,
+    credits: Number((estimado / USD_POR_CREDITO).toFixed(1)),
+    unit: "geração",
+    source: "estimativa local; o kie publica preço só de 9 dos 99 grupos",
+    confidence: "estimated",
   };
 }
 
@@ -271,8 +310,8 @@ if (soChecar) {
       generated_at: new Date().toISOString(),
       source: "OpenAPI de cada pagina da doc (docs.kie.ai/<caminho>.md)",
       regenerate: "node server/providers/kie_sync.mjs",
-      lista_curada: "o kie NAO tem API de listagem de modelos (/models, /jobs/models e /market/models dao 404), entao os CAMINHOS sao curados a mao em CATALOGO; o resto e derivado",
-      preco: "estimado, nunca verificado: nao ha API de preco por modelo. O consumo real e medido pelo delta de saldo em /api/v1/chat/credit depois da geracao",
+      lista_curada: "existe listagem em /api/v1/playground/model-paths (241 ids), mas ela nao traz lane, params nem campos de imagem — por isso os CAMINHOS da doc continuam curados a mao em CATALOGO, e o resto e derivado do OpenAPI de cada pagina",
+      preco: "quando o kie publica (9 dos 99 grupos em playground/pagePlaygroundGroup) o valor entra como publicado; senao e estimativa local. A taxa credito->dolar (US$ 0,005) sai dos pares publicados e bate nos nove, entao o consumo MEDIDO em creditos vira dolar sem chute",
       validacao: "cada id e conferido com createTask de input vazio, que erra por CAMPO quando o modelo existe e por MODELO quando nao existe — sem enfileirar tarefa nem gastar credito",
       auditoria_2026_08_18: "nano-banana-pro/edit e veo3_fast estavam registrados e NAO existem em /jobs/createTask; o Veo tem API propria (POST /api/v1/veo/generate), fora do alcance deste adapter",
     },

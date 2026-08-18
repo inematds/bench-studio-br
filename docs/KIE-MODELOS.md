@@ -20,10 +20,10 @@ da API), e o próprio `server/providers/kie.mjs`.
 | Famílias de **imagem** | 12+ (Seedream, Google/Imagen/Nano Banana, Flux-2, Qwen3, GPT Image, Ideogram, Z-Image, Topaz, Recraft, Wan Image…) |
 | Saldo da conta hoje | **538 créditos** (`GET /api/v1/chat/credit`) |
 
-A lista é curada à mão porque **o kie não tem API de listagem** (medido:
-`/models`, `/jobs/models` e `/market/models` respondem 404) e **não publica preço
-por modelo** — sem preço o orçamento sairia em branco ou chutado. Ver "O buraco
-do preço".
+A lista de caminhos é curada à mão — existe listagem
+(`/api/v1/playground/model-paths`, 241 ids), mas ela não traz rota, parâmetros
+nem campos de imagem, que é o que o catálogo precisa. Ver "Preço" para o que a
+API do playground **também** entrega e eu tinha dado como inexistente.
 
 ---
 
@@ -48,8 +48,7 @@ alguém implementar a rota `/veo/*`, que é outro contrato.
 Hoje o catálogo é **gerado**, não escrito: `node server/providers/kie_sync.mjs`
 lê o OpenAPI de cada página (`docs.kie.ai/<caminho>.md`), deriva id, parâmetros,
 enums, defaults e campos de imagem, e **valida cada id** com o probe acima antes
-de gravar. A lista de caminhos continua curada à mão — o kie não tem API de
-listagem.
+de gravar.
 
 ### O que está registrado agora
 
@@ -233,21 +232,51 @@ kie" que você vê por aí é tão alta.
 
 ---
 
-## O buraco do preço
+## Preço: o que existe, e o que eu tinha errado
 
-**Não existe endpoint de preço por modelo.** O que existe:
+**Correção.** Na primeira versão deste documento eu escrevi que não havia API de
+listagem nem de preço. Havia as duas, atrás da API do playground — as mesmas que
+a página `kie.ai/pricing` consome no navegador:
 
-- `https://kie.ai/pricing` — a página é montada no navegador; buscá-la devolve o
-  esqueleto sem a tabela.
-- `https://kie.ai/logs` — a documentação chama de **fonte de verdade** do
-  consumo: por tarefa, mostra modelo, parâmetros, status e créditos gastos.
-- `GET /api/v1/chat/credit` — só o **saldo** (538 hoje). É com ele que o adapter
-  mede o consumo real pelo delta, depois da geração.
+| Endpoint | O que dá |
+|---|---|
+| `GET /api/v1/playground/model-paths` | **241 ids de modelo**, a lista inteira |
+| `POST /api/v1/playground/pagePlaygroundGroup` | 99 grupos, cada um com `priceInfoJson` |
+| `GET /api/v1/chat/credit` | saldo da conta (538 hoje) |
 
-Consequência prática: registrar um modelo novo exige **estimar** o preço na
-tabela offline do `kie.mjs`, e essa estimativa entra rotulada como estimada. O
-valor real só aparece depois da primeira geração, medido pelo saldo. Não é
-descuido do estúdio — é o que o provedor oferece.
+O preço é **por grupo, e parcial**: dos 99 grupos, só **9** trazem valor. Estes:
+
+| Grupo | US$ | Créditos | Unidade |
+|---|---|---|---|
+| `z-image` | 0,004 | 0,8 | imagem |
+| `flux-2` | 0,025 | 5 | imagem |
+| `seedream-4-5` | 0,032 | 6,5 | imagem |
+| `topaz-image-upscale` | 0,05 | 10 | imagem |
+| `seedance-1-0-pro-fast` | 0,08 | 16 | 10s |
+| `nano-banana-pro` | 0,09 | 18 | imagem |
+| `grok-imagine` | 0,10 | 20 | 6s |
+| `hailuo-2-3` | 0,15 | 30 | 6s |
+| `kling-2-6` | 0,28 | 55 | 5s |
+
+### A descoberta que vale mais que a tabela
+
+Cada linha traz **dólar e crédito juntos**, e a razão bate em todas:
+
+```
+0,004/0,8 = 0,00500      0,09/18 = 0,00500      0,15/30 = 0,00500
+0,025/5   = 0,00500      0,10/20 = 0,00500      0,28/55 = 0,00509
+0,032/6,5 = 0,00492      0,08/16 = 0,00500      0,05/10 = 0,00500
+```
+
+**US$ 0,005 por crédito**, publicado pelo próprio kie. Isso resolve um limite
+antigo do adapter: o consumo em créditos já era **medido** (delta de saldo antes
+e depois de cada geração), mas virava um dólar estimado porque a taxa não era
+conhecida. Agora o custo real registrado no ledger é `créditos medidos × 0,005`,
+com confiança **verificada** — sem inventar conversão, que era exatamente o que
+o código se recusava a fazer, e com razão, enquanto a taxa não existia.
+
+O `quote` **antes** de rodar continua sendo estimativa quando o grupo não tem
+preço publicado; o rótulo diz qual é qual (`published (kie)` × `estimated`).
 
 ---
 
