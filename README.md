@@ -12,7 +12,7 @@ A local-first creative studio for images, videos, websites, designed PDFs, and A
 ![5 providers](https://img.shields.io/badge/providers-5-6D7CFF.svg)
 ![MCP ready](https://img.shields.io/badge/MCP-ready-171A21.svg)
 
-**[Quick start](#run-it-in-three-minutes)** · **[Tips](#tips-that-save-you-time-and-money)** · **[How it works in depth](docs/COMO-FUNCIONA.md)** · **[What changed and why](docs/HISTORICO.md)** · **[Security](#security-and-privacy)**
+**[Quick start](#run-it-in-three-minutes)** · **[Update](#updating-an-existing-install)** · **[Remote access](#reaching-it-from-another-machine)** · **[Tips](#tips-that-save-you-time-and-money)** · **[How it works in depth](docs/COMO-FUNCIONA.md)** · **[What changed and why](docs/HISTORICO.md)** · **[Security](#security-and-privacy)**
 
 </div>
 
@@ -135,6 +135,50 @@ If either port is occupied:
 ```bash
 PORT=8790 BENCH_API_PORT=8790 BENCH_WEB_PORT=5201 npm run dev
 ```
+
+## Updating an existing install
+
+No dependency changed in recent releases, so `npm install` is usually not
+needed — but the server reads everything at boot, so a restart is not optional.
+
+```bash
+cd bench-studio-br
+git pull
+sudo systemctl restart bench-studio   # or kill the process and `npm run dev` again
+```
+
+**If you serve the built site instead of `npm run dev`**, `dist/` is not
+versioned — the pull brings no new interface until you rebuild:
+
+```bash
+npm run build
+```
+
+**One change can bite an existing install:** the API now binds to loopback by
+default (`BENCH_API_HOST`). It used to listen on every interface, which meant
+publishing the interface also published port 8787 — the one that writes files
+and spends money. A reverse proxy on the same machine talking to
+`127.0.0.1:8787` is unaffected. Anything reaching 8787 from another host will
+stop working, and the deliberate opt-out is `BENCH_API_HOST=0.0.0.0` in `.env`.
+
+`server/capabilities.json` is versioned but needs no manual step: it rebuilds
+itself when a model's declared inputs change. After restarting on a machine that
+is reachable from outside, `./scripts/remote.sh status` tells you in one line
+whether the port is open, on what address, with or without a password, and
+whether the firewall is on.
+
+### What changed recently
+
+| Area | Change |
+| --- | --- |
+| Reference frames | Models that accept a first and a last frame now show two named, numbered pickers instead of one anonymous list — 10 routes, including Kling's own (`--tailImage`, a CLI-side option that never appears in `who_am_i`). |
+| Model picker | Filter by provider; search no longer cancels the output filter — the three criteria combine, and an escape hatch appears when they leave the list empty. Switching image/video no longer closes the panel, and the list opens scrolled to the model in use. |
+| Capacity | Every model states what it accepts before you attach: *1 reference image*, *up to 10*, *first + last frame*. Taken from the endpoint schema, not a hand-written list. |
+| Cost | An unknown billing unit no longer counts as one unit. Seedance 2.5 bills in "1000 tokens" and used to advertise a fixed $0.0214 for a 5s clip and for a 30s one alike; it is now reported as unquotable with the unit price in plain sight. |
+| Attachments | References coming from `/previews` or `/projects` reached the provider as a raw path (`image must be a public http(s) URL`). All four static routes are resolved now, and an unresolvable one fails here, naming the missing file. |
+| Errors | The Kling CLI writes every failure to stderr with an empty stdout. That stream was discarded, so every error read as "session expired". It is captured and shown. |
+| Remote access | `scripts/remote.sh`, the sections above, and `docs/ACESSO-REMOTO.md`. A studio published *with* a password is no longer announced as having no authentication. |
+| Catalog | No sample thumbnails; larger lane headings, one colour per route; filters and catalog-wide controls separated. |
 
 ## Reaching it from another machine
 
@@ -595,6 +639,19 @@ when `npm run test:release` is not all green:
 
 `npm run test:contracts`, `npm run test:mcp` and the remaining 25 end-to-end
 tests pass. Fixes welcome.
+
+Three product-side gaps, stated rather than hidden:
+
+- **Seedance 2.5 cannot be quoted.** It bills in "1000 tokens" by a formula fal
+  does not publish, so the studio shows the unit price and says the total is
+  known only after the run. Guessing a total is how it used to advertise
+  $0.0214 for both a 5-second and a 30-second clip.
+- **kie.ai ships four models.** Its list is hand-written because kie publishes no
+  per-model price API; Veo 3.1, Sora 2, Wan and Suno exist there and are not
+  registered here. Adding one is an entry in `kie.models.json` plus a price in
+  `PRICE`.
+- **The read-only Config screen is half done** — see the table in
+  `docs/ACESSO-REMOTO.md`.
 
 ## Fork and license
 

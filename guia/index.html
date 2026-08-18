@@ -281,6 +281,22 @@ OPENROUTER_API_KEY=<span class="s">sua-chave</span></pre></div>
 <span class="k">npm run registry</span>       <span class="c"># reconstrói o registro</span>
 <span class="k">npm run capabilities</span>   <span class="c"># reconstrói o manifesto de entradas</span></pre>
   </div></div>
+
+  <div class="step"><div class="b">10</div><div>
+    <h3>Atualizar uma instalação que já existe</h3>
+    <p>Nenhuma dependência mudou nas últimas versões, então o <code>npm install</code> costuma ser
+    dispensável — mas o servidor lê tudo na subida, e o restart não é opcional. Se você serve o
+    <code>dist/</code> por nginx em vez do <code>npm run dev</code>, ele não é versionado: refaça a build,
+    senão o backend atualiza e a tela continua a antiga.</p>
+<pre><span class="k">git pull</span>
+<span class="k">npm run build</span>                          <span class="c"># só se você serve o dist/</span>
+<span class="k">sudo systemctl restart bench-studio</span>   <span class="c"># ou mate o processo e suba de novo</span></pre>
+    <p>Um detalhe que morde instalação antiga: a API agora escuta em <strong>loopback por padrão</strong>
+    (<code>BENCH_API_HOST</code>). Antes ela subia em todas as interfaces, então publicar a interface
+    publicava junto a porta 8787 — a que grava arquivo e gasta dinheiro. Proxy na mesma máquina apontando
+    para <code>127.0.0.1:8787</code> segue igual; quem falava com a 8787 de outra máquina precisa do opt-out
+    consciente <code>BENCH_API_HOST=0.0.0.0</code>.</p>
+  </div></div>
 </div></section>
 
 <section id="exemplos"><div class="wrap">
