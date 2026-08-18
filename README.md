@@ -505,6 +505,7 @@ In rough order of what actually protects you:
 | [`docs/ABOUT.md`](docs/ABOUT.md) | What the studio is, the reasoning behind each choice, and what it deliberately does not do — everything this README used to carry between the install steps |
 | [`docs/COMO-FUNCIONA.md`](docs/COMO-FUNCIONA.md) | How the system works inside: the provider contract, the traps measured per provider, cost classes, availability vs curation, the refine chain, the builder, and the security model |
 | [`docs/ACESSO-REMOTO.md`](docs/ACESSO-REMOTO.md) | Acesso remoto e VPS: por que a senha vem antes da porta, o que o `remote.sh` toca, a ordem de endurecimento e o que ficou em aberto |
+| [`docs/KIE-MODELOS.md`](docs/KIE-MODELOS.md) | Levantamento do catálogo do kie.ai (169 modelos): ids reais da API, entradas de cada um, quais têm quadro inicial e final, e por que só quatro estão registrados |
 | [`docs/HISTORICO.md`](docs/HISTORICO.md) | Everything built on top of the original kit, and every bug found — separating the ones that were already there from the ones introduced along the way |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version by version |
 | [`.env.example`](.env.example) | All 16 settings, what each unlocks, and where to get the key |
