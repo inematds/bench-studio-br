@@ -1716,3 +1716,15 @@ p { text-wrap: pretty; }
 .modes-option input { flex: 1; }
 .modes-option.add input { opacity: .75; font-style: italic; }
 .modes-option.add input:focus { opacity: 1; font-style: normal; }
+
+/* Com 4 subcontroles x 4 opcoes o editor passa de duas telas, e o botao de
+   salvar ficava abaixo da dobra — rolava-se sem nunca ver o botao. Ele fica
+   colado no rodape do editor enquanto se edita. */
+.modes-actions {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px -12px -8px; padding: 14px 12px;
+  background: linear-gradient(to top, var(--panel, #14141b) 72%, transparent);
+  border-top: 1px solid var(--line, rgba(255,255,255,.1));
+}
+.modes-editing-label { margin-left: auto; font-size: 12px; opacity: .6; }

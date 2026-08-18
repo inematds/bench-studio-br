@@ -263,6 +263,9 @@ export default function Modes() {
             {editingId && (
               <button type="button" onClick={() => { setDraft(VAZIO); setEditingId(null); }}>{t("common.cancel")}</button>
             )}
+            {/* Qual modo esta na bancada. Com a barra fixa no rodape, ela pode
+                ficar longe do titulo — e ai o nome precisa vir junto. */}
+            {editingId && <span className="modes-editing-label">{draft.label || editingId}</span>}
           </div>
         </div>
       </div>
