@@ -12,7 +12,11 @@ A local-first creative studio for images, videos, websites, designed PDFs, and A
 ![5 providers](https://img.shields.io/badge/providers-5-6D7CFF.svg)
 ![MCP ready](https://img.shields.io/badge/MCP-ready-171A21.svg)
 
-**[Quick start](#run-it-in-three-minutes)** · **[Keys](#keys-what-is-required-and-how-to-change-them)** · **[Passwords](#passwords)** · **[Update](#updating-an-existing-install)** · **[Maintenance](#maintenance)** · **[Remote access](#reaching-it-from-another-machine)** · **[Tips](#tips-that-save-you-time-and-money)** · **[How it works in depth](docs/COMO-FUNCIONA.md)** · **[What changed and why](docs/HISTORICO.md)** · **[Security](#security-and-privacy)**
+**This README installs, runs and maintains the studio.** What it is and why it
+works this way lives in **[docs/ABOUT.md](docs/ABOUT.md)**; the internals are in
+**[docs/COMO-FUNCIONA.md](docs/COMO-FUNCIONA.md)**.
+
+**[Install local](#install-a--local-machine)** · **[Install on a VPS](#install-b--vps-reachable-from-outside)** · **[Keep it running](#keep-it-running-systemd)** · **[Update](#updating-an-existing-install)** · **[API keys](#api-keys-what-is-required-and-how-to-change-them)** · **[Passwords](#passwords)** · **[Maintenance](#maintenance)** · **[Remote access](#remote-access-reference-remotesh)** · **[Security](#security-and-privacy)**
 
 </div>
 
@@ -36,38 +40,13 @@ units instead of disappearing into mystery credits.
 > history, uploads, private database, personal paths, credentials, or local
 > build artifacts. Your archive begins empty.
 
-## Why this exists
+## Before anything: what you need
 
-Most creative AI products combine five useful pieces—model access, prompt
-polish, routing, storage, and billing—then hide the seams behind a monthly plan.
-Bench keeps the convenience while making every seam inspectable.
-
-| Instead of… | Bench gives you… |
-| --- | --- |
-| One provider's model roadmap | A curated registry you can add to or replace |
-| A generic upload box | Controls derived from each endpoint's accepted inputs |
-| An invisible prompt rewrite | An editable model-specific draft before submission |
-| Abstract credits | A preflight estimate and recorded spend metadata |
-| Outputs trapped in an account gallery | Local mirrored files and durable metadata |
-| A UI-only workflow | The same capabilities through the UI and MCP |
-| Waiting for the next feature | Source you can inspect, change, and extend |
-
-Bench does **not** own the underlying models. It gives you ownership of the
-portable layer that connects your ideas, tools, providers, files, and costs.
-
-## Run it in three minutes
-
-### What you need
-
-**Required**
-
-- Node.js **22.5+**; Node 24 recommended, because Bench uses `node:sqlite`.
-- npm.
-
-**That is the whole list.** Every provider is optional and degrades on its own:
-a missing key makes those models show as unavailable, with the reason and how to
-fix it — the studio still starts. Bring at least one of these to generate
-anything:
+- **Node.js 22.5+** (24 recommended — the studio uses `node:sqlite`) and npm.
+  Nothing else is required to start.
+- **A provider, to generate anything.** Every one is optional and degrades on
+  its own: a missing key marks those models unavailable, with the reason and the
+  fix, and the studio still starts.
 
 | Provider | Models | Cost | What you need |
 |---|---|---|---|
@@ -77,52 +56,44 @@ anything:
 | [kie.ai](https://kie.ai/api-key) | 4 | credits | `KIE_API_KEY` |
 | [inemaimg](https://github.com/inematds/inemaimg) | 2 | zero (your GPU) | a running local server |
 
-**Optional, but worth it**
+Optional but worth it: a [Google AI Studio](https://aistudio.google.com/apikey)
+or [OpenRouter](https://openrouter.ai/keys) key for prompt refinement (without
+one your prompt is sent raw, and Agnes rejects anything not in English); Google
+Chrome for PDF printing; a signed-in Codex or Claude Code for agent-driven
+website and document builds.
 
-- A [Google AI Studio](https://aistudio.google.com/apikey) or
-  [OpenRouter](https://openrouter.ai/keys) key for prompt refinement. Without
-  any refiner your prompt is sent raw — which Agnes rejects, because it requires
-  English.
-- Google Chrome, for PDF printing and visual preflight.
-- A signed-in Codex or Claude Code, for agent-driven website and document builds.
+**Then pick your path. They are separate on purpose — do one, top to bottom.**
 
-### 1. Clone and install
+| Your situation | Go to |
+|---|---|
+| It runs on the machine you sit at | [Install A — local machine](#install-a--local-machine) |
+| It runs on a VPS or a machine you reach over the network | [Install B — VPS, reachable from outside](#install-b--vps-reachable-from-outside) |
+| It works, and you want it to survive reboots | [Keep it running](#keep-it-running-systemd) |
+| It works, and you want to update it | [Updating an existing install](#updating-an-existing-install) |
+
+---
+
+## Install A — local machine
+
+For your own laptop or desktop. Nothing is published to the network: both ports
+answer only `127.0.0.1`.
 
 ```bash
+# 1. code and dependencies (node_modules does NOT come with the clone)
 git clone https://github.com/inematds/bench-studio-br.git
 cd bench-studio-br
 npm install
-```
 
-### 2. Add server-side credentials
-
-```bash
+# 2. credentials file (.env is gitignored, so the clone has none)
 cp .env.example .env
-```
+#    fill in what you have — or leave it empty and use the Config screen later
 
-Fill in whatever you have. `.env.example` documents all 16 variables — what each
-one unlocks, how it bills, and where to create the key. Keys stay server-side and
-are never sent to the browser; `.env` is gitignored and written with owner-only
-permissions.
-
-Reading order, highest first:
-
-```
-exported in your shell  >  .env in the project  >  ~/.env
-```
-
-**Or skip the file entirely:** start the studio and use the **Config** button in
-the top right. It shows every setting — present or missing, where the value came
-from, and the last 4 characters — lets you test each provider, and writes `.env`
-for you. For safety it only accepts writes from the machine running the studio.
-
-### 3. Start the studio
-
-```bash
+# 3. start
 npm run dev
 ```
 
-Open **[http://localhost:5200](http://localhost:5200)**.
+Open **[http://localhost:5200](http://localhost:5200)**. There is no password:
+talking to your own machine should not require one.
 
 | Service | Address |
 | --- | --- |
@@ -130,12 +101,114 @@ Open **[http://localhost:5200](http://localhost:5200)**.
 | Local API | `http://localhost:8787` |
 | Health and capability summary | `http://localhost:8787/api/health` |
 
-If either port is occupied, the studio **fails to start and says so** rather than
-quietly moving to the next port — a second interface on 5201 that no firewall
-rule allows is worse than an honest error. Pick the ports explicitly:
+Missing a key? The **Config** button (top right) shows every setting — present or
+missing, where the value came from, its last 4 characters — tests each provider
+and writes `.env` for you. See [API keys](#api-keys-what-is-required-and-how-to-change-them).
+
+If a port is occupied the studio **fails and says so** instead of quietly moving
+to the next one — a second interface nobody's firewall allows is worse than an
+honest error:
 
 ```bash
 PORT=8790 BENCH_API_PORT=8790 BENCH_WEB_PORT=5201 npm run dev
+```
+
+That is the whole local install. The sections below are for the network case and
+do not apply to you.
+
+---
+
+## Install B — VPS, reachable from outside
+
+Same first steps, plus three that only matter when someone other than you can
+reach the port. Run it top to bottom; nothing here is optional.
+
+```bash
+# 1. code and dependencies
+git clone https://github.com/inematds/bench-studio-br.git
+cd bench-studio-br
+npm install
+
+# 2. credentials
+cp .env.example .env      # fill in your keys
+
+# 3. PASSWORD, before the port opens — this order matters, see below
+npm run set-password
+
+# 4. publish the interface + firewall rule
+./scripts/remote.sh open
+
+# 5. start it so it survives your SSH session ending
+setsid nohup npm run dev > ~/bench.log 2>&1 < /dev/null &
+sleep 12
+
+# 6. verify — from the machine, then from your browser
+./scripts/remote.sh status
+ss -tlnp | grep 5200
+```
+
+Step 6 must show `0.0.0.0:5200`. If it shows `127.0.0.1:5200`, the interface did
+not pick up `BENCH_WEB_HOST` — update first (see
+[Updating](#updating-an-existing-install)); a version older than 2026-08-18 had
+that bug, and `remote.sh` would report OPEN while the socket stayed local.
+
+Then open `http://<your-ip>:5200` from your browser.
+
+**Why the password comes before the port.** It can only be set from the machine
+itself: `POST /api/config/password` answers 403 to anything not coming from
+loopback, session or no session. That is what stops whoever finds an open port
+from setting a password of their own and locking you out. After the port is
+open, that gap cannot be closed from the other side — so the install is the
+moment. `remote.sh open` offers to do it for you and says clearly when you
+decline. Full rules in [Passwords](#passwords).
+
+**What stays private.** Only the interface (5200) goes out. The API (8787) —
+the port that writes files and spends money — stays on loopback. The deliberate
+opt-out is `BENCH_API_HOST=0.0.0.0`, and you should have a reason.
+
+**Closing it again**, when the test ends:
+
+```bash
+./scripts/remote.sh close
+# then restart the studio, so the open socket is actually dropped
+```
+
+Read [Leaving it up safely](#leaving-it-up-safely) before you leave it up for
+more than an afternoon: the traffic is plain HTTP, readable in transit, until
+something in front of it terminates TLS.
+
+---
+
+## Keep it running (systemd)
+
+Both installs above leave a process you started by hand. It survives your SSH
+session (thanks to `setsid nohup`) but **not a reboot**, and `systemctl restart
+bench-studio` fails with *Unit not found* because this project installs no
+service. One script creates it:
+
+```bash
+./scripts/install-service.sh
+```
+
+It writes `/etc/systemd/system/bench-studio.service`, reloads systemd, drops any
+process still holding the port, and enables plus starts the unit. It runs the
+studio as the **owner of the repository** rather than as whoever typed `sudo`,
+and freezes the Node directory into the unit's `PATH` — systemd's `PATH` is
+minimal, and without that an nvm-installed Node fails with `npm: command not
+found` in a place where only the journal would tell you.
+
+```bash
+sudo systemctl restart bench-studio    # now this exists
+sudo journalctl -u bench-studio -f     # logs
+./scripts/install-service.sh --print   # see the unit without installing
+./scripts/install-service.sh --remove  # disable and delete it
+```
+
+If nginx or Caddy serves `npm run build`'s `dist/` and you only need the API
+behind it:
+
+```bash
+./scripts/install-service.sh --serve build     # ExecStart becomes `npm run server`
 ```
 
 ## Updating an existing install
@@ -205,7 +278,7 @@ whether the firewall is on.
 | Remote access | `scripts/remote.sh`, the sections above, and `docs/ACESSO-REMOTO.md`. A studio published *with* a password is no longer announced as having no authentication. |
 | Catalog | No sample thumbnails; larger lane headings, one colour per route; filters and catalog-wide controls separated. |
 
-## Keys: what is required, and how to change them
+## API keys: what is required, and how to change them
 
 **Nothing is required together.** The studio starts with whatever exists and the
 catalog explains what is unavailable and why. To generate anything at all you
@@ -329,42 +402,7 @@ Routine care, in rough order of how often you will need it.
 | Run the fast test suite | `npm run test:contracts` |
 | Full release check | `npm run test:release` (needs a `FAL_KEY` — see Known issues) |
 
-### Running it as a service
-
-Nothing here installs a service for you — which is why `systemctl restart
-bench-studio` fails on a fresh VPS. On a machine that should survive a reboot,
-create the unit once and every "restart it" below has an obvious meaning:
-
-```bash
-# run this FROM the project directory: $PWD and $USER are expanded on write
-sudo tee /etc/systemd/system/bench-studio.service >/dev/null <<UNIT
-[Unit]
-Description=Bench Studio
-After=network-online.target
-
-[Service]
-Type=simple
-User=$USER
-WorkingDirectory=$PWD
-ExecStart=/usr/bin/env npm run dev
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now bench-studio
-systemctl status bench-studio --no-pager
-journalctl -u bench-studio -f          # logs
-```
-
-Two honest caveats. `npm run dev` is a development server — it is what most
-installs actually run, but if you put nginx in front serving `npm run build`'s
-`dist/`, point `ExecStart` at `npm run server` and let the web server serve the
-site. And running as `root` works while being exactly the posture *Leaving it up
-safely* asks you not to keep.
+Need it to survive a reboot? See [Keep it running](#keep-it-running-systemd).
 
 **Where your data lives.** Everything is under `data/`, which is gitignored:
 `data/outputs` (generated media, mirrored locally because provider URLs expire),
@@ -386,78 +424,52 @@ a model's declared inputs change, it rebuilds on the next boot.
 `dist/` is not versioned, so a pre-built site keeps serving the old bundle until
 `npm run build` runs. See *Updating an existing install*.
 
-## Reaching it from another machine
+## Remote access reference (`remote.sh`)
 
-**The whole thing, in order, on a VPS or an office machine you want to reach
-from home.** Run it top to bottom; every line is explained below.
+The step-by-step for a networked install is
+[Install B](#install-b--vps-reachable-from-outside). This section is the
+reference for the script it uses.
 
 ```bash
-npm run set-password          # 1. password FIRST — see why below
-./scripts/remote.sh open      # 2. publishes the interface + firewall rule
-#                             3. restart the studio, however you run it
-./scripts/remote.sh status    # 4. confirms: open where, with what protection
-# ...use it...
-./scripts/remote.sh close     # 5. when you are done
-#                             6. restart again, to drop the open socket
+./scripts/remote.sh open                    # publish the interface on this machine's IP
+./scripts/remote.sh open --ip 203.0.113.7   # ...but only to that address
+./scripts/remote.sh open --firewall         # also enable ufw (SSH allowed first)
+./scripts/remote.sh close                   # back to local access only
+./scripts/remote.sh status                  # open or closed, and with what protection
 ```
 
-The restarts are not ceremony: `open` and `close` write to `.env`, and the
-process reads the host it binds to at boot. Without the restart the file says
-one thing and the running socket does another — which `status` will tell you.
+**What it touches, and nothing else:**
 
-> **If you updated from a version before 2026-08-18:** `open` could report OPEN,
-> write `.env`, add the firewall rule, and the interface would still answer only
+- `.env` — `BENCH_WEB_HOST=0.0.0.0` and `BENCH_API_HOST=127.0.0.1`, written `600`
+- `ufw` — `allow OpenSSH` first, then `allow <port>/tcp`
+- `data/remote.state` — the port, the previous `BENCH_WEB_HOST`, whether the rule
+  was created, any IP restriction, and when
+
+**Decisions inside the script:**
+
+- **`close` reads the state file**, so it undoes what *that* `open` did rather
+  than what an `open` usually does.
+- **The SSH rule is allowed before any `ufw enable`, and never removed.**
+  Deleting it is how people lock themselves out of their own server.
+- **Idempotent.** Running it twice breaks nothing.
+- **It does not enable the firewall on its own.** If ufw is installed and
+  inactive it says so and offers `--firewall`, instead of changing the machine's
+  policy for you.
+- **It never publishes the API.** Port 8787 stays on loopback.
+
+**A restart is required after `open` and after `close`**, because both write to
+`.env` and the process reads the host it binds to at boot. Until you restart, the
+file says one thing and the running socket does another — which `status` reports.
+
+> **Updating from a version before 2026-08-18:** `open` could report OPEN, write
+> `.env`, add the firewall rule, and the interface would still answer only
 > `127.0.0.1`. Vite does not load `.env` into `process.env` while evaluating its
 > config, so `vite.config.js` never saw `BENCH_WEB_HOST` — the server read the
-> file and the interface did not. It now reads `.env` itself, with the same
-> precedence. `./scripts/remote.sh status` compares the file against the socket
-> actually listening, so it is the fastest way to confirm.
+> file and the interface did not. It reads `.env` itself now, with the same
+> precedence.
 
-
-Both ports bind to loopback, so a fresh install answers nobody but you. Opening
-that up means three things — the interface listening on every interface, a
-firewall rule, and remembering to undo both. One command does all three:
-
-```bash
-./scripts/remote.sh open      # publish the interface on this machine's IP
-./scripts/remote.sh status    # open or closed, and with what protection
-./scripts/remote.sh close     # back to local access only
-```
-
-`open` prints the address to hand out, then tells you to restart with
-`npm run dev`. `close` reverses exactly what `open` did — reading a state file
-written at open time, not guessing — and leaves the SSH rule alone, because
-deleting that is how people lock themselves out of their own server.
-
-Two flags worth knowing:
-
-```bash
-./scripts/remote.sh open --ip 203.0.113.7   # only that address, not the internet
-./scripts/remote.sh open --firewall         # also enable ufw (SSH allowed first)
-```
-
-**`open` offers to set a password before it opens anything.** Say yes and it
-hands over to `npm run set-password`; press Enter — or answer `n` — and the
-studio opens without one, which is the documented default. The offer is there
-because of the asymmetry below: this is the last moment where setting a password
-is one keystroke away.
-
-**The password cannot be set or changed from the other machine — not even after
-you log in.** `POST /api/config/password` answers 403 to anything that did not
-come from loopback, session or no session, and the Config screen says so instead
-of showing you a dead field. That rule is what stops whoever finds an open port
-from setting a password of their own and locking you out of your own studio. So:
-
-```bash
-npm run set-password    # on the machine running the studio, over SSH or at the keyboard
-```
-
-What `open` deliberately does **not** do: publish the API. Port 8787 stays on
-loopback (`BENCH_API_HOST`), so the endpoint that writes files and spends money
-is reachable only through the interface, on the machine itself.
-
-This is a test posture, not a deployment. The traffic is plain HTTP and readable
-in transit. For anything that stays up, read the next section.
+The password rules that govern all of this are in [Passwords](#passwords); the
+hardening order is in [Leaving it up safely](#leaving-it-up-safely).
 
 ## Leaving it up safely
 
@@ -486,262 +498,11 @@ In rough order of what actually protects you:
 7. **Close it when the test ends.** `./scripts/remote.sh close`. An exposure you
    forgot about is the one that costs you provider credits.
 
-## Tips that save you time and money
-
-**Start with the free routes.** Agnes (4 models) and inemaimg (2, on your own
-GPU) cost nothing. In the Model catalog, the **No cost** switch turns exactly
-that group on. Use them to find the prompt that works, then spend on the model
-that renders it best.
-
-**Curate the catalog once.** 73 models is a lot to scroll. Filter by provider,
-then use "Disable those N" to hide what you will not use. Curation is a
-preference, not a block: it hides models from the pickers but a **Redo** of an
-old result still works. Deleting `data/catalog-prefs.json` restores the factory
-state.
-
-**Refine before you spend.** The refined prompt is editable before submission.
-Read it. It is the cheapest place to catch a misunderstanding — after you submit,
-the fix costs another run.
-
-**Keep two refiners configured.** The chain is Gemini → OpenRouter → local Codex.
-With a single one, an exhausted quota takes the whole studio down: the prompt
-goes through raw, and Agnes rejects non-English with an error that looks like an
-Agnes problem but is not.
-
-**Redo instead of retyping.** Every result carries the model, controls, refined
-prompt, original idea and attachments. Redo restores all of it, so you can tweak
-one thing without paying for a rewrite.
-
-**The same model can exist on two routes.** Veo, Nano Banana, gpt-image and
-gemini-image appear via more than one provider — with different bills (dollars on
-fal, plan credits on Kling). The provider is shown next to the name in the
-picker; it is a real choice, not a duplicate.
-
-**Kling never auto-retries, on purpose.** Every Kling job is charged, including
-failures. Nothing is resubmitted behind your back.
-
-**Watch disk, not CPU.** Every file is mirrored locally because provider URLs
-expire — 24h on Kling, temporary on Agnes. Roughly 1.3 MB per image and 0.7–5 MB
-per video. The studio idles at 274 MB of RAM.
-
-**Building a website? Prefer an agent.** Codex and Claude Code write the files
-themselves and fix their own mistakes. The model engines (local Qwen, OpenRouter)
-only return text, so they need no sandbox and cost nothing — but they need more
-supervision.
-
-**Point the builder at a reference you own.** Set a site or PDF of yours in
-Config and the builder calibrates its finish against it — tokens, fonts, palette,
-radii. It never copies brand, copy, structure or files.
-
-## What you can make
-
-| Workspace | What it delivers |
-| --- | --- |
-| **Create** | Images and videos with model-aware references, controls, editable prompt drafts, quotes, progress, and inline results. |
-| **Model catalog** | Curated text-to-image, image-editing, text-to-video, image-to-video, and reference-video routes. |
-| **Results** | A local archive containing the submitted prompt, model, provider URL, local file, and recorded cost. |
-| **Websites** | Original static sites with editable source, a local preview, and a downloadable bundle. |
-| **Documents** | Designed PDFs backed by editable HTML, Chromium printing, and overflow preflight. |
-| **Connect** | Machine-correct MCP configuration and a portable skill for compatible agents. |
-
-![Bench Studio create workspace](docs/bench-studio-create.png)
-
-## The system in 30 seconds
-
-```mermaid
-flowchart LR
-    Idea["Your idea"] --> Client{"How do you want to work?"}
-    Client -->|Create manually| UI["React studio"]
-    Client -->|Delegate to an agent| MCP["MCP server"]
-
-    UI --> API["Local API"]
-    MCP --> API
-
-    API --> Prompt["Editable prompt refinement"]
-    API --> Router["Capability-aware router"]
-    API --> Quote["Quote and pricing engine"]
-
-    Prompt --> Router
-    Router --> Prov["fal · Kling · Agnes · kie · inemaimg"]
-    Prov --> Mirror["Local media mirror"]
-
-    API --> Projects["Website and PDF runner"]
-    Projects --> Archive["Inspectable project source"]
-
-    Quote --> Ledger[("Local SQLite ledger")]
-    Mirror --> Ledger
-    Archive --> Ledger
-```
-
-The browser never receives provider secrets. It talks to a local service that
-validates model-specific payloads, owns credentials, streams progress, mirrors
-artifacts, and records durable metadata.
-
-## Choose the right connection strategy
-
-Bench uses an aggregator because one authentication and queue model is the
-practical way to support a large, interchangeable catalog. That is not the
-only valid architecture.
-
-```mermaid
-flowchart TB
-    Need{"What do you actually need?"}
-    Need -->|One stable model| Direct["Use its first-party API"]
-    Need -->|Many interchangeable models| Bench["Use Bench + an aggregator"]
-
-    Direct --> D1["Potentially lowest route price"]
-    Direct --> D2["One integration per provider"]
-    Direct --> D3["Best for a narrow workflow"]
-
-    Bench --> B1["One authentication and queue model"]
-    Bench --> B2["Consistent controls and records"]
-    Bench --> B3["Best for a flexible studio"]
-```
-
-An aggregator may not always be the cheapest route. Bench makes that tradeoff
-explicit instead of calling it “zero markup.”
-
-## One request, from idea to receipt
-
-```mermaid
-sequenceDiagram
-    participant U as User or agent
-    participant B as Bench
-    participant R as Capability router
-    participant F as fal.ai
-    participant L as Local archive
-
-    U->>B: Describe the result
-    B->>R: Select a model and inspect accepted inputs
-    R-->>B: Controls, limits, and pricing unit
-    B-->>U: Editable prompt and preflight estimate
-    U->>B: Approve generation
-    B->>F: Validated model-specific payload
-    F-->>B: Queue progress and output URL
-    B->>L: Mirror media and write metadata
-    B-->>U: Local result, provider result, and recorded cost
-```
-
-Bench records what was submitted. It never claims an attached reference
-influenced an output merely because an API accepted the field; creative
-fidelity still requires human review.
-
-## Model intelligence, not a dropdown full of URLs
-
-Every endpoint has different assumptions. Some accept one image, some accept a
-list, some require a start frame, and others accept no references. Bench keeps
-discovery separate from production admission:
-
-```mermaid
-flowchart LR
-    Catalog["Live provider catalog"] --> Discover["Discovery snapshot"]
-    Discover --> Evidence["Schema and pricing evidence"]
-    Evidence --> Review{"Safe for production?"}
-    Review -->|Not yet| Observe["Keep observable"]
-    Review -->|Yes| Registry["Curated registry"]
-    Registry --> UI["Relevant UI controls"]
-    Registry --> MCP["Validated MCP inputs"]
-```
-
-This prevents a newly published, renamed, or underspecified model from silently
-breaking a paid workflow.
-
-## Prompt refinement stays visible
-
-1. Write a normal creative request.
-2. Bench adds the structure the selected model is likely to understand.
-3. Review the rewritten prompt as an editable draft.
-4. Change or reject it before spending anything.
-5. Store the final submitted prompt with the result.
-
-If no Google key is configured, the original prompt passes through unchanged
-and the interface reports that refinement is disabled.
-
-## Cost transparency without marketing math
-
-Before submission, Bench estimates cost from the model's pricing unit and the
-requested parameters. After completion, it records the billed amount when the
-provider exposes sufficient receipt data.
-
-```mermaid
-flowchart LR
-    Params["Model + duration + resolution + quantity"] --> Estimate["Preflight estimate"]
-    Estimate --> Approval["Explicit approval"]
-    Approval --> Run["Provider execution"]
-    Run --> Record["Recorded cost + confidence"]
-```
-
-Pricing changes. Estimates are not guarantees. Bench distinguishes estimated,
-metered, and recorded values instead of presenting all three as the same fact.
-
-## Your local data boundary
-
-The repository starts with no `data/` directory. Bench creates it on first run:
-
-```text
-data/
-├── bench.db              # generations, assets, spend, and projects
-├── inputs/               # mirrored uploads
-├── outputs/              # mirrored generations
-├── previews/             # local video posters
-└── projects/             # website and document source files
-```
-
-The entire directory is ignored by Git. Deleting a result removes its local
-database record and mirrored files. It does not claim to delete copies retained
-by an external model provider.
-
-```mermaid
-flowchart LR
-    Browser["Browser UI\nno provider keys"] --> Local["Loopback API\nkeys + validation"]
-    Agent["Local MCP client"] --> Local
-    Local --> Provider["External model provider"]
-    Local --> Disk["Local SQLite + files"]
-```
-
-## Use it from Claude, Codex, or Cursor
-
-Start Bench, open **Connect**, choose your client, and copy the generated
-configuration. Bench inserts the correct absolute path for the current machine;
-the repository itself ships with no user's home directory.
-
-The MCP server exposes eleven focused tools for:
-
-- discovering models and inspecting capability contracts;
-- uploading local reference media;
-- generating images and videos;
-- reading results, previews, and spend;
-- creating and polling website or document projects;
-- retrieving local project artifacts.
-
-The bundled skill in `integrations/skills/bench-studio/` provides judgment and
-workflow guidance. MCP provides the live execution layer.
-
-## Project map
-
-```text
-bench-studio-public/
-├── src/                     # React interface
-├── server/
-│   ├── server.mjs           # loopback API and orchestration
-│   ├── mcp.mjs              # stdio MCP server
-│   ├── registry.json        # curated production roster
-│   ├── capabilities.json    # accepted-input contracts
-│   ├── profiles/            # prompt and pricing intelligence
-│   └── mcp-app/             # embedded MCP interface
-├── integrations/
-│   ├── skills/bench-studio/ # portable agent workflow skill
-│   └── macos/               # optional launch-agent templates
-├── tests/                   # contracts, persistence, API, a11y, and E2E
-├── docs/                    # public README media
-├── .env.example             # placeholders only
-└── package.json
-```
-
 ## Documentation
 
 | Document | What it covers |
 |---|---|
+| [`docs/ABOUT.md`](docs/ABOUT.md) | What the studio is, the reasoning behind each choice, and what it deliberately does not do — everything this README used to carry between the install steps |
 | [`docs/COMO-FUNCIONA.md`](docs/COMO-FUNCIONA.md) | How the system works inside: the provider contract, the traps measured per provider, cost classes, availability vs curation, the refine chain, the builder, and the security model |
 | [`docs/ACESSO-REMOTO.md`](docs/ACESSO-REMOTO.md) | Acesso remoto e VPS: por que a senha vem antes da porta, o que o `remote.sh` toca, a ordem de endurecimento e o que ficou em aberto |
 | [`docs/HISTORICO.md`](docs/HISTORICO.md) | Everything built on top of the original kit, and every bug found — separating the ones that were already there from the ones introduced along the way |
@@ -800,27 +561,6 @@ the service.
 
 Read [SECURITY.md](SECURITY.md) before exposing, modifying, or redistributing
 the service.
-
-## Honest boundaries
-
-- Bench is a local, single-user tool—not a hosted multi-tenant SaaS product.
-- The registry is curated intentionally; catalog presence does not guarantee
-  production admission.
-- Accepted inputs do not guarantee creative fidelity.
-- Website output is static by design.
-- PDF creation depends on a local Chrome installation.
-- Model availability and pricing can change after a catalog sync.
-- Owning the layer means maintaining a small piece of software.
-
-## Release confidence
-
-The release gate covers production builds, API and database contracts, MCP
-discovery, browser journeys, accessibility, responsive containment, failure
-states, model transitions, and visual snapshots.
-
-```bash
-npm run test:release
-```
 
 ## Language / Idioma
 
