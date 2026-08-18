@@ -2,8 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   assignInputFields,
+  imageCapacity,
+  extraImageSlotsFor,
   imageInputFor,
+  keyframeSlotsFor,
   mediaInputsFor,
+  slotRole,
   modelKindLabel,
   modelLaneLabel,
   modelPriority,
@@ -304,6 +308,24 @@ function modelPrice(model, t) {
   return `$${value} / ${priceUnit(pricing.unit, t)}`;
 }
 
+// "aceita 2 imagens" e informacao que o servidor sempre teve e a interface
+// nunca dizia: o teto so aparecia como erro depois de anexar a imagem a mais.
+function referenceCapacityLabel(model, t) {
+  const slots = keyframeSlotsFor(model);
+  if (slots) {
+    const extra = extraImageSlotsFor(model);
+    if (!extra.length) return t("prompt.capacity.keyframes");
+    const max = extra.reduce((total, slot) => slot.max == null || total == null ? null : total + slot.max, 0);
+    return t("prompt.capacity.keyframesPlus", {
+      extra: max == null ? t("prompt.capacity.images") : t("prompt.capacity.nImages", { count: max }),
+    });
+  }
+  const max = imageCapacity(model);
+  if (max === 0) return "";
+  if (max == null) return t("prompt.capacity.images");
+  return max === 1 ? t("prompt.capacity.oneImage") : t("prompt.capacity.nImages", { count: max });
+}
+
 function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -317,21 +339,40 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
       return localStorage.getItem("bench.model-filter-pinned") || localStorage.getItem("bench.model-filter") || "all";
     } catch { return "all"; }
   });
+  const [providerFilter, setProviderFilter] = useState("all");
   const rootRef = useRef(null);
   const popoverRef = useRef(null);
   const searchRef = useRef(null);
+  const selectedRef = useRef(null);
   const normalizedQuery = query.trim().toLowerCase();
   const kindCounts = models.reduce((counts, candidate) => {
     counts[candidate.kind] = (counts[candidate.kind] ?? 0) + 1;
     return counts;
   }, {});
+  // Um provedor por vez (ou todos): a escolha entre rotas do MESMO modelo —
+  // Kling por credito de plano, fal por dolar/segundo — e a comparacao que essa
+  // lista precisa deixar fazer sem rolagem.
+  const providerCounts = models.reduce((counts, candidate) => {
+    const id = candidate.provider ?? "fal";
+    counts[id] = (counts[id] ?? 0) + 1;
+    return counts;
+  }, {});
+  const providerOptions = Object.entries(providerCounts).sort((a, b) => b[1] - a[1]);
   const filteredModels = sortModels(models.filter((candidate) => {
-    const matchesKind = normalizedQuery || kindFilter === "all" || candidate.kind === kindFilter;
+    // A busca ANTES anulava o filtro de saida (`normalizedQuery ||`): digitar
+    // "kling" trazia video no meio de uma lista filtrada em imagem, e a pessoa
+    // via um resultado que contradizia o botao aceso. Os tres se somam.
+    const matchesKind = kindFilter === "all" || candidate.kind === kindFilter;
+    const matchesProvider = providerFilter === "all" || (candidate.provider ?? "fal") === providerFilter;
     const matchesQuery = !normalizedQuery ||
       `${candidate.label} ${candidate.vendor} ${candidate.id} ${candidate.provider ?? ""} ${modelLaneLabel(candidate, t)}`.toLowerCase().includes(normalizedQuery);
-    return matchesKind && matchesQuery;
+    return matchesKind && matchesProvider && matchesQuery;
   }));
   const popularModelId = filteredModels.find((candidate) => modelPriority(candidate) < 6)?.id;
+  // Quantos a BUSCA acharia se os filtros nao estivessem ligados.
+  const hiddenByFilters = !normalizedQuery ? 0 : models.filter((candidate) =>
+    `${candidate.label} ${candidate.vendor} ${candidate.id} ${candidate.provider ?? ""} ${modelLaneLabel(candidate, t)}`
+      .toLowerCase().includes(normalizedQuery)).length - filteredModels.length;
 
   function measurePopover() {
     const trigger = rootRef.current?.getBoundingClientRect();
@@ -364,10 +405,11 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
     const compatible = sortModels(models.filter((candidate) =>
       candidate.kind === next && (!refs.length || assignInputFields(candidate, refs).ok)
     ));
-    if (compatible[0]) {
-      onChange(compatible[0].id);
-      setOpen(false);
-    }
+    // Trocar imagem<->video e um gesto de FILTRAR, nao de escolher. Fechar o
+    // painel aqui tirava a pessoa da lista justamente quando ela ia comparar as
+    // opcoes do outro tipo; o painel fica aberto e a selecao so adianta um
+    // padrao valido.
+    if (compatible[0]) onChange(compatible[0].id);
   }
 
   function togglePinnedFilter() {
@@ -393,7 +435,13 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
     window.addEventListener("resize", placePopover);
     document.querySelector(".scroll")?.addEventListener("scroll", placePopover, { passive: true });
     placePopover();
-    requestAnimationFrame(() => searchRef.current?.focus());
+    requestAnimationFrame(() => {
+      searchRef.current?.focus();
+      // A lista abria no topo e o modelo em uso podia estar 40 linhas abaixo —
+      // quem abria para "ver qual e" perdia justamente essa informacao. Rola
+      // ate ele, centralizado, sem animacao (a lista ja aparece no lugar).
+      selectedRef.current?.scrollIntoView({ block: "center" });
+    });
     return () => {
       document.removeEventListener("pointerdown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
@@ -428,6 +476,9 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
         {model.thumbnail && <img src={model.thumbnail} alt="" />}
         <span className="model-picker-name">{model.label}</span>
         <span className="model-option-provider trigger">{model.provider ?? "fal"}</span>
+        {referenceCapacityLabel(model, t) && (
+          <span className="model-picker-capacity">{referenceCapacityLabel(model, t)}</span>
+        )}
         <span className={`model-picker-kind kind-${model.kind}${referenceActive ? " reference" : ""}`}>
           {referenceActive ? modelLaneLabel(model, t) : modelKindLabel(model, t)}
         </span>
@@ -480,6 +531,19 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
               ))}
             </div>
           </div>
+          <label className="model-provider-filter">
+            <span>{t("catalog.provider")}</span>
+            <select
+              value={providerFilter}
+              aria-label={t("prompt.filterByProvider")}
+              onChange={(event) => setProviderFilter(event.target.value)}
+            >
+              <option value="all">{t("work.all")} ({models.length})</option>
+              {providerOptions.map(([id, count]) => (
+                <option key={id} value={id}>{id} ({count})</option>
+              ))}
+            </select>
+          </label>
           <input
             ref={searchRef}
             className="model-search"
@@ -497,6 +561,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
                 aria-selected={candidate.id === model.id}
                 className={`model-option${candidate.id === model.id ? " selected" : ""}`}
                 key={candidate.id}
+                ref={candidate.id === model.id ? selectedRef : undefined}
                 onClick={() => choose(candidate)}
               >
                 {candidate.thumbnail ? (
@@ -516,6 +581,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
                   <small>
                     {candidate.vendor} · {modelLaneLabel(candidate, t)} · {modelPrice(candidate, t)}
                     {candidate.capabilities?.modalities?.length ? t("prompt.takesInline", { list: candidate.capabilities.modalities.join(" + ") }) : ""}
+                    {referenceCapacityLabel(candidate, t) ? ` · ${referenceCapacityLabel(candidate, t)}` : ""}
                   </small>
                 </span>
                 <span className="model-option-tail">
@@ -529,6 +595,18 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
             {!filteredModels.length && (
               <div className="model-empty">
                 {t("prompt.noMatch", { query, kind: kindFilter === "all" ? t("prompt.anyKind") : t(`catalog.${kindFilter}`) })}
+                {/* Somar busca e filtros e o certo, mas some o caminho de volta:
+                    quem procurou um modelo que existe do outro lado do filtro
+                    precisa ver que ele existe, e chegar la num clique. */}
+                {hiddenByFilters > 0 && (
+                  <button
+                    type="button"
+                    className="model-empty-clear"
+                    onClick={() => { setKindFilter("all"); setProviderFilter("all"); }}
+                  >
+                    {t("prompt.hiddenByFilters", { count: hiddenByFilters })}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -589,6 +667,21 @@ export default function PromptBar({
     .split(/\s+/)
     .filter(Boolean).length;
   const canAttach = Boolean(imageInputFor(model) || referenceModel);
+  // Dois campos de imagem de uma vaga cada = primeiro e ultimo quadro. Viram
+  // dois seletores nomeados; sem isso a ordem de anexo decidia sozinha qual
+  // imagem era o inicio e qual era o fim.
+  const keyframeSlots = keyframeSlotsFor(model);
+  const extraImageSlots = keyframeSlots ? extraImageSlotsFor(model) : [];
+  const keyframeFields = new Set((keyframeSlots ?? []).map((slot) => slot.field));
+  // Referencias que NAO ocupam um quadro nomeado continuam na tira comum.
+  const looseRefs = keyframeSlots ? refs.filter((r) => !keyframeFields.has(r.field)) : refs;
+  const imageMax = imageCapacity(model);
+  const refCapacityHint = keyframeSlots
+    ? t("prompt.capacity.keyframes")
+    : imageMax === 0 ? ""
+    : imageMax == null ? t("prompt.capacity.images")
+    : imageMax === 1 ? t("prompt.capacity.oneImage")
+    : t("prompt.capacity.nImages", { count: imageMax });
   const directInputs = mediaInputsFor(model);
   const acceptedModalities = [...new Set(directInputs.map((input) => input.modality).filter((item) => item !== "mixed"))];
   if (!acceptedModalities.includes("image") && referenceModel) acceptedModalities.push("image");
@@ -615,9 +708,10 @@ export default function PromptBar({
   const otherFormats = (catalog.formats ?? []).filter(({ id }) => !quickFormatIds.has(id));
   const otherFormatOptions = otherFormats.map(({ id, label }) => ({ value: id, label }));
 
-  async function addFiles(fileList) {
+  async function addFiles(fileList, field = null) {
     const files = Array.from(fileList ?? []);
-    for (const file of files) await onAttach(file);
+    // Um seletor de quadro tem uma vaga: dele so entra o primeiro arquivo.
+    for (const file of (field ? files.slice(0, 1) : files)) await onAttach(file, field);
   }
 
   return (
@@ -657,9 +751,51 @@ export default function PromptBar({
         />
 
         <div className="bar-top">
-          {refs.length > 0 && (
+          {keyframeSlots && (
+            // Um seletor por quadro, nomeado. Cada um busca a sua imagem.
+            <div className="keyframe-slots" role="group" aria-label={t("prompt.capacity.keyframes")}>
+              {keyframeSlots.map((slot) => {
+                const filled = refs.find((r) => r.field === slot.field);
+                const role = slotRole(slot.field);
+                const label = role === "last" ? t("prompt.slot.last")
+                  : role === "first" ? t("prompt.slot.first")
+                  : slot.field;
+                // O numero diz a ORDEM no video (1 abre, 2 fecha) — sem ele
+                // "inicial" e "final" viram dois campos parecidos lado a lado.
+                const order = role === "last" ? 2 : 1;
+                const hint = role === "last" ? t("prompt.slot.lastHint") : t("prompt.slot.firstHint");
+                return (
+                  <label className={`keyframe-slot${filled ? " filled" : ""}`} key={slot.field} title={hint}>
+                    <span className="keyframe-slot-label">
+                      <b>{order}</b> {label}
+                    </span>
+                    {filled ? (
+                      <span className="keyframe-slot-thumb">
+                        <img src={filled.preview} alt={filled.name} />
+                        <button
+                          type="button"
+                          className="attach-remove"
+                          onClick={(event) => { event.preventDefault(); onRemoveRef(refs.indexOf(filled)); }}
+                          aria-label={t("prompt.removeNamed", { name: filled.name })}
+                        >×</button>
+                      </span>
+                    ) : (
+                      <span className="keyframe-slot-empty" aria-hidden="true">+</span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={busy}
+                      onChange={(event) => { addFiles(event.target.files, slot.field); event.target.value = ""; }}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {(!keyframeSlots || extraImageSlots.length > 0) && looseRefs.length > 0 && (
             <div className="attach-thumbs">
-              {refs.map((r, i) => (
+              {looseRefs.map((r) => (
                 <span className="attach-thumb-wrap" key={r.url}>
                   {r.media_type === "image" ? (
                     <img className="attach-thumb" src={r.preview} alt={r.name} />
@@ -672,7 +808,7 @@ export default function PromptBar({
                   <button
                     type="button"
                     className="attach-remove"
-                    onClick={() => onRemoveRef(i)}
+                    onClick={() => onRemoveRef(refs.indexOf(r))}
                     aria-label={t("prompt.removeNamed", { name: r.name })}
                     title={t("prompt.removeReference")}
                   >×</button>
@@ -681,7 +817,7 @@ export default function PromptBar({
             </div>
           )}
 
-          {!showDropzone && (
+          {(!keyframeSlots || extraImageSlots.length > 0) && !showDropzone && (
             <button
               type="button"
               className="attach"
@@ -770,7 +906,7 @@ export default function PromptBar({
               </div>
               <div className="dropzone-copy">
                 <strong>{dragging ? t("prompt.releaseToAttach") : t("prompt.dropHere")}</strong>
-                <span>{attachmentHint} · {t("prompt.orBrowse")}</span>
+                <span>{attachmentHint}{refCapacityHint ? ` · ${refCapacityHint}` : ""} · {t("prompt.orBrowse")}</span>
               </div>
               {refs.length > 0 && (
                 <span className="dropzone-count">
@@ -806,13 +942,20 @@ export default function PromptBar({
           />
 
           {chipParams.map(([name, spec]) => (
-            <span className="chip" key={name} title={spec.description}>
+            <span className="chip" key={name} title={spec.description ?? spec.title}>
+              {/* O valor sozinho ("True") nao diz o que e verdade. O nome vem do
+                  schema do provedor (`title`), e a descricao dele fica no "?" —
+                  a informacao ja chegava aqui e morria num tooltip do span. */}
+              <span className="chip-param-label">{spec.title ?? paramLabel(name, t)}</span>
               <MenuSelect
                 value={params[name] ?? spec.default ?? spec.enum[0]}
                 options={spec.enum.map((o) => ({ value: String(o), label: prettyParam(name, o, t) }))}
                 ariaLabel={paramLabel(name, t)}
                 onChange={(value) => setParams((p) => ({ ...p, [name]: value }))}
               />
+              {spec.description && (
+                <abbr className="chip-help" title={spec.description}>?</abbr>
+              )}
             </span>
           ))}
 

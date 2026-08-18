@@ -2,12 +2,13 @@ import React, { useMemo, useState } from "react";
 import { sortModels } from "./modelCatalog.js";
 import { useT } from "./i18n/index.jsx";
 
-// The roster, as pictures. Every tile is a real sample frame published by the
-// model itself, and the price is on the tile because that is the whole point.
+// O elenco, em fichas. Sem miniatura de amostra: a imagem do proprio modelo nao
+// ajuda a escolher entre 73 deles e enchia a tela de ruido — o que decide e
+// nome, provedor, preco e o que o modelo aceita de entrada.
 
 const GROUPS = ["t2i", "i2i", "t2v", "i2v", "r2v"];
 
-export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, onRefresh, settings, onSettings }) {
+export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk }) {
   const t = useT();
   const [showUnavailable, setShowUnavailable] = useState(false);
 
@@ -117,6 +118,11 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
             </span>
           ))}
         </div>
+      </div>
+
+      {/* Linha de baixo: achar (saida, status, busca). Os chips de provedor
+          ficam sozinhos na linha de cima — sao 5 e ja enchem a largura. */}
+      <div className="catalog-filters catalog-filters-find" role="group" aria-label={t("catalog.filterCatalog")}>
         <label className="results-filter">
           <span>{t("catalog.output")}</span>
           <select value={output} onChange={(e) => setOutput(e.target.value)}>
@@ -156,26 +162,6 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
             <label className="catalog-switch-inline">
               <input type="checkbox" checked={showUnavailable} onChange={(e) => setShowUnavailable(e.target.checked)} />
               {t("catalog.showUnavailable")}
-            </label>
-          )}
-          {onRefresh && (
-            <button type="button" onClick={() => onRefresh()} title={t("catalog.refreshTitle")}>
-              {t("catalog.refresh")}
-            </button>
-          )}
-          {onSettings && (
-            <label className="catalog-switch-inline" title={t("catalog.autoTitle")}>
-              {t("catalog.auto")}
-              <select
-                value={String(settings?.catalog_refresh_hours ?? 6)}
-                onChange={(e) => onSettings({ catalog_refresh_hours: Number(e.target.value) })}
-              >
-                <option value="0">{t("catalog.manualOnly")}</option>
-                <option value="1">1h</option>
-                <option value="6">6h</option>
-                <option value="24">24h</option>
-                <option value="168">{t("catalog.weekly")}</option>
-              </select>
             </label>
           )}
           {onBulk && (
@@ -226,7 +212,7 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
           .filter((m) => m.available !== false || showUnavailable);
         if (!models.length) return null;
         return (
-          <section key={lane}>
+          <section key={lane} className={`lane-section lane-${lane}`}>
             <div className="wall-head">
               <h2>{t(`catalog.lanes.${lane}.head`)}</h2>
               <span>{t(`catalog.lanes.${lane}.note`)}</span>
@@ -259,11 +245,6 @@ export default function ModelWall({ catalog, modelId, onPick, onToggle, onBulk, 
                   disabled={m.available === false}
                   title={m.available === false ? `${m.unavailable_reason}. ${m.unavailable_hint ?? ""}` : m.id}
                 >
-                  {m.thumbnail ? (
-                    <img className="shot" src={m.thumbnail} alt="" loading="lazy" />
-                  ) : (
-                    <div className="shot" />
-                  )}
                   <div className="body">
                     <div className="t">
                       <span

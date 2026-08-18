@@ -146,3 +146,51 @@ export function sortModels(models) {
     return a.label.localeCompare(b.label);
   });
 }
+
+// --------------------------------------------------------------- capacidade
+// Quantas imagens o modelo aceita, e em quantos campos distintos. O servidor ja
+// derivava isso do schema (`capabilities.inputs[].limits.max_items`) e a
+// interface simplesmente nao mostrava — quem anexava descobria o teto no erro.
+export function imageSlotsFor(model) {
+  // Mascara nao e imagem de referencia: somar `mask_url` ao teto fazia o
+  // gpt-image-2 anunciar "ate 17 imagens" quando sao 16 + uma mascara.
+  return mediaInputsFor(model, "image")
+    .filter((input) => !/mask/i.test(input.field))
+    .map((input) => ({
+    field: input.field,
+    arity: input.arity,
+    max: input.arity === "single" ? 1 : (input.limits?.max_items ?? null),
+  }));
+}
+
+// null = aceita imagem sem teto declarado; 0 = nao aceita imagem.
+export function imageCapacity(model) {
+  const slots = imageSlotsFor(model);
+  if (!slots.length) return 0;
+  if (slots.some((slot) => slot.max == null)) return null;
+  return slots.reduce((total, slot) => total + slot.max, 0);
+}
+
+// Modelo de keyframes: dois (ou mais) campos de imagem separados, cada um com
+// uma vaga. Sao papeis diferentes — primeiro e ultimo quadro —, entao merecem
+// dois seletores, e nao uma lista onde a ordem decide sozinha.
+export function keyframeSlotsFor(model) {
+  const single = imageSlotsFor(model).filter((slot) => slot.max === 1);
+  return single.length >= 2 ? single : null;
+}
+
+// Campos de imagem que NAO sao quadro nomeado (ex.: `elements` do Kling v3, sem
+// teto). Convivem com os dois quadros: um diz onde o video comeca e termina, o
+// outro alimenta o modelo com referencias soltas.
+export function extraImageSlotsFor(model) {
+  return imageSlotsFor(model).filter((slot) => slot.max !== 1);
+}
+
+// O nome do campo vem do schema do provedor e varia (`tailImage`,
+// `end_image_url`, `image_tail`). O papel, nao.
+export function slotRole(field) {
+  const name = String(field ?? "").toLowerCase();
+  if (/(tail|end|last|final)/.test(name)) return "last";
+  if (/(start|first|head|begin)/.test(name) || name === "image" || name === "image_url") return "first";
+  return "other";
+}

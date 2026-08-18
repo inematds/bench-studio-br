@@ -87,6 +87,21 @@ const IMAGE_INPUT = {
   required: true,
 };
 
+// O `--tailImage` do CLI e opcao de CLIENTE do image_to_video (nao aparece em
+// `who_am_i`, que so lista argumentos de modelo), e e o que da keyframes ao
+// Kling: primeiro quadro no --image, ultimo no --tailImage. Sem declarar aqui a
+// interface nao tinha como oferecer os dois seletores.
+const TAIL_IMAGE_INPUT = {
+  name: "tailImage",
+  type: "string",
+  title: "Quadro final",
+  description: "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+  modality: "image",
+  role: "source",
+  arity: "single",
+  required: false,
+};
+
 // MEDIDO 2026-08-16: o CLI do Kling TRUNCA a saída em exatamente 65536 bytes
 // quando stdout é um pipe — ele encerra antes de esvaziar o buffer. O
 // `who_am_i` tem ~187 KB, então capturar pelo pipe devolve JSON cortado no meio
@@ -111,8 +126,10 @@ for (const [tool, meta] of Object.entries(TOOL_LANE)) {
       alias: m.alias ?? null,
       description: m.description ?? null,
       image_input: wantsImage ? { name: "image", arity: "single", required: true } : null,
-      image_inputs: wantsImage ? ["image"] : [],
-      media_inputs: wantsImage ? [IMAGE_INPUT] : [],
+      image_inputs: wantsImage ? (meta.lane === "i2v" ? ["image", "tailImage"] : ["image"]) : [],
+      media_inputs: wantsImage
+        ? (meta.lane === "i2v" ? [IMAGE_INPUT, TAIL_IMAGE_INPUT] : [IMAGE_INPUT])
+        : [],
       accepts_image: wantsImage ? "single" : null,
       image_param: wantsImage ? "image" : null,
       required: wantsImage ? ["image"] : ["prompt"],

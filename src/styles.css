@@ -645,7 +645,7 @@ p { text-wrap: pretty; }
 .model-picker-kind.kind-video, .model-option-kind.kind-video { color: #aabaff; }
 .model-picker-kind.reference { max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-picker-trigger .menu-chevron { margin-left: 3px; }
-.model-picker-popover { position: fixed; z-index: 45; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); gap: 10px; width: min(470px, calc(100vw - 24px)); max-height: calc(100dvh - 96px); padding: 14px; overflow: hidden; border: 1px solid #505867; border-radius: 14px; background: rgba(31, 35, 43, 0.985); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.48), 0 2px 8px rgba(0, 0, 0, 0.2); backdrop-filter: blur(16px); }
+.model-picker-popover { position: fixed; z-index: 45; display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr); gap: 10px; width: min(470px, calc(100vw - 24px)); max-height: calc(100dvh - 96px); padding: 14px; overflow: hidden; border: 1px solid #505867; border-radius: 14px; background: rgba(31, 35, 43, 0.985); box-shadow: 0 20px 48px rgba(0, 0, 0, 0.48), 0 2px 8px rgba(0, 0, 0, 0.2); backdrop-filter: blur(16px); }
 .model-picker-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 1px 2px 0; }
 .model-picker-head-copy { display: grid; gap: 2px; }
 .model-picker-head strong { color: var(--text); font-size: 15px; }
@@ -1561,3 +1561,116 @@ p { text-wrap: pretty; }
 .login-card input { padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: #0f1115; color: var(--text); font-family: inherit; font-size: 14px; }
 .login-card button { padding: 10px 16px; border-radius: 9px; background: var(--accent, #6D7CFF); color: #0d1020; font-size: 13.5px; font-weight: 600; }
 .login-hint { margin: 4px 0 0; color: var(--text-3); font-size: 11.5px; line-height: 1.7; }
+
+/* Seletores de quadro: um por campo de imagem, com o papel escrito. */
+.keyframe-slots { display: flex; gap: 10px; flex: none; }
+.keyframe-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.keyframe-slot input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.keyframe-slot-label { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+.keyframe-slot-thumb { position: relative; display: block; width: 46px; height: 46px; }
+.keyframe-slot-thumb img {
+  display: block; width: 46px; height: 46px;
+  border: 1px solid var(--accent); object-fit: cover;
+}
+.keyframe-slot-empty {
+  display: grid; place-items: center;
+  width: 46px; height: 46px;
+  border: 1px dashed var(--line, #555);
+  font-size: 18px; opacity: .6;
+}
+.keyframe-slot.filled .keyframe-slot-label { opacity: 1; }
+
+/* Linha de baixo do catalogo: saida, status e busca separados dos chips de
+   provedor. O ajuste "auto" saiu daqui — ele governa o catalogo inteiro e
+   agora fica na altura do titulo. */
+.catalog-filters-find { margin-bottom: 16px; }
+.view-heading .catalog-refresh { margin-left: auto; align-self: center; }
+.view-heading .catalog-refresh + .catalog-auto { margin-left: 0; }
+.view-heading .catalog-refresh {
+  padding: 7px 12px; border-radius: 9px;
+  border: 1px solid var(--line, rgba(255,255,255,.16));
+  background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer;
+}
+.view-heading .catalog-refresh:hover { background: rgba(255,255,255,.06); }
+.view-heading .catalog-auto { margin-left: 0; align-self: center; }
+.view-heading .catalog-auto select {
+  padding: 5px 8px; border-radius: 8px;
+  border: 1px solid var(--line, rgba(255,255,255,.14));
+  background: rgba(255,255,255,.03); color: inherit; font: inherit; font-size: 13px;
+}
+
+/* Cada rota tem cor propria e titulo grande: as cinco faixas do catalogo sao a
+   divisao que mais importa aqui (o que entra -> o que sai), e em 17px cinza
+   elas se perdiam entre os cards. A cor e o mesmo codigo em toda a faixa. */
+.model-wall .lane-section .wall-head h2 {
+  font-size: clamp(22px, 2.4vw, 30px);
+  letter-spacing: -0.04em;
+  color: var(--lane-color, var(--text));
+}
+.model-wall .lane-section .wall-head { align-items: center; gap: 14px; margin-top: 54px; }
+.model-wall .lane-section .wall-head .rule { background: var(--lane-color, var(--line)); opacity: .35; }
+.model-wall .lane-t2i { --lane-color: #7ecbff; }  /* texto -> imagem   */
+.model-wall .lane-i2i { --lane-color: #b39dff; }  /* imagem -> imagem  */
+.model-wall .lane-t2v { --lane-color: #6be3a8; }  /* texto -> video    */
+.model-wall .lane-i2v { --lane-color: #ffb46b; }  /* imagem -> video   */
+.model-wall .lane-r2v { --lane-color: #ff8fa3; }  /* referencia -> video */
+
+/* Provedor como lista, nao como fileira de chips: sao 5 rotas e o que se quer
+   ali e ler os nomes e escolher um. */
+.model-provider-filter { display: flex; align-items: center; gap: 8px; padding: 0 2px 8px; font-size: 12px; opacity: .8; }
+.model-provider-filter select {
+  flex: 1; padding: 7px 9px; border-radius: 8px;
+  border: 1px solid var(--line, rgba(255,255,255,.14));
+  background: rgba(255,255,255,.03); color: inherit; font: inherit; font-size: 13px;
+}
+.model-empty-clear {
+  display: block; margin-top: 8px; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--line, rgba(255,255,255,.16));
+  background: transparent; color: inherit; font: inherit; font-size: 12px; cursor: pointer;
+}
+.model-empty-clear:hover { background: rgba(255,255,255,.06); }
+
+/* Lista suspensa: a `option` e desenhada pelo sistema e nao herda o tema do
+   painel — sem cor explicita o texto saia branco no branco. */
+.model-provider-filter select,
+.results-filter select,
+.view-heading .catalog-auto select { color: var(--text, #e8ecf3); }
+.model-provider-filter select option,
+.results-filter select option,
+.view-heading .catalog-auto select option {
+  background: #1f232b;
+  color: #e8ecf3;
+}
+/* Nome do parametro visivel no chip: "True" sozinho nao diz o que e verdade. */
+.chip .chip-param-label {
+  font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase;
+  opacity: .62; margin-right: 6px; white-space: nowrap;
+}
+.chip .chip-help { margin-left: 5px; opacity: .5; cursor: help; font-size: 11px; }
+
+/* Quantas imagens o modelo aceita, dito no proprio seletor — antes so aparecia
+   dentro da lista aberta. */
+.model-picker-capacity {
+  padding: 2px 7px; border-radius: 999px;
+  font-size: 10.5px; letter-spacing: .02em; white-space: nowrap;
+  border: 1px solid var(--line, rgba(255,255,255,.16)); opacity: .75;
+}
+.keyframe-slot-label b {
+  display: inline-grid; place-items: center;
+  width: 14px; height: 14px; margin-right: 3px; border-radius: 999px;
+  background: var(--accent, #6D7CFF); color: #0d1020;
+  font-size: 9.5px; font-weight: 700;
+}
+
+/* Sem a miniatura, o interruptor (absoluto no topo do card) passou a cair em
+   cima do NOME do modelo. O corpo do card abre espaco para ele em vez de
+   disputar o mesmo pixel. */
+.model-wall .card .body { padding-top: 34px; }
+.model-wall .card-switch { top: 8px; left: 8px; }

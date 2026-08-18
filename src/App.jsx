@@ -501,7 +501,10 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  async function attach(file) {
+  // `field` chega preenchido quando o clique veio de um seletor de quadro
+  // (inicial/final): ali o usuario ja disse o papel, e deixar o assign decidir
+  // pela ordem de chegada seria ignorar o que ele pediu.
+  async function attach(file, field = null) {
     setBusy(true); setError(null);
     try {
       const mediaType = mediaTypeForFile(file);
@@ -528,10 +531,19 @@ export default function App() {
       // has not necessarily rendered the previous attachment before the next
       // upload resolves, so read and update the synchronous ref as the source
       // of truth for this burst.
-      const assignment = assignInputFields(targetModel, [...refsRef.current, nextAsset]);
-      if (!assignment.ok) throw new Error(assignment.reason);
-      refsRef.current = assignment.assets;
-      setRefs(assignment.assets);
+      if (field) {
+        // Substitui o que estava naquele campo, em vez de empilhar: o seletor
+        // de quadro tem uma vaga so, e trocar a imagem e o gesto esperado.
+        const kept = refsRef.current.filter((asset) => asset.field !== field);
+        const next = [...kept, { ...nextAsset, field }];
+        refsRef.current = next;
+        setRefs(next);
+      } else {
+        const assignment = assignInputFields(targetModel, [...refsRef.current, nextAsset]);
+        if (!assignment.ok) throw new Error(assignment.reason);
+        refsRef.current = assignment.assets;
+        setRefs(assignment.assets);
+      }
       if (targetModel?.id !== model?.id) {
         setModelId(targetModel.id);
         setRewritten(null);
@@ -860,15 +872,36 @@ export default function App() {
                       <h1>{t("app.catalogTitle")}</h1>
                       <p>{t("app.catalogSubtitle")}</p>
                     </div>
+                    {/* Frequencia da sincronizacao e ajuste do catalogo INTEIRO,
+                        nao um filtro: fica na altura do titulo, longe dos
+                        controles de curadoria. */}
+                    <button
+                      type="button"
+                      className="catalog-refresh"
+                      onClick={() => refreshCatalog()}
+                      title={t("catalog.refreshTitle")}
+                    >
+                      {t("catalog.refresh")}
+                    </button>
+                    <label className="catalog-switch-inline catalog-auto" title={t("catalog.autoTitle")}>
+                      {t("catalog.auto")}
+                      <select
+                        value={String(settings?.catalog_refresh_hours ?? 6)}
+                        onChange={(e) => saveSettings({ catalog_refresh_hours: Number(e.target.value) })}
+                      >
+                        <option value="0">{t("catalog.manualOnly")}</option>
+                        <option value="1">1h</option>
+                        <option value="6">6h</option>
+                        <option value="24">24h</option>
+                        <option value="168">{t("catalog.weekly")}</option>
+                      </select>
+                    </label>
                   </div>
                   <ErrorBoundary name={t("app.boundary.Modelcatalog")}><ModelWall
                     catalog={catalog}
                     modelId={modelId}
                     onToggle={toggleModel}
                     onBulk={bulkCatalog}
-                    onRefresh={refreshCatalog}
-                    settings={settings}
-                    onSettings={saveSettings}
                     onPick={(nextId) => {
                       pickModel(nextId);
                       openView("create");

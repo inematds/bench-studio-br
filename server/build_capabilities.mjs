@@ -54,6 +54,16 @@ function profileEvidence(profile) {
   return null;
 }
 
+// Impressao digital do que ESTE manifesto descreve. Contar modelos nao bastava:
+// declarar um campo novo num provider escrito a mao (o `tailImage` do Kling)
+// nao muda o total, e o manifesto velho continuava valendo — o campo existia no
+// registry e simplesmente nao chegava na interface.
+export function registrySignature(registry) {
+  return registry.models
+    .map((model) => `${model.id}:${(model.media_inputs ?? []).map((input) => input.name).join("|")}`)
+    .join(",");
+}
+
 export function buildCapabilityManifest(registry, profiles = {}) {
   const models = registry.models.map((model) => {
     const inputs = (model.media_inputs ?? []).map((input) => ({
@@ -88,6 +98,7 @@ export function buildCapabilityManifest(registry, profiles = {}) {
     version: 1,
     generated_at: new Date().toISOString(),
     schema_generated_at: registry.generated_at,
+    registry_signature: registrySignature(registry),
     source: registry.source,
     status_legend: {
       "schema-supported": "Declared by fal's live OpenAPI schema; not necessarily exercised.",
@@ -109,7 +120,8 @@ export function loadOrBuildCapabilityManifest({ registry, profiles, path }) {
       // senão um manifesto velho esconde o provider novo e a validação de
       // anexos rejeita tudo que ele aceita.
       if (current.schema_generated_at === registry.generated_at
-          && current.models?.length === registry.models.length) return current;
+          && current.models?.length === registry.models.length
+          && current.registry_signature === registrySignature(registry)) return current;
     } catch {}
   }
   const manifest = buildCapabilityManifest(registry, profiles);

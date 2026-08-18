@@ -1,7 +1,7 @@
 {
   "_meta": {
     "provider": "kling",
-    "generated_at": "2026-08-17T00:48:13.541Z",
+    "generated_at": "2026-08-18T03:33:59.309Z",
     "source": "kling who_am_i (CLI oficial @klingai/cli-global)",
     "account": "userId 3422648",
     "regenerate": "node server/providers/kling_sync.mjs",
@@ -571,7 +571,8 @@
         "required": true
       },
       "image_inputs": [
-        "image"
+        "image",
+        "tailImage"
       ],
       "media_inputs": [
         {
@@ -583,6 +584,16 @@
           "role": "source",
           "arity": "single",
           "required": true
+        },
+        {
+          "name": "tailImage",
+          "type": "string",
+          "title": "Quadro final",
+          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": false
         }
       ],
       "accepts_image": "single",
@@ -680,7 +691,8 @@
         "required": true
       },
       "image_inputs": [
-        "image"
+        "image",
+        "tailImage"
       ],
       "media_inputs": [
         {
@@ -692,6 +704,16 @@
           "role": "source",
           "arity": "single",
           "required": true
+        },
+        {
+          "name": "tailImage",
+          "type": "string",
+          "title": "Quadro final",
+          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": false
         }
       ],
       "accepts_image": "single",
@@ -766,7 +788,8 @@
         "required": true
       },
       "image_inputs": [
-        "image"
+        "image",
+        "tailImage"
       ],
       "media_inputs": [
         {
@@ -778,6 +801,16 @@
           "role": "source",
           "arity": "single",
           "required": true
+        },
+        {
+          "name": "tailImage",
+          "type": "string",
+          "title": "Quadro final",
+          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": false
         }
       ],
       "accepts_image": "single",
@@ -859,7 +892,8 @@
         "required": true
       },
       "image_inputs": [
-        "image"
+        "image",
+        "tailImage"
       ],
       "media_inputs": [
         {
@@ -871,6 +905,16 @@
           "role": "source",
           "arity": "single",
           "required": true
+        },
+        {
+          "name": "tailImage",
+          "type": "string",
+          "title": "Quadro final",
+          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": false
         }
       ],
       "accepts_image": "single",
@@ -980,7 +1024,8 @@
         "required": true
       },
       "image_inputs": [
-        "image"
+        "image",
+        "tailImage"
       ],
       "media_inputs": [
         {
@@ -992,6 +1037,16 @@
           "role": "source",
           "arity": "single",
           "required": true
+        },
+        {
+          "name": "tailImage",
+          "type": "string",
+          "title": "Quadro final",
+          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": false
         }
       ],
       "accepts_image": "single",
@@ -1089,7 +1144,8 @@
         "required": true
       },
       "image_inputs": [
-        "image"
+        "image",
+        "tailImage"
       ],
       "media_inputs": [
         {
@@ -1101,6 +1157,16 @@
           "role": "source",
           "arity": "single",
           "required": true
+        },
+        {
+          "name": "tailImage",
+          "type": "string",
+          "title": "Quadro final",
+          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": false
         }
       ],
       "accepts_image": "single",

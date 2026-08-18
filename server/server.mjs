@@ -517,7 +517,11 @@ async function fetchLivePrices(ids) {
 
 // Units whose quantity cannot be predicted from the request. Anything billed
 // in these gets no pre-run quote.
-const OPAQUE_UNITS = new Set(["units", "compute seconds"]);
+// "1000 tokens" entrou depois de medir: o Seedance 2.5 e cobrado assim, e a
+// quantidade depende de resolucao, fps e duracao por uma formula que a fal nao
+// publica. Sem isso ele caia no `default: 1` do estimateUnits e anunciava
+// $0,0214 fixo — o mesmo numero para um clipe de 5s e para um de 30s.
+const OPAQUE_UNITS = new Set(["units", "compute seconds", "tokens", "1000 tokens"]);
 
 // How many billable units this request is likely to consume, given fal's unit.
 function estimateUnits(modelId, params, unit) {
@@ -535,7 +539,9 @@ function estimateUnits(modelId, params, unit) {
     case "generations":
       return 1;
     default:
-      return 1;
+      // Unidade que este codigo nao conhece NAO vale 1. Chutar 1 e como o
+      // Seedance passou a anunciar preco de uma unidade como se fosse o total.
+      return null;
   }
 }
 
@@ -559,6 +565,15 @@ function estimateCost(modelId, params) {
       };
     }
     const units = estimateUnits(modelId, params, live.unit);
+    if (units == null) {
+      return {
+        cost: null,
+        confidence: "unquotable",
+        basis: `billed per ${live.unit} at $${live.unit_price}, and this build cannot predict the quantity`,
+        unit: live.unit,
+        unit_price: live.unit_price,
+      };
+    }
     return {
       cost: Number((live.unit_price * units).toFixed(4)),
       confidence: "estimated",
@@ -1268,7 +1283,15 @@ function localUploadCopy(file) {
 // Cada provedor aceita uma coisa: a Agnes aceita base64, o CLI do Kling aceita
 // caminho local, o kie e o fal exigem URL publica. Entao o nucleo resolve o
 // arquivo e entrega no formato que AQUELE provedor entende.
-const LOCAL_URL_ROOTS = { "/media/": () => OUTPUTS, "/inputs/": () => INPUTS };
+// As QUATRO rotas estaticas, nao duas: faltavam /previews e /projects, e uma
+// referencia vinda dali saia daqui inalterada e chegava crua no provedor —
+// "image must be a public http(s) URL...  Local file paths are not supported".
+const LOCAL_URL_ROOTS = {
+  "/media/": () => OUTPUTS,
+  "/inputs/": () => INPUTS,
+  "/previews/": () => PREVIEWS,
+  "/projects/": () => PROJECTS,
+};
 
 function localFileFor(url) {
   for (const [prefix, dirOf] of Object.entries(LOCAL_URL_ROOTS)) {
@@ -1284,7 +1307,14 @@ async function resolveAssetForProvider(url, adapter) {
   if (typeof url !== "string" || !url) return url;
   if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
   const local = localFileFor(url);
-  if (!local) return url;
+  // Antes isto devolvia a URL crua e o provedor e que reclamava, com uma
+  // mensagem que nao diz QUAL arquivo faltou. Falhar aqui aponta o culpado.
+  if (!local) {
+    if (url.startsWith("/")) {
+      throw new Error(`referência não resolvida: ${url} — o arquivo não está em data/outputs, inputs, previews ou projects. Reenvie a imagem.`);
+    }
+    return url;
+  }
 
   if (adapter?.accepts?.localPath) return local;
   if (adapter?.accepts?.dataUri !== false) {
@@ -2207,13 +2237,17 @@ function extractUrls(result) {
 }
 
 const PORT = process.env.PORT || 8787;
+// A API nunca vai para a rede junto com a UI: publicar a 5200 nao pode publicar
+// a 8787, que e a que grava arquivo, chama provedor e gasta dinheiro.
+// BENCH_API_HOST=0.0.0.0 e o opt-out consciente.
+const HOST = process.env.BENCH_API_HOST || "127.0.0.1";
 
 // Start serving immediately. Price discovery is useful, but it should never
 // make the whole studio look offline while fal is slow or rate-limiting us.
 LIVE_PRICES = readPriceCache();
 const cachedPriced = Object.keys(LIVE_PRICES).length;
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   const s = spendSummary();
   console.log(`studio server on http://localhost:${PORT}`);
   console.log(`  ${registry.models.length} models, ${Object.keys(PROFILES).length} prompt profiles`);

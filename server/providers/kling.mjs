@@ -37,17 +37,35 @@ const JOB_TIMEOUT_MS = 30 * 60 * 1000;
 // cortado no meio de uma string.
 async function klingJson(args, { timeoutMs = 15 * 60 * 1000 } = {}) {
   const tmp = join(tmpdir(), `kling-${randomUUID()}.json`);
+  // O CLI escreve o JSON no stdout e QUALQUER erro (flag que o modelo nao
+  // declara, uso invalido, sessao expirada) so no stderr, com stdout vazio.
+  // Jogar o stderr fora fazia todo erro virar "nao devolveu saida", que culpa o
+  // login mesmo quando o problema era outro. Agora ele e capturado e mostrado.
+  const err = join(tmpdir(), `kling-${randomUUID()}.err`);
+  const readErr = () => {
+    try { return readFileSync(err, "utf8").trim(); } catch { return ""; }
+  };
   try {
     const quoted = args.map((a) => `'${String(a).replace(/'/g, "'\\''")}'`).join(" ");
-    await run("bash", ["-lc", `kling ${quoted} > ${tmp} 2>/dev/null`], { timeout: timeoutMs });
+    await run("bash", ["-lc", `kling ${quoted} > ${tmp} 2> ${err}`], { timeout: timeoutMs });
     const raw = readFileSync(tmp, "utf8").trim();
-    if (!raw) throw new Error("o CLI do Kling não devolveu saída (sessão expirada? rode `kling login`)");
+    if (!raw) {
+      const detalhe = readErr();
+      throw new Error(detalhe
+        ? `o CLI do Kling falhou: ${detalhe.slice(0, 400)}`
+        : "o CLI do Kling não devolveu saída (sessão expirada? rode `kling login`)");
+    }
     return JSON.parse(raw);
   } catch (error) {
     if (error?.code === "ENOENT") throw new Error("CLI do Kling não encontrado. `npm i -g @klingai/cli-global`");
+    const detalhe = readErr();
+    if (detalhe && !String(error?.message ?? "").includes(detalhe.slice(0, 40))) {
+      throw new Error(`${error.message} — CLI: ${detalhe.slice(0, 400)}`);
+    }
     throw error;
   } finally {
     try { unlinkSync(tmp); } catch { /* já foi */ }
+    try { unlinkSync(err); } catch { /* já foi */ }
   }
 }
 
@@ -67,6 +85,15 @@ function route(modelId) {
   return { model: rest, tool: rest.startsWith("kling-video") ? "text_to_video" : "text_to_image" };
 }
 
+// O ultimo quadro vem em campo proprio, nunca na lista de referencias: para o
+// CLI sao flags diferentes (`--image` x `--tailImage`), e a ordem de anexo nao
+// pode decidir qual imagem abre e qual fecha o video.
+function tailFrom(input) {
+  const v = input.tailImage ?? input.tail_image ?? null;
+  const first = Array.isArray(v) ? v[0] : v;
+  return typeof first === "string" && first ? first : null;
+}
+
 function referenceFrom(input) {
   for (const field of ["image", "image_url", "images", "image_urls"]) {
     const v = input[field];
@@ -83,7 +110,7 @@ function referenceFrom(input) {
 function flagsFor(model, input, declared) {
   const flags = [];
   for (const [name, value] of Object.entries(input)) {
-    if (["prompt", "image", "image_url", "images", "image_urls"].includes(name)) continue;
+    if (["prompt", "image", "image_url", "images", "image_urls", "tailImage", "tail_image"].includes(name)) continue;
     if (value === undefined || value === null || value === "") continue;
     if (declared && !declared[name]) continue;
     flags.push(`--${name}`, String(value));
@@ -103,6 +130,8 @@ export function createKlingProvider({ modelById } = {}) {
     const before = await credits();
     const args = [tool, "--model", model, ...flagsFor(model, input, declared)];
     if (reference) args.push("--image", reference);
+    const tail = tool === "image_to_video" ? tailFrom(input) : null;
+    if (tail) args.push("--tailImage", tail);
     args.push(input.prompt ?? "");
 
     const out = await klingJson(args);
