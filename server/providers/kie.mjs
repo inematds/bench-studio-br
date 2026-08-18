@@ -24,16 +24,11 @@ const POLL_MS = 6000;
 const JOB_TIMEOUT_MS = 30 * 60 * 1000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Preço estimado por geração, em US$. Fonte: notas dos projetos do usuário
-// (timesmkt, videoanima-skill, fable5skill). O kie.ai não publica preço por
-// modelo numa API, então isto é uma tabela offline — e é rotulada como estimada,
-// nunca como verificada.
-const PRICE = {
-  "z-image": 0.004,
-  "nano-banana-pro": 0.05,
-  "nano-banana-2": 0.05,
-  "veo3_fast": 0.40,
-};
+// Preço estimado por geração, em US$. O kie.ai não publica preço por modelo em
+// API nenhuma, então isto é tabela offline — rotulada como estimada, nunca como
+// verificada. A tabela mora no gerador, junto da lista de modelos, para não
+// existirem duas listas discordando.
+import { PRECO_ESTIMADO as PRICE } from "./kie_sync.mjs";
 
 function key() {
   const k = process.env.KIE_API_KEY;
@@ -60,32 +55,61 @@ function unwrap(payload, context) {
   return payload?.data ?? payload;
 }
 
-function refsFrom(input) {
-  const raw = [];
-  for (const field of ["image_urls", "image_url", "images", "reference_image_urls"]) {
-    const v = input[field];
-    if (Array.isArray(v)) raw.push(...v);
-    else if (typeof v === "string" && v) raw.push(v);
-  }
-  // Nota de campo MEDIDA: data URI não é aceito, só URL pública. Descartar aqui
-  // com aviso é melhor que mandar e receber um erro opaco depois de enfileirar.
-  const publicas = raw.filter((r) => typeof r === "string" && /^https?:\/\//.test(r));
-  const descartadas = raw.length - publicas.length;
-  if (descartadas > 0) console.warn(`kie: ${descartadas} referência(s) ignorada(s) — o kie.ai exige URL pública, não aceita data URI nem caminho local`);
-  return publicas.slice(0, 2);
+// Nota de campo MEDIDA: data URI não é aceito, só URL pública.
+function publica(v) {
+  return typeof v === "string" && /^https?:\/\//.test(v);
 }
 
-async function submit(modelId, input) {
+// Cada modelo do kie batiza o campo de imagem do seu jeito — `first_frame_url` e
+// `last_frame_url` no Wan e no Seedance, `first_frame_image_url` no PixVerse,
+// `image_input` no Nano Banana, `input_urls` no FLUX.2, `image_urls` no Kling.
+// Antes tudo ia empacotado em `image_urls`, cortado em duas: o quadro final
+// virava referência solta e o modelo recusava, ou pior, animava a imagem errada.
+// Agora o que manda é o que o modelo DECLARA no registry.
+function midiaDeclarada(modelo, input) {
+  const campos = modelo?.media_inputs ?? [];
+  const out = {};
+  let ignoradas = 0;
+
+  for (const campo of campos) {
+    const bruto = input[campo.name];
+    const lista = (Array.isArray(bruto) ? bruto : [bruto]).filter(Boolean);
+    const validas = lista.filter(publica);
+    ignoradas += lista.length - validas.length;
+    if (!validas.length) continue;
+
+    if (campo.arity === "multiple") {
+      const teto = campo.limits?.max_items;
+      out[campo.name] = teto ? validas.slice(0, teto) : validas;
+    } else {
+      out[campo.name] = validas[0];
+    }
+  }
+
+  if (ignoradas > 0) console.warn(`kie: ${ignoradas} referência(s) ignorada(s) — o kie.ai exige URL pública, não aceita data URI nem caminho local`);
+  return out;
+}
+
+async function submit(modelId, input, modelo) {
   const model = modelId.replace(/^kie\//, "");
-  const refs = refsFrom(input);
+  const declarados = modelo?.params ?? {};
+
+  // Parametro so entra se o modelo declarar: mandar `aspect_ratio` para quem so
+  // aceita `resolution` fazia o kie recusar. O `16:9` fixo de antes era o
+  // exemplo disso — ele ia em TODA geracao, inclusive nas que nao o conhecem.
+  const params = {};
+  for (const [nome, valor] of Object.entries(input)) {
+    if (nome === "prompt" || valor === undefined || valor === null || valor === "") continue;
+    if (!declarados[nome]) continue;
+    params[nome] = declarados[nome].type === "number" ? Number(valor) : valor;
+  }
+
   const body = {
     model,
     input: {
       prompt: input.prompt,
-      aspect_ratio: input.aspect_ratio ?? "16:9",
-      ...(refs.length ? { image_urls: refs } : {}),
-      ...(input.negative_prompt ? { negative_prompt: input.negative_prompt } : {}),
-      ...(input.seed === undefined ? {} : { seed: input.seed }),
+      ...params,
+      ...midiaDeclarada(modelo, input),
     },
   };
 
@@ -159,14 +183,17 @@ function priceOf(modelId) {
   return PRICE[modelId.replace(/^kie\//, "")] ?? null;
 }
 
-export const kieProvider = {
+// Fabrica, e nao objeto solto, para o adapter poder consultar o que o MODELO
+// declara — que e a unica forma de mandar cada imagem no campo certo.
+export function createKieProvider({ modelById } = {}) {
+  return {
   label: "kie.ai",
   availability: () => process.env.KIE_API_KEY
     ? { available: true }
     : { available: false, reason: "Falta KIE_API_KEY", hint: "Crie em kie.ai/api-key. Cobra em creditos." },
   // NAO aceita data URI (nota de campo medida): exige URL publica.
   accepts: { dataUri: false },
-  submit,
+  submit: (modelId, input) => submit(modelId, input, modelById?.(modelId)),
   poll,
   quote: (modelId) => {
     const price = priceOf(modelId);
@@ -191,6 +218,7 @@ export const kieProvider = {
       billable_units: billableUnits,
     };
   },
-};
+  };
+}
 
-export default kieProvider;
+export default createKieProvider;

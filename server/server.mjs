@@ -23,7 +23,7 @@ import { createStore } from "./db.mjs";
 import { loadOrBuildCapabilityManifest } from "./build_capabilities.mjs";
 import { agnesProvider } from "./providers/agnes.mjs";
 import { createInemaimgProvider } from "./providers/inemaimg.mjs";
-import { kieProvider } from "./providers/kie.mjs";
+import { createKieProvider } from "./providers/kie.mjs";
 import { createKlingProvider } from "./providers/kling.mjs";
 import { createModesStore } from "./modes_store.mjs";
 import { createCatalogPrefs } from "./catalog_prefs.mjs";
@@ -1133,7 +1133,7 @@ const PROVIDERS = {
   agnes: agnesProvider,
   // Local: grava o PNG direto em OUTPUTS, por isso precisa saber onde é.
   inemaimg: createInemaimgProvider({ outputsDir: OUTPUTS }),
-  kie: kieProvider,
+  kie: createKieProvider({ modelById: (id) => byId.get(id) }),
   // O adapter precisa saber quais params o modelo declara: mandar flag que o
   // modelo nao declara faz o CLI recusar.
   kling: createKlingProvider({ modelById: (id) => byId.get(id) }),

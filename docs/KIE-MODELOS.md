@@ -1,8 +1,8 @@
 # kie.ai — o que existe lá, e o que este estúdio usa
 
-Levantamento feito em **2026-08-18**, contra a documentação viva e a API. Só
-leitura: nada foi alterado no servidor nem no catálogo. Serve para decidir
-**quais modelos vale registrar** e o que cada um exige.
+Levantamento feito em **2026-08-18** contra a documentação viva e a API, e a
+rodada de correção que veio dele. Serve para saber o que existe lá, o que está
+registrado aqui, e por que a diferença.
 
 Fontes: [kie.ai/market](https://kie.ai/market) (lista oficial),
 [docs.kie.ai/market/quickstart](https://docs.kie.ai/market/quickstart) (contrato
@@ -15,14 +15,60 @@ da API), e o próprio `server/providers/kie.mjs`.
 | | |
 |---|---|
 | Páginas de modelo na documentação | **169** |
-| Registradas neste estúdio | **4** (`z-image`, `nano-banana-pro`, `nano-banana-pro/edit`, `veo3_fast`) |
+| Registradas neste estúdio | **12** (eram 4, e **duas das quatro eram inválidas** — ver auditoria) |
 | Famílias de **vídeo** | 9 (Kling, Wan, Bytedance/Seedance, PixVerse, MiniMax H3, Hailuo, Grok Imagine, HappyHorse, avatares) |
 | Famílias de **imagem** | 12+ (Seedream, Google/Imagen/Nano Banana, Flux-2, Qwen3, GPT Image, Ideogram, Z-Image, Topaz, Recraft, Wan Image…) |
 | Saldo da conta hoje | **538 créditos** (`GET /api/v1/chat/credit`) |
 
-O motivo de só 4 estarem registrados está no próprio `kie.models.json`: a lista
-é escrita à mão porque **o kie não publica preço por modelo em API**, e sem
-preço o orçamento sairia em branco ou chutado. Ver "O buraco do preço".
+A lista é curada à mão porque **o kie não tem API de listagem** (medido:
+`/models`, `/jobs/models` e `/market/models` respondem 404) e **não publica preço
+por modelo** — sem preço o orçamento sairia em branco ou chutado. Ver "O buraco
+do preço".
+
+---
+
+## Auditoria dos que já estavam registrados (2026-08-18)
+
+Um `POST /jobs/createTask` com `input` vazio distingue as duas falhas sem
+enfileirar tarefa nem gastar crédito: modelo que **existe** reclama de campo
+(`"prompt is required"`), modelo que **não existe** reclama do nome
+(`"The model name you specified is not supported"`). Rodado nos quatro:
+
+| Registrado antes | Veredito |
+|---|---|
+| `z-image` | ✅ existe |
+| `nano-banana-pro` | ✅ existe |
+| `nano-banana-pro/edit` | ❌ **não existe** — a rota de edição é `google/nano-banana-edit`, e o Nano Banana Pro já aceita imagem no mesmo id |
+| `veo3_fast` | ❌ **não existe em `/jobs/createTask`** — o Veo tem API própria (`POST /api/v1/veo/generate`), que este adapter não fala |
+
+Ou seja: metade do catálogo do kie estava quebrada e só falharia na hora de
+gerar, com um 422 genérico. Os dois inválidos saíram; o `veo3_fast` só volta se
+alguém implementar a rota `/veo/*`, que é outro contrato.
+
+Hoje o catálogo é **gerado**, não escrito: `node server/providers/kie_sync.mjs`
+lê o OpenAPI de cada página (`docs.kie.ai/<caminho>.md`), deriva id, parâmetros,
+enums, defaults e campos de imagem, e **valida cada id** com o probe acima antes
+de gravar. A lista de caminhos continua curada à mão — o kie não tem API de
+listagem.
+
+### O que está registrado agora
+
+| Modelo | Rota | Entradas |
+|---|---|---|
+| `kie/z-image` | t2i | — |
+| `kie/nano-banana-2` | t2i | `image_input` (até 14) |
+| `kie/nano-banana-pro` | i2i | `image_input` (até 8) |
+| `kie/google/nano-banana-edit` | i2i | `image_urls` (até 10) |
+| `kie/seedream/5-pro-image-to-image` | i2i | `image_urls` (até 10) |
+| `kie/flux-2/flex-image-to-image` | i2i | `input_urls` (até 8) |
+| `kie/wan/2-7-image-to-video` | i2v | **quadro inicial + final** |
+| `kie/bytedance/seedance-2-fast` | i2v | **quadro inicial + final** + `reference_image_urls` (até 3) |
+| `kie/pixverse-v6/transition` | i2v | **quadro inicial + final** |
+| `kie/minimax-h3/image-to-video` | i2v | **quadro inicial + final** |
+| `kie/hailuo/2-3-image-to-video-pro` | i2v | `image_url` |
+| `kie/kling/v3-turbo-image-to-video` | i2v | `image_urls` |
+
+Quatro deles caem direto nos dois seletores numerados da interface.
 
 ---
 
@@ -217,29 +263,29 @@ Três arquivos, nesta ordem:
 3. Reiniciar o servidor. O manifesto de capacidades se invalida sozinho quando
    os campos declarados mudam.
 
-Um detalhe do adapter que vira limite hoje: o `refsFrom` monta sempre
-`input.image_urls` e corta em **2 referências**. Modelos que usam
-`first_frame_url`/`last_frame_url` (Wan 2.7, Seedance 2, MiniMax H3) ou
-`reference_image_urls` com teto maior precisariam que esse mapeamento respeitasse
-o nome do campo declarado, como foi feito no Kling — senão a imagem vai no campo
-errado e o kie recusa.
+**Corrigido junto com esta rodada:** o adapter empacotava tudo em
+`input.image_urls`, cortado em duas referências, e mandava `aspect_ratio: "16:9"`
+em toda geração. Isso quebraria metade dos modelos acima — cada família batiza o
+campo do seu jeito (`first_frame_url`, `first_frame_image_url`, `image_input`,
+`input_urls`) e nem todas conhecem `aspect_ratio`. Agora o adapter monta o corpo
+a partir do que o **modelo declara** no registry: cada imagem vai no seu campo,
+com o teto do próprio campo, e parâmetro que o modelo não declara não é
+enviado.
 
 ---
 
-## O que eu recomendaria registrar primeiro
+## O que ficou de fora, e por quê
 
-Em ordem de utilidade sobre o que o estúdio já tem:
+Registrados nesta rodada: os cinco primeiros da recomendação original. Fora:
 
-1. **`wan/2-7-image-to-video`** — quadro inicial e final, duração e resolução
-   controláveis. Preenche a lacuna de keyframes fora do Kling.
-2. **`bytedance/seedance-2-fast`** — keyframes **mais** referências soltas no
-   mesmo modelo; e o Seedance 2.5 pela fal é justamente o que hoje não é
-   orçável, então ter a rota do kie dá uma alternativa medível em créditos.
-3. **`pixverse-v6/transition`** — o modelo cuja razão de existir é a transição
-   entre dois quadros.
-4. **`seedream/5-pro-image-to-image`** e **`flux-2/flex-image-to-image`** — edição
-   de imagem barata, para não gastar dólar da fal em teste.
-5. **`topaz/video-upscale`** e **`recraft/remove-background`** — utilitários que
-   o estúdio não tem em nenhum provedor.
-
-Nada disso foi feito: este documento é o levantamento, não a mudança.
+- **`topaz/video-upscale`, `recraft/remove-background`, `grok-imagine/extend`** —
+  são utilitários que recebem **vídeo** ou funcionam sem prompt. O estúdio hoje
+  monta toda geração em torno de um prompt e de anexos de imagem; encaixá-los
+  exige mais que uma entrada no catálogo.
+- **Avatares (`kling/ai-avatar-*`, `omnihuman-1-5`, `infinitalk/from-audio`)** —
+  precisam de `audio_url`, e o fluxo de anexo de áudio não existe aqui.
+- **Veo** — API própria, outro contrato.
+- **O restante dos 169** — a maioria é variação de família já coberta (Seedream
+  3/4/4.5/5-lite, Wan 2.5/2.6, Kling 2.1/2.5/2.6, Hailuo 02, HappyHorse). Cada
+  novo é uma linha em `CATALOGO` no `kie_sync.mjs` e um preço estimado; o resto
+  o gerador faz.
