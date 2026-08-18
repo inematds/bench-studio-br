@@ -647,7 +647,7 @@ registre-o em `src/i18n/index.jsx` e pronto.
 
 ## Known issues
 
-Honest state of the test suite at 1.4.2, so you know what you are looking at
+Honest state of the test suite at 1.5.2, so you know what you are looking at
 when `npm run test:release` is not all green:
 
 | Test | Status |

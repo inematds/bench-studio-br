@@ -3,7 +3,7 @@
 Documento de referência. O `README.md` é para instalar e usar; este é para
 entender por que o sistema é assim, e onde mexer quando precisar mudá-lo.
 
-Versão descrita: **1.4.2**. Medições feitas em 2026-08-17.
+Versão descrita: **1.5.2**. Medições feitas entre 2026-08-17 e 2026-08-18.
 
 ---
 

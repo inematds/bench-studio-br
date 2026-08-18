@@ -4,6 +4,65 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.5.2
+
+Vinte e três commits desde a 1.4.2. O fio que atravessa quase todos: a interface
+declarava menos do que o servidor já sabia, e o que não era declarado falhava
+tarde — no meio da geração, com mensagem genérica.
+
+### Novo
+- **Quadro inicial e final como dois seletores nomeados e numerados.** Modelo que
+  aceita primeiro e último quadro para de receber uma lista anônima onde a ordem
+  de anexo decidia o papel de cada imagem. Dez rotas hoje, incluindo as do Kling
+  pela rota própria.
+- **Capacidade de referência à vista.** Cada modelo anuncia o que aceita antes de
+  você anexar: *1 imagem*, *até 10*, *quadro inicial + final*. Sai do schema do
+  endpoint, não de lista escrita à mão.
+- **Filtro por provedor no seletor de modelo**, e a lista abre rolada até o
+  modelo em uso, não no topo.
+- **Modos de fábrica editáveis.** Os sete deixaram de ser vitrine: dá para
+  editar, esconder e restaurar, submodos inclusive. O original continua no
+  código — o que você muda vira uma camada por cima, em `data/modes.json`.
+- **Acesso remoto num comando** (`scripts/remote.sh`), com a senha oferecida
+  antes de a porta abrir, e `scripts/install-service.sh` para a unit do systemd.
+- **Oito modelos novos do kie.ai**, com o catálogo agora gerado do OpenAPI da
+  documentação em vez de escrito à mão.
+
+### Corrigido
+- **A interface ignorava `BENCH_WEB_HOST` do `.env`.** O Vite não carrega `.env`
+  ao avaliar sua configuração; o servidor lia o arquivo e a interface não. Numa
+  VPS isso dava `remote.sh` dizendo OPEN, firewall liberado e a porta recusando
+  conexão de fora.
+- **Porta ocupada era resolvida em silêncio** subindo uma segunda interface em
+  5201, que nenhum firewall liberava. Agora falha e diz.
+- **A API subia em todas as interfaces.** `BENCH_API_HOST` passa a ser
+  `127.0.0.1` por padrão: publicar a interface não publica mais a porta que
+  grava arquivo e gasta dinheiro.
+- **Dois dos quatro modelos do kie não existiam** (`nano-banana-pro/edit`,
+  `veo3_fast`) e só falhariam na hora de gerar. O gerador valida cada id antes
+  de gravar.
+- **Unidade de cobrança desconhecida valia 1.** O Seedance 2.5 é cobrado em
+  "1000 tokens" e anunciava US$ 0,0214 fixo, igual para 5s e 30s.
+- **Crédito medido virou dólar verificado.** O kie publica pares preço/crédito em
+  nove grupos e a razão bate em todos: US$ 0,005 por crédito.
+- **Referência vinda de `/previews` ou `/projects`** chegava crua no provedor.
+- **O stderr do CLI do Kling era descartado**, então todo erro dele virava
+  "sessão expirada".
+- **`--tailImage` ia para modelo que não aceita**, e modelos de até 7 ou 10
+  referências recebiam só a primeira, em silêncio.
+- **Busca anulava o filtro de saída** no seletor de modelo.
+- **Texto solto na fileira de modos** parecia um modo sem botão; e os atalhos da
+  barra, por serem lista fixa, sobreviviam ao modo escondido e mostravam o nome
+  velho do modo renomeado.
+
+### Documentação
+- README dividido: instalar/operar/manter aqui, o que o sistema é em
+  `docs/ABOUT.md`. Trilhas separadas para instalação local e em VPS, mais
+  seções de chaves, senha e manutenção.
+- `docs/ACESSO-REMOTO.md` e `docs/KIE-MODELOS.md` (levantamento dos 169 modelos
+  do kie, com o que está registrado e por quê).
+- Guia de uso publicado em `guia/`, no GitHub Pages.
+
 ## 1.4.2
 
 ### Novo

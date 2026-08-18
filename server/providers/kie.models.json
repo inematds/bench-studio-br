@@ -1,7 +1,7 @@
 {
   "_meta": {
     "provider": "kie",
-    "generated_at": "2026-08-18T13:11:11.507Z",
+    "generated_at": "2026-08-18T13:34:36.881Z",
     "source": "OpenAPI de cada pagina da doc (docs.kie.ai/<caminho>.md)",
     "regenerate": "node server/providers/kie_sync.mjs",
     "lista_curada": "existe listagem em /api/v1/playground/model-paths (241 ids), mas ela nao traz lane, params nem campos de imagem — por isso os CAMINHOS da doc continuam curados a mao em CATALOGO, e o resto e derivado do OpenAPI de cada pagina",

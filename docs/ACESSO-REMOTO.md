@@ -4,7 +4,7 @@ O que ficou decidido, por quê, e o que fazer na prática. Vale para VPS, para a
 máquina do escritório vista de casa, e para qualquer caso em que o estúdio
 precise ser alcançado de fora.
 
-Versão de referência: **1.4.2** (este repositório).
+Versão de referência: **1.5.2** (este repositório).
 
 ---
 
