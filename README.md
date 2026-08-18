@@ -195,6 +195,23 @@ whether the firewall is on.
 
 ## Reaching it from another machine
 
+**The whole thing, in order, on a VPS or an office machine you want to reach
+from home.** Run it top to bottom; every line is explained below.
+
+```bash
+npm run set-password          # 1. password FIRST — see why below
+./scripts/remote.sh open      # 2. publishes the interface + firewall rule
+sudo systemctl restart bench-studio    # 3. or Ctrl-C and `npm run dev` again
+./scripts/remote.sh status    # 4. confirms: open where, with what protection
+# ...use it...
+./scripts/remote.sh close     # 5. when you are done
+sudo systemctl restart bench-studio    # 6. drops the open socket
+```
+
+The restarts are not ceremony: `open` and `close` write to `.env`, and the
+process reads the host it binds to at boot. Without the restart the file says
+one thing and the running socket does another — which `status` will tell you.
+
 Both ports bind to loopback, so a fresh install answers nobody but you. Opening
 that up means three things — the interface listening on every interface, a
 firewall rule, and remembering to undo both. One command does all three:

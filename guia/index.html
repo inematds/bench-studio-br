@@ -263,6 +263,19 @@ OPENROUTER_API_KEY=<span class="s">sua-chave</span></pre></div>
     fora.</p>
 <pre><span class="k">npm run set-password</span>            <span class="c"># define ou troca; vale na hora</span>
 <span class="k">npm run set-password -- --remove</span>  <span class="c"># remove</span></pre>
+    <p>Para alcançar o estúdio de outra máquina, a sequência inteira é esta — de cima para baixo:</p>
+<pre><span class="k">npm run set-password</span>                        <span class="c"># 1. senha ANTES de abrir a porta</span>
+<span class="k">./scripts/remote.sh open</span>                    <span class="c"># 2. publica a interface + regra de firewall</span>
+<span class="k">sudo systemctl restart bench-studio</span>         <span class="c"># 3. ou pare o processo e suba de novo</span>
+<span class="k">./scripts/remote.sh status</span>                  <span class="c"># 4. confere: aberto onde, com que proteção</span>
+<span class="c"># ...use...</span>
+<span class="k">./scripts/remote.sh close</span>                   <span class="c"># 5. ao terminar</span>
+<span class="k">sudo systemctl restart bench-studio</span>         <span class="c"># 6. derruba o socket aberto</span></pre>
+    <p>Os restarts não são cerimônia: o <code>open</code> e o <code>close</code> escrevem no
+    <code>.env</code>, e o processo lê na subida em que interface vai escutar. Sem reiniciar, o arquivo diz
+    uma coisa e o socket em execução faz outra — e é o <code>status</code> que te conta isso. O
+    <code>open</code> ainda oferece a senha antes de abrir qualquer coisa, e nunca publica a API: a 8787
+    fica em loopback.</p>
   </div></div>
 
   <div class="step"><div class="b">8</div><div>
