@@ -150,11 +150,21 @@ npm install       # no-op when nothing changed
 npm run build     # no-op in practice if you never serve dist/
 ```
 
-Then restart, using whichever way you already start it:
+Then restart it **the same way you started it**. This project installs no
+service, so `systemctl restart bench-studio` only works if you created that unit
+yourself — see *Running it as a service* under Maintenance. If you started it by
+hand:
 
 ```bash
-sudo systemctl restart bench-studio   # if it runs as a service
-# or: stop the process (Ctrl-C) and run `npm run dev` again
+pkill -f 'server/server.mjs'   # stops the studio (server + interface)
+npm run dev                    # or however you keep it up
+```
+
+Not sure how it is running? This tells you:
+
+```bash
+ps -o pid,lstart,args -p $(pgrep -f 'server/server.mjs') 2>/dev/null
+systemctl list-units --type=service | grep -i bench   # empty means no unit
 ```
 
 Why `npm run build` is in the list even though most people run `npm run dev`:
@@ -244,7 +254,7 @@ without the export. A save that silently does nothing is worse than a refusal.
 ```bash
 # 1. change the value (Config screen, or edit .env)
 # 2. restart — keys are read at boot
-sudo systemctl restart bench-studio    # or Ctrl-C and `npm run dev`
+# restart the studio, however you run it (see Updating an existing install)
 # 3. confirm from the machine
 curl -s localhost:8787/api/health | head
 ```
@@ -319,6 +329,43 @@ Routine care, in rough order of how often you will need it.
 | Run the fast test suite | `npm run test:contracts` |
 | Full release check | `npm run test:release` (needs a `FAL_KEY` — see Known issues) |
 
+### Running it as a service
+
+Nothing here installs a service for you — which is why `systemctl restart
+bench-studio` fails on a fresh VPS. On a machine that should survive a reboot,
+create the unit once and every "restart it" below has an obvious meaning:
+
+```bash
+# run this FROM the project directory: $PWD and $USER are expanded on write
+sudo tee /etc/systemd/system/bench-studio.service >/dev/null <<UNIT
+[Unit]
+Description=Bench Studio
+After=network-online.target
+
+[Service]
+Type=simple
+User=$USER
+WorkingDirectory=$PWD
+ExecStart=/usr/bin/env npm run dev
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now bench-studio
+systemctl status bench-studio --no-pager
+journalctl -u bench-studio -f          # logs
+```
+
+Two honest caveats. `npm run dev` is a development server — it is what most
+installs actually run, but if you put nginx in front serving `npm run build`'s
+`dist/`, point `ExecStart` at `npm run server` and let the web server serve the
+site. And running as `root` works while being exactly the posture *Leaving it up
+safely* asks you not to keep.
+
 **Where your data lives.** Everything is under `data/`, which is gitignored:
 `data/outputs` (generated media, mirrored locally because provider URLs expire),
 `data/inputs` (what you attached), `data/previews`, `data/projects` (website and
@@ -347,11 +394,11 @@ from home.** Run it top to bottom; every line is explained below.
 ```bash
 npm run set-password          # 1. password FIRST — see why below
 ./scripts/remote.sh open      # 2. publishes the interface + firewall rule
-sudo systemctl restart bench-studio    # 3. or Ctrl-C and `npm run dev` again
+#                             3. restart the studio, however you run it
 ./scripts/remote.sh status    # 4. confirms: open where, with what protection
 # ...use it...
 ./scripts/remote.sh close     # 5. when you are done
-sudo systemctl restart bench-studio    # 6. drops the open socket
+#                             6. restart again, to drop the open socket
 ```
 
 The restarts are not ceremony: `open` and `close` write to `.env`, and the

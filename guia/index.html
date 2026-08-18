@@ -266,11 +266,11 @@ OPENROUTER_API_KEY=<span class="s">sua-chave</span></pre></div>
     <p>Para alcançar o estúdio de outra máquina, a sequência inteira é esta — de cima para baixo:</p>
 <pre><span class="k">npm run set-password</span>                        <span class="c"># 1. senha ANTES de abrir a porta</span>
 <span class="k">./scripts/remote.sh open</span>                    <span class="c"># 2. publica a interface + regra de firewall</span>
-<span class="k">sudo systemctl restart bench-studio</span>         <span class="c"># 3. ou pare o processo e suba de novo</span>
+<span class="c"># 3. reinicie o estúdio, do jeito que você o mantém no ar</span>
 <span class="k">./scripts/remote.sh status</span>                  <span class="c"># 4. confere: aberto onde, com que proteção</span>
 <span class="c"># ...use...</span>
 <span class="k">./scripts/remote.sh close</span>                   <span class="c"># 5. ao terminar</span>
-<span class="k">sudo systemctl restart bench-studio</span>         <span class="c"># 6. derruba o socket aberto</span></pre>
+<span class="c"># 6. reinicie de novo, para derrubar o socket aberto</span></pre>
     <p>Os restarts não são cerimônia: o <code>open</code> e o <code>close</code> escrevem no
     <code>.env</code>, e o processo lê na subida em que interface vai escutar. Sem reiniciar, o arquivo diz
     uma coisa e o socket em execução faz outra — e é o <code>status</code> que te conta isso. O
@@ -303,8 +303,10 @@ OPENROUTER_API_KEY=<span class="s">sua-chave</span></pre></div>
 <span class="k">git pull</span>
 <span class="k">npm install</span>      <span class="c"># não faz nada quando nada mudou</span>
 <span class="k">npm run build</span>    <span class="c"># na prática, inofensivo se você nunca serve o dist/</span></pre>
-    <p>Depois reinicie do jeito que você já sobe: <code>sudo systemctl restart bench-studio</code>, se for
-    serviço, ou pare o processo e rode <code>npm run dev</code> de novo.</p>
+    <p>Depois reinicie <strong>do mesmo jeito que você subiu</strong>. O projeto não instala serviço
+    nenhum: <code>systemctl restart bench-studio</code> só funciona se você mesmo criou essa unit (o README
+    traz o modelo pronto). Se você subiu na mão: <code>pkill -f 'server/server.mjs'</code> e
+    <code>npm run dev</code> de novo.</p>
     <p>Por que o <code>npm run build</code> está na lista mesmo com a maioria usando <code>npm run dev</code>:
     o <code>dist/</code> não é versionado, então o <code>git pull</code> nunca atualiza um site servido
     pronto. Buildar sem precisar custa três segundos e deixa uma pasta sem uso; <strong>não</strong> buildar
