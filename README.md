@@ -16,7 +16,7 @@ A local-first creative studio for images, videos, websites, designed PDFs, and A
 works this way lives in **[docs/ABOUT.md](docs/ABOUT.md)**; the internals are in
 **[docs/COMO-FUNCIONA.md](docs/COMO-FUNCIONA.md)**.
 
-**[Install local](#install-a--local-machine)** · **[Install on a VPS](#install-b--vps-reachable-from-outside)** · **[Keep it running](#keep-it-running-systemd)** · **[Update](#updating-an-existing-install)** · **[API keys](#api-keys-what-is-required-and-how-to-change-them)** · **[Passwords](#passwords)** · **[Maintenance](#maintenance)** · **[Remote access](#remote-access-reference-remotesh)** · **[Security](#security-and-privacy)**
+**[Install local](#install-a--local-machine)** · **[Install on a VPS](#install-b--vps-reachable-from-outside)** · **[Keep it running](#keep-it-running-systemd)** · **[Update](#updating-an-existing-install)** · **[API keys](#api-keys-what-is-required-and-how-to-change-them)** · **[Passwords](#passwords)** · **[Modes](#creation-modes-and-their-sub-controls)** · **[Maintenance](#maintenance)** · **[Remote access](#remote-access-reference-remotesh)** · **[Security](#security-and-privacy)**
 
 </div>
 
@@ -385,6 +385,60 @@ What the password does and does not cover: it protects the API and your
 generated files. The interface shell is still served to anyone who reaches the
 port, but with no session it shows nothing. Hiding the shell as well is a reverse
 proxy's job, not this process's.
+
+## Creation modes and their sub-controls
+
+The **Modes** tab edits how the studio writes prompts, without touching code.
+
+A mode has two parts, and they enter the request at different moments:
+
+```
+your raw idea ─────────────────────────────┐
+                                           ├─► refiner ─► final prompt ─► model
+brief ──────────► system instruction ──────┘                   ▲
+                                                               │
+sub-controls ────► "Creative direction: ..." ──────────────────┘
+```
+
+- **The brief never appears in the prompt.** It is the instruction the *refiner*
+  receives — the rule for how to rewrite your idea. Write it as a directive
+  ("keep one creator, one product, one setting"), not as a scene description.
+- **Sub-controls do appear, literally.** Each one contributes `field: value`, and
+  the set is appended as `Creative direction: creator: a woman in her 20s;
+  setting: a real home setting.` That is why the factory values are in English —
+  the model reads them. Only the label is translated. In a mode you write
+  yourself, label and value are both your text, in whatever language you use.
+
+### Editing, hiding, restoring
+
+Every mode is editable, **including the seven factory ones** (Freeform, UGC,
+Unboxing, Hyper Motion, TV Spot, Product Still, Ad with Headline):
+
+| Action | What happens |
+| --- | --- |
+| **Edit** a factory mode | your version is layered on top as an override; the original stays in code, untouched |
+| **Hide** a factory mode | it leaves the creation bar and moves to *Hidden* in the Modes tab — nothing is deleted |
+| **Restore** | undoes both the edit and the hiding, in one click |
+| **Delete** a mode you created | actually deletes it |
+
+Everything you change lives in `data/modes.json`. Deleting that file returns the
+studio to its factory state, however much you changed.
+
+### How many sub-controls can a mode have?
+
+**No limit.** Unboxing ships with three (`view`, `surface`, `moment`) and UGC
+with four, but that is editorial, not a cap: add as many fields as you want to
+any mode, factory ones included, each with as many options as you want. Both are
+free text.
+
+Two things worth knowing before you add ten:
+
+- Every selected value ends up in the prompt. Fifteen fields produce a
+  paragraph of direction that competes with your own idea for the model's
+  attention — the factory modes stop at three or four for that reason, not
+  because more was impossible.
+- A field with no options is dropped on save: a selector that selects nothing
+  would just be a dead control on screen.
 
 ## Maintenance
 
