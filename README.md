@@ -16,6 +16,10 @@ A local-first creative studio for images, videos, websites, designed PDFs, and A
 
 </div>
 
+## 📖 Guia de uso
+
+Guia completo em português (landing + passo a passo): **https://inematds.github.io/bench-studio-br/guia/**
+
 ![Bench Studio model catalog](docs/bench-studio-models.png)
 
 Bench Studio puts **73 curated image and video routes across 5 providers**, prompt refinement,
