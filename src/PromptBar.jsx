@@ -601,12 +601,24 @@ export default function PromptBar({
     : acceptedLabel
     ? t("prompt.modelAccepts", { list: acceptedLabel })
     : t("prompt.pickCompatible");
-  const quickFormats = [
+  // Os quatro atalhos eram uma lista FIXA no codigo, com rotulo do dicionario.
+  // Depois que modo de fabrica virou editavel isso passou a mentir: modo
+  // escondido continuava com o botao na barra, e modo renomeado mostrava o nome
+  // antigo. Agora o atalho so existe se o CATALOGO ainda traz aquele modo, e o
+  // rotulo e o do catalogo quando ele foi editado.
+  const ATALHOS = [
     { id: "ugc", label: t("work.formats.ugc") },
     { id: "none", label: t("prompt.freeform") },
     { id: "unboxing", label: t("work.formats.unboxing") },
     { id: "product", label: t("work.formats.product") },
   ];
+  const quickFormats = ATALHOS
+    .map((atalho) => {
+      const noCatalogo = (catalog.formats ?? []).find((f) => f.id === atalho.id);
+      if (!noCatalogo) return null;
+      return { id: atalho.id, label: noCatalogo.edited ? noCatalogo.label : atalho.label };
+    })
+    .filter(Boolean);
   const quickFormatIds = new Set(quickFormats.map(({ id }) => id));
   const otherFormats = (catalog.formats ?? []).filter(({ id }) => !quickFormatIds.has(id));
   const otherFormatOptions = otherFormats.map(({ id, label }) => ({ value: id, label }));
@@ -632,7 +644,7 @@ export default function PromptBar({
               {preset.label}
             </button>
           ))}
-          {format === "ugc" && <span className="preset-detail">{t("prompt.ugcDetail")}</span>}
+
           {otherFormats.length > 0 && (
             <div className={`preset-more${quickFormatIds.has(format) ? "" : " on"}`}>
               <MenuSelect
@@ -644,7 +656,11 @@ export default function PromptBar({
               />
             </div>
           )}
+          {/* Este resumo do UGC ficava DENTRO da fileira de botoes, sem botao
+              nenhum em volta: lido de relance, parecia um modo que nao carregou.
+              E legenda, entao vive numa linha propria, abaixo. */}
         </div>
+        {format === "ugc" && <p className="preset-detail">{t("prompt.ugcDetail")}</p>}
 
         <ShotDirection
           format={format}

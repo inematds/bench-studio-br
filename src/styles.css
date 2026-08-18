@@ -422,7 +422,7 @@ p { text-wrap: pretty; }
 
 .preset:hover { color: var(--text); border-color: #687184; background: #272c35; }
 .preset.on { border-color: #8da3ff; background: #4159b7; color: #f8f9ff; box-shadow: 0 5px 16px rgba(111, 140, 255, .16); }
-.preset-detail { margin-left: 4px; color: var(--text-3); font-size: 12px; }
+.preset-detail { margin: 8px 0 0; padding-left: 2px; color: var(--text-3); font-size: 12px; }
 .preset-more { position: relative; display: inline-flex; min-height: 34px; padding: 0; border: 1px solid var(--line-bright); border-radius: 7px; background: var(--panel-raised); color: var(--text-2); }
 .preset-more.on { border-color: #8da3ff; background: #4159b7; color: #f8f9ff; box-shadow: 0 5px 16px rgba(111, 140, 255, .16); }
 
