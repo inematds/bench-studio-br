@@ -12,7 +12,7 @@ A local-first creative studio for images, videos, websites, designed PDFs, and A
 ![5 providers](https://img.shields.io/badge/providers-5-6D7CFF.svg)
 ![MCP ready](https://img.shields.io/badge/MCP-ready-171A21.svg)
 
-**[Quick start](#run-it-in-three-minutes)** · **[Update](#updating-an-existing-install)** · **[Remote access](#reaching-it-from-another-machine)** · **[Tips](#tips-that-save-you-time-and-money)** · **[How it works in depth](docs/COMO-FUNCIONA.md)** · **[What changed and why](docs/HISTORICO.md)** · **[Security](#security-and-privacy)**
+**[Quick start](#run-it-in-three-minutes)** · **[Keys](#keys-what-is-required-and-how-to-change-them)** · **[Passwords](#passwords)** · **[Update](#updating-an-existing-install)** · **[Maintenance](#maintenance)** · **[Remote access](#reaching-it-from-another-machine)** · **[Tips](#tips-that-save-you-time-and-money)** · **[How it works in depth](docs/COMO-FUNCIONA.md)** · **[What changed and why](docs/HISTORICO.md)** · **[Security](#security-and-privacy)**
 
 </div>
 
@@ -194,6 +194,150 @@ whether the firewall is on.
 | Errors | The Kling CLI writes every failure to stderr with an empty stdout. That stream was discarded, so every error read as "session expired". It is captured and shown. |
 | Remote access | `scripts/remote.sh`, the sections above, and `docs/ACESSO-REMOTO.md`. A studio published *with* a password is no longer announced as having no authentication. |
 | Catalog | No sample thumbnails; larger lane headings, one colour per route; filters and catalog-wide controls separated. |
+
+## Keys: what is required, and how to change them
+
+**Nothing is required together.** The studio starts with whatever exists and the
+catalog explains what is unavailable and why. To generate anything at all you
+need **one** of the five providers below; everything else is additive.
+
+| Want to… | Minimum |
+| --- | --- |
+| Start the studio, browse the catalog, use MCP | nothing beyond Node |
+| Generate images or video, cheapest useful setup | `AGNES_API_KEY` (free tier, English prompts only) |
+| Generate with the widest catalog | `FAL_KEY` (37 routes, billed in dollars) |
+| Generate on your own GPU | a running [inemaimg](https://github.com/inematds/inemaimg) at `INEMAIMG_URL` |
+| Have prompts refined and translated | `GOOGLE_API_KEY` **or** `OPENROUTER_API_KEY` |
+| Use Kling's own route | no key — `npm i -g @klingai/cli-global && kling login` |
+
+Prompt refinement deserves a word: without any refiner your idea is sent raw,
+and Agnes rejects Portuguese outright. It is optional in the code and close to
+mandatory in practice.
+
+`.env.example` documents all 17 variables — what each unlocks, how it bills and
+where to create it. It is the reference; this table is only the shortest path.
+
+### Three ways to set a key, one order of precedence
+
+```
+exported in your shell   >   .env in the project   >   ~/.env
+```
+
+That order is why the Config screen warns about *shadowed* values: writing a key
+to `.env` that your shell already exports changes nothing until you restart
+without the export. A save that silently does nothing is worse than a refusal.
+
+1. **The Config screen** (button, top right) — shows every variable, whether it
+   is present, where the value came from and its last 4 characters, tests each
+   provider, and writes `.env` for you with `600` permissions. It never displays
+   a value, and it only accepts writes from the machine running the studio.
+2. **`.env` in the project** — `cp .env.example .env`, then edit. This is the
+   file the Config screen writes and the one `remote.sh` touches.
+3. **Exported in the shell** — useful for a one-off run or when a secret manager
+   injects it:
+   ```bash
+   FAL_KEY=... npm run dev
+   ```
+
+### Rotating or replacing a key
+
+```bash
+# 1. change the value (Config screen, or edit .env)
+# 2. restart — keys are read at boot
+sudo systemctl restart bench-studio    # or Ctrl-C and `npm run dev`
+# 3. confirm from the machine
+curl -s localhost:8787/api/health | head
+```
+
+The Config screen has a **Test** button per provider, which makes a real call
+and reports what came back — the fastest way to tell a wrong key from an empty
+balance. A provider whose key is missing or invalid does not break the studio:
+its models are listed as unavailable, with the reason and the fix, and the rest
+keeps working.
+
+Removing a key is the same path: clear the field or the line, restart, and those
+models go back to unavailable.
+
+### Kling is the exception
+
+It authenticates by OAuth through its own CLI, not by a key in `.env`:
+
+```bash
+npm i -g @klingai/cli-global
+kling login
+node server/providers/kling_sync.mjs   # re-reads the account's model list
+```
+
+The token lives in `~/.kling/`. If the session expires, generations fail with
+the CLI's own message and `kling login` fixes it.
+
+## Passwords
+
+The studio ships **without one**, on purpose: talking to your own machine should
+not require a login. The moment it stops being only your machine, this section
+applies.
+
+```bash
+npm run set-password              # set or replace; takes effect immediately
+npm run set-password -- --remove  # remove
+```
+
+- **Where it can be run: on the machine itself**, at the keyboard or over SSH.
+  `POST /api/config/password` answers 403 to anything not coming from loopback —
+  session or no session. That is not an oversight, it is the protection: it stops
+  whoever finds an open port from setting a password of their own and locking the
+  owner out. The Config screen says so instead of showing a dead field.
+- **Stored as a scrypt hash** in `BENCH_PASSWORD`. Nobody reads your password out
+  of `.env`.
+- **No restart needed** to set or change it. Everyone else is signed out at once.
+- **Forgot it?** Delete the `BENCH_PASSWORD` line from `.env` and restart. That
+  recovery path exists on purpose: whoever has that file already has the provider
+  keys inside it, so guarding the password harder than the file it lives in would
+  protect nothing.
+- **Set it before opening the port**, not after — see the sequence in the next
+  section. `./scripts/remote.sh open` offers to do it for you, and says clearly
+  when you decline.
+
+What the password does and does not cover: it protects the API and your
+generated files. The interface shell is still served to anyone who reaches the
+port, but with no session it shows nothing. Hiding the shell as well is a reverse
+proxy's job, not this process's.
+
+## Maintenance
+
+Routine care, in rough order of how often you will need it.
+
+| Task | Command |
+| --- | --- |
+| Update the install | `git pull && npm install && npm run build`, then restart |
+| Is it healthy? | `curl -s localhost:8787/api/health` |
+| Is it exposed, and how? | `./scripts/remote.sh status` |
+| Discover new provider endpoints | `npm run catalog:sync` |
+| Rebuild the model registry | `npm run registry` |
+| Rebuild the input manifest | `npm run capabilities` |
+| Check the MCP contract | `npm run test:mcp` |
+| Run the fast test suite | `npm run test:contracts` |
+| Full release check | `npm run test:release` (needs a `FAL_KEY` — see Known issues) |
+
+**Where your data lives.** Everything is under `data/`, which is gitignored:
+`data/outputs` (generated media, mirrored locally because provider URLs expire),
+`data/inputs` (what you attached), `data/previews`, `data/projects` (website and
+document builds) and `data/bench.db` (history, spend and capability checks). Back
+up that folder and you have backed up the studio; `BENCH_DATA_DIR` moves it
+elsewhere, e.g. to a larger disk.
+
+**Disk grows with use.** Generated video is the bulk of it. Deleting files under
+`data/outputs` frees space and leaves the ledger entry intact — the row keeps
+what it cost and which model made it, and only the local copy is gone.
+
+**The catalog refreshes itself.** The interval is the `auto` selector on the
+catalog title line (manual, 1h, 6h, 24h, weekly); `Refresh catalog` next to it
+does it now. `server/capabilities.json` is versioned but self-invalidating — when
+a model's declared inputs change, it rebuilds on the next boot.
+
+**After updating, if the interface looks stale**, the build is the usual reason:
+`dist/` is not versioned, so a pre-built site keeps serving the old bundle until
+`npm run build` runs. See *Updating an existing install*.
 
 ## Reaching it from another machine
 
@@ -584,21 +728,9 @@ except the calls you make to the providers you configured.
 presence, origin and the last 4 characters — never the value. `.env` is written
 with owner-only permissions (`600`) and is gitignored.
 
-**Optional password.** Set `BENCH_PASSWORD` and the API requires a session:
-
-```bash
-npm run set-password              # asks for it, without echoing
-npm run set-password -- --remove
-```
-
-Stored as a scrypt hash, so nobody reads your password out of the file. Setting
-or changing it signs everyone else out immediately. Forgot it? Delete the line
-from `.env` and restart — that is the recovery path, on purpose, because whoever
-has that file already has the keys inside it.
-
-The password protects the API and your generated files. The interface shell is
-still served to anyone who reaches the port, but without a session it shows
-nothing. Hiding the shell too is a reverse proxy's job, not this process's.
+**Optional password.** Set `BENCH_PASSWORD` and the API requires a session. It
+is a scrypt hash, it can only be set from the machine itself, and forgetting it
+is recoverable by deleting the line — the full rules are in [Passwords](#passwords).
 
 **Writing settings is machine-only.** Even with a valid session, `POST` to the
 config endpoints is refused from the network — changing keys requires being at
@@ -606,7 +738,7 @@ the machine. This survives the dev proxy: the API only trusts a forwarded origin
 when the socket is already loopback, so a request from the network cannot forge
 one.
 
-**Exposing it.** `./dev.sh --lan` publishes the interface to your local network.
+**Exposing it.** `./scripts/remote.sh open` publishes the interface to your network.
 Prefer reaching the studio over Tailscale or behind a password-protected reverse
 proxy rather than an open port. Generated media may still be retained by the
 provider under that provider's terms, and website builds can invoke a locally
