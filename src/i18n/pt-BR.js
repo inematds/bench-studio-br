@@ -363,6 +363,8 @@ export default {
     savedNotice: "Salvo no .env. Reinicie o servidor para valer — metade disso é lida no boot.",
     lanTitle: "Este estúdio está publicado na sua rede local e sem autenticação.",
     lanBody: "Qualquer um que alcance esta porta gera com as suas chaves e lê o seu histórico. Prefira chegar por Tailscale ou por um proxy com senha, em vez de deixar a porta aberta.",
+    lanWithPasswordTitle: "Este estúdio está publicado na rede, protegido por senha.",
+    lanWithPasswordBody: "O tráfego é HTTP puro, a menos que algo na frente encerre TLS. Feche a porta quando terminar: <code>./scripts/remote.sh close</code>.",
     readOnlyTitle: "Somente leitura daqui.",
     readOnlyBody: "As configurações só mudam a partir da máquina que roda o estúdio. Este pedido veio da rede.",
     readingOrder: "Ordem de leitura: o que o shell exportou vence, depois o <code>.env</code> do projeto, depois o <code>~/.env</code>. Salvar escreve em <code>{path}</code> com permissão só para o dono.",

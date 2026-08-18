@@ -136,6 +136,80 @@ If either port is occupied:
 PORT=8790 BENCH_API_PORT=8790 BENCH_WEB_PORT=5201 npm run dev
 ```
 
+## Reaching it from another machine
+
+Both ports bind to loopback, so a fresh install answers nobody but you. Opening
+that up means three things — the interface listening on every interface, a
+firewall rule, and remembering to undo both. One command does all three:
+
+```bash
+./scripts/remote.sh open      # publish the interface on this machine's IP
+./scripts/remote.sh status    # open or closed, and with what protection
+./scripts/remote.sh close     # back to local access only
+```
+
+`open` prints the address to hand out, then tells you to restart with
+`npm run dev`. `close` reverses exactly what `open` did — reading a state file
+written at open time, not guessing — and leaves the SSH rule alone, because
+deleting that is how people lock themselves out of their own server.
+
+Two flags worth knowing:
+
+```bash
+./scripts/remote.sh open --ip 203.0.113.7   # only that address, not the internet
+./scripts/remote.sh open --firewall         # also enable ufw (SSH allowed first)
+```
+
+**`open` offers to set a password before it opens anything.** Say yes and it
+hands over to `npm run set-password`; press Enter — or answer `n` — and the
+studio opens without one, which is the documented default. The offer is there
+because of the asymmetry below: this is the last moment where setting a password
+is one keystroke away.
+
+**The password cannot be set or changed from the other machine — not even after
+you log in.** `POST /api/config/password` answers 403 to anything that did not
+come from loopback, session or no session, and the Config screen says so instead
+of showing you a dead field. That rule is what stops whoever finds an open port
+from setting a password of their own and locking you out of your own studio. So:
+
+```bash
+npm run set-password    # on the machine running the studio, over SSH or at the keyboard
+```
+
+What `open` deliberately does **not** do: publish the API. Port 8787 stays on
+loopback (`BENCH_API_HOST`), so the endpoint that writes files and spends money
+is reachable only through the interface, on the machine itself.
+
+This is a test posture, not a deployment. The traffic is plain HTTP and readable
+in transit. For anything that stays up, read the next section.
+
+## Leaving it up safely
+
+In rough order of what actually protects you:
+
+1. **Set a password, at install time.** On a machine that will be reachable, make
+   it part of the setup — `npm install`, then `npm run set-password`, then
+   `./scripts/remote.sh open`. Doing it in that order means the studio is never
+   open without one, and you never need the password screen you cannot use from
+   the network anyway.
+2. **Keep the API on loopback.** The default. `BENCH_API_HOST=0.0.0.0` is an
+   opt-out you should have a reason for.
+3. **Narrow who can reach it.** `./scripts/remote.sh open --ip <your-ip>` beats
+   an open port. A Tailscale address beats both, and needs no port at all.
+4. **Turn the firewall on.** `./scripts/remote.sh open --firewall` allows SSH
+   first, then enables ufw. Also check your VPS provider's own firewall panel —
+   it sits in front of ufw and answers to nobody on the machine.
+5. **Terminate HTTPS in front.** Point a domain at the machine and put nginx or
+   Caddy in front with a Let's Encrypt certificate, proxying `/api`, `/media`,
+   `/previews`, `/inputs` and `/projects` to `127.0.0.1:8787` and serving
+   `npm run build`'s `dist/` as the site. Then close 5200 entirely. If you do
+   this, make the proxy send `X-Forwarded-For`: the machine-only rule below
+   depends on it.
+6. **Run it as its own user, not root,** under a systemd unit, with `.env` at
+   `600` — which is how the studio writes it.
+7. **Close it when the test ends.** `./scripts/remote.sh close`. An exposure you
+   forgot about is the one that costs you provider credits.
+
 ## Tips that save you time and money
 
 **Start with the free routes.** Agnes (4 models) and inemaimg (2, on your own
@@ -393,6 +467,7 @@ bench-studio-public/
 | Document | What it covers |
 |---|---|
 | [`docs/COMO-FUNCIONA.md`](docs/COMO-FUNCIONA.md) | How the system works inside: the provider contract, the traps measured per provider, cost classes, availability vs curation, the refine chain, the builder, and the security model |
+| [`docs/ACESSO-REMOTO.md`](docs/ACESSO-REMOTO.md) | Acesso remoto e VPS: por que a senha vem antes da porta, o que o `remote.sh` toca, a ordem de endurecimento e o que ficou em aberto |
 | [`docs/HISTORICO.md`](docs/HISTORICO.md) | Everything built on top of the original kit, and every bug found — separating the ones that were already there from the ones introduced along the way |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version by version |
 | [`.env.example`](.env.example) | All 16 settings, what each unlocks, and where to get the key |

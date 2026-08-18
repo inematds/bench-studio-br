@@ -363,6 +363,8 @@ export default {
     savedNotice: "Saved to .env. Restart the server for the change to take effect — half of it is read at boot.",
     lanTitle: "This studio is published on your local network and has no authentication.",
     lanBody: "Anyone who reaches this port can generate with your keys and read your history. Reach it over Tailscale or a password-protected proxy instead of an open port.",
+    lanWithPasswordTitle: "This studio is published on the network, behind a password.",
+    lanWithPasswordBody: "The traffic is plain HTTP unless something in front of it terminates TLS. Close the port when you are done: <code>./scripts/remote.sh close</code>.",
     readOnlyTitle: "Read-only from here.",
     readOnlyBody: "Settings can only be changed from the machine running the studio. This request came from the network.",
     readingOrder: "Reading order: what the shell exported wins, then <code>.env</code> in the project, then <code>~/.env</code>. Saving writes <code>{path}</code> with owner-only permissions.",

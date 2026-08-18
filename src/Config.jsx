@@ -24,6 +24,7 @@ export default function Config({ onClose }) {
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
   const [tests, setTests] = useState({});
+  const passwordSet = !!state?.fields?.find((f) => f.key === "BENCH_PASSWORD")?.present;
 
   const load = useCallback(async () => {
     try {
@@ -91,10 +92,19 @@ export default function Config({ onClose }) {
         {error && <p className="config-alert danger" role="alert">{error}</p>}
         {notice && <p className="config-alert" role="status">{notice}</p>}
 
-        {state?.lan_exposed && (
+        {/* Publicado COM senha e uma escolha; publicado SEM senha e porta
+            aberta. Dizer "sem autenticacao" a quem definiu senha ensina a
+            pessoa a ignorar o aviso — e ai ele nao serve para nada. */}
+        {state?.lan_exposed && !passwordSet && (
           <p className="config-alert danger" role="alert">
             <strong>{t("config.lanTitle")}</strong>{" "}
             {t("config.lanBody")}
+          </p>
+        )}
+        {state?.lan_exposed && passwordSet && (
+          <p className="config-alert" role="status">
+            <strong>{t("config.lanWithPasswordTitle")}</strong>{" "}
+            {t("config.lanWithPasswordBody")}
           </p>
         )}
 
