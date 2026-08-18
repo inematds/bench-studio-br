@@ -440,6 +440,11 @@ Two things worth knowing before you add ten:
 - A field with no options is dropped on save: a selector that selects nothing
   would just be a dead control on screen.
 
+In the editor each option is **its own line** — type it, press Enter, and the
+next empty line is already waiting. Options used to be one comma-separated
+field, which quietly made a comma impossible inside a value; `de cima, mãos
+abrindo` is a legitimate direction and used to break into two.
+
 ## Maintenance
 
 Routine care, in rough order of how often you will need it.

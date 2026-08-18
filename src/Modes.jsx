@@ -31,6 +31,9 @@ export default function Modes() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  // O texto da linha "adicionar" de cada subcontrole, enquanto e digitado. Sem
+  // isto, `value=""` com commit no onChange criaria uma opcao por TECLA.
+  const [novas, setNovas] = useState({});
 
   async function load() {
     try {
@@ -50,15 +53,15 @@ export default function Modes() {
       const r = await fetch("/api/modes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // As opcoes ficam como texto cru enquanto se digita e so viram lista aqui.
-        // Dividir e dar trim a cada tecla apagava o espaco no instante em que ele
-        // era digitado — "selfie de mao" virava "selfiedemao".
+        // Cada opcao e uma linha propria; o trim so acontece aqui, no envio.
+        // Aparar a cada tecla apagava o espaco no instante em que era digitado —
+        // "selfie de mao" virava "selfiedemao".
         body: JSON.stringify({
           ...draft,
           ...(editingId ? { id: editingId } : {}),
           controls: draft.controls.map((c) => ({
             ...c,
-            options: String(c.optionsText ?? "").split(",").map((o) => o.trim()).filter(Boolean),
+            options: (c.options ?? []).map((o) => String(o).trim()).filter(Boolean),
           })),
         }),
       });
@@ -84,8 +87,11 @@ export default function Modes() {
       label: mode.label,
       brief: mode.brief,
       controls: (mode.controls ?? []).map((c) => ({
-        ...c,
-        optionsText: (c.options ?? []).map((o) => (typeof o === "string" ? o : o.value)).join(", "),
+        id: c.id,
+        // Submodo de fabrica traz `key` de traducao; ao editar, o que fica e o
+        // texto visivel — dali em diante o rotulo e seu, nao do dicionario.
+        label: c.label ?? (c.key ? t(c.key) : c.id),
+        options: (c.options ?? []).map((o) => (typeof o === "string" ? o : o.value)),
       })),
     });
     setEditingId(mode.id);
@@ -107,6 +113,25 @@ export default function Modes() {
     setDraft((d) => ({ ...d, controls: d.controls.map((c, i) => (i === index ? { ...c, ...patch } : c)) }));
   }
 
+  function setOption(ci, oi, value) {
+    setControl(ci, { options: draft.controls[ci].options.map((o, i) => (i === oi ? value : o)) });
+  }
+
+  // A ultima linha da lista e a de adicionar: escreve e confirma com Enter (ou
+  // saindo do campo), e ela ja abre a proxima. Nenhum botao "adicionar opcao".
+  function commitNewOption(ci) {
+    const texto = String(novas[ci] ?? "").trim();
+    if (!texto) return;
+    setControl(ci, { options: [...(draft.controls[ci].options ?? []), texto] });
+    setNovas((n) => ({ ...n, [ci]: "" }));
+  }
+
+  function removeOption(ci, oi) {
+    setControl(ci, { options: draft.controls[ci].options.filter((_, i) => i !== oi) });
+  }
+
+  const emEdicao = (id) => editingId === id;
+
   return (
     <section className="modes-page">
       <div className="modes-hero">
@@ -117,123 +142,129 @@ export default function Modes() {
         </div>
       </div>
 
-      <div className="modes-form">
-        <label>
-          <span>{t("modes.nameLabel")}</span>
-          <input
-            value={draft.label}
-            placeholder={t("modes.namePlaceholder")}
-            onChange={(e) => setDraft({ ...draft, label: e.target.value })}
-          />
-        </label>
-
-        <label>
-          <span>{t("modes.briefLabel")}</span>
-          <textarea
-            rows={6}
-            value={draft.brief}
-            placeholder={t("modes.briefPlaceholder")}
-            onChange={(e) => setDraft({ ...draft, brief: e.target.value })}
-          />
-        </label>
-
-        <div className="modes-controls">
-          <div className="modes-controls-head">
-            <strong>{t("modes.subControls")}</strong>
-            <button type="button" onClick={() => setDraft((d) => ({ ...d, controls: [...d.controls, { label: "", optionsText: "" }] }))}>
-              {t("modes.addSubControl")}
-            </button>
+      {/* Nomes de modo sao curtos; a lista cabe numa coluna estreita e o editor
+          fica sempre a vista, sem rolar a pagina para achar o que se edita. */}
+      <div className="modes-layout">
+        <aside className="modes-side">
+          <div className="modes-side-group">
+            <h2>{t("modes.yourModes")} <span>{custom.length}</span></h2>
+            {!custom.length && <p className="modes-hint">{t("modes.noCustomModes")}</p>}
+            {custom.map((mode) => (
+              <div className={`modes-item${emEdicao(mode.id) ? " on" : ""}`} key={mode.id}>
+                <button type="button" className="modes-item-name" onClick={() => edit(mode)}>{mode.label}</button>
+                <button type="button" className="modes-item-x" onClick={() => remove(mode.id)} title={t("common.delete")} aria-label={t("common.delete")}>×</button>
+              </div>
+            ))}
           </div>
-          {!draft.controls.length && <p className="modes-hint">{t("modes.noSubControlsHint")}</p>}
-          {draft.controls.map((control, i) => (
-            <div className="modes-control" key={i}>
-              <input
-                className="modes-control-label"
-                value={control.label}
-                placeholder={t("modes.controlLabelPlaceholder")}
-                onChange={(e) => setControl(i, { label: e.target.value })}
-              />
-              <input
-                className="modes-control-options"
-                value={control.optionsText ?? ""}
-                placeholder={t("modes.controlOptionsPlaceholder")}
-                onChange={(e) => setControl(i, { optionsText: e.target.value })}
-              />
-              <button type="button" className="modes-remove" onClick={() => setDraft((d) => ({ ...d, controls: d.controls.filter((_, j) => j !== i) }))} aria-label={t("modes.removeSubControl")}>×</button>
-            </div>
-          ))}
-        </div>
 
-        {error && <div className="modes-error">{error}</div>}
-
-        <div className="modes-actions">
-          <button type="button" className="modes-save" onClick={save} disabled={saving}>
-            {saving ? t("common.saving") : editingId ? t("modes.saveChanges") : t("modes.createMode")}
-          </button>
-          {editingId && (
-            <button type="button" onClick={() => { setDraft(VAZIO); setEditingId(null); }}>{t("common.cancel")}</button>
-          )}
-        </div>
-      </div>
-
-      <div className="modes-list">
-        <h2>{t("modes.yourModes")} <span>{custom.length}</span></h2>
-        {!custom.length && <p className="modes-hint">{t("modes.noCustomModes")}</p>}
-        {custom.map((mode) => (
-          <article className="modes-card" key={mode.id}>
-            <div className="modes-card-head">
-              <strong>{mode.label}</strong>
-              <div>
-                <button type="button" onClick={() => edit(mode)}>{t("modes.edit")}</button>
-                <button type="button" className="danger" onClick={() => remove(mode.id)}>{t("common.delete")}</button>
-              </div>
-            </div>
-            <p>{mode.brief}</p>
-            {mode.controls?.length > 0 && (
-              <ul className="modes-card-controls">
-                {mode.controls.map((c) => (
-                  <li key={c.id}><b>{c.label}:</b> {c.options.map((o) => o.label).join(" · ")}</li>
-                ))}
-              </ul>
-            )}
-          </article>
-        ))}
-
-        <h2>{t("modes.builtin")} <span>{builtin.length}</span></h2>
-        <p className="modes-hint" dangerouslySetInnerHTML={{ __html: t("modes.builtinHint") }} />
-        {builtin.map((mode) => (
-          <article className="modes-card builtin" key={mode.id}>
-            <div className="modes-card-head">
-              <strong>{mode.label}</strong>
-              <div className="modes-card-actions">
-                {mode.edited && <span className="modes-badge">{t("modes.edited")}</span>}
-                <button type="button" onClick={() => edit(mode)}>{t("modes.edit")}</button>
+          <div className="modes-side-group">
+            <h2>{t("modes.builtin")} <span>{builtin.length}</span></h2>
+            {builtin.map((mode) => (
+              <div className={`modes-item${emEdicao(mode.id) ? " on" : ""}`} key={mode.id}>
+                <button type="button" className="modes-item-name" onClick={() => edit(mode)}>
+                  {mode.label}
+                  {mode.edited && <i className="modes-dot" title={t("modes.edited")} />}
+                </button>
                 {mode.edited && (
-                  <button type="button" onClick={() => restore(mode.id)}>{t("modes.restore")}</button>
+                  <button type="button" className="modes-item-x" onClick={() => restore(mode.id)} title={t("modes.restore")} aria-label={t("modes.restore")}>↺</button>
                 )}
-                <button type="button" className="danger" onClick={() => remove(mode.id)}>{t("modes.hide")}</button>
+                <button type="button" className="modes-item-x" onClick={() => remove(mode.id)} title={t("modes.hide")} aria-label={t("modes.hide")}>–</button>
               </div>
-            </div>
-            <p>{mode.brief || <em>{t("modes.noInstruction")}</em>}</p>
-          </article>
-        ))}
+            ))}
+          </div>
 
-        {hidden.length > 0 && (
-          <>
-            <h2>{t("modes.hiddenTitle")} <span>{hidden.length}</span></h2>
-            <p className="modes-hint">{t("modes.hiddenHint")}</p>
-            {hidden.map((mode) => (
-              <article className="modes-card builtin hidden-mode" key={mode.id}>
-                <div className="modes-card-head">
-                  <strong>{mode.label}</strong>
-                  <div className="modes-card-actions">
-                    <button type="button" onClick={() => restore(mode.id)}>{t("modes.restore")}</button>
+          {hidden.length > 0 && (
+            <div className="modes-side-group">
+              <h2>{t("modes.hiddenTitle")} <span>{hidden.length}</span></h2>
+              {hidden.map((mode) => (
+                <div className="modes-item off" key={mode.id}>
+                  <span className="modes-item-name">{mode.label}</span>
+                  <button type="button" className="modes-item-x" onClick={() => restore(mode.id)} title={t("modes.restore")} aria-label={t("modes.restore")}>↺</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        <div className="modes-form">
+          <label>
+            <span>{t("modes.nameLabel")}</span>
+            <input
+              value={draft.label}
+              placeholder={t("modes.namePlaceholder")}
+              onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+            />
+          </label>
+
+          <label>
+            <span>{t("modes.briefLabel")}</span>
+            <textarea
+              rows={6}
+              value={draft.brief}
+              placeholder={t("modes.briefPlaceholder")}
+              onChange={(e) => setDraft({ ...draft, brief: e.target.value })}
+            />
+          </label>
+
+          <div className="modes-controls">
+            <div className="modes-controls-head">
+              <strong>{t("modes.subControls")}</strong>
+              <button type="button" onClick={() => setDraft((d) => ({ ...d, controls: [...d.controls, { label: "", options: [] }] }))}>
+                {t("modes.addSubControl")}
+              </button>
+            </div>
+            {!draft.controls.length && <p className="modes-hint">{t("modes.noSubControlsHint")}</p>}
+
+            {/* Nome do subcontrole em cima, opcoes embaixo, uma por linha, e a
+                ultima linha vazia esperando a proxima. */}
+            {draft.controls.map((control, i) => (
+              <div className="modes-control" key={i}>
+                <div className="modes-control-head">
+                  <input
+                    className="modes-control-label"
+                    value={control.label}
+                    placeholder={t("modes.controlLabelPlaceholder")}
+                    onChange={(e) => setControl(i, { label: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className="modes-remove"
+                    onClick={() => setDraft((d) => ({ ...d, controls: d.controls.filter((_, j) => j !== i) }))}
+                    aria-label={t("modes.removeSubControl")}
+                  >×</button>
+                </div>
+                <div className="modes-options">
+                  {(control.options ?? []).map((option, oi) => (
+                    <div className="modes-option" key={oi}>
+                      <input value={option} onChange={(e) => setOption(i, oi, e.target.value)} />
+                      <button type="button" className="modes-remove" onClick={() => removeOption(i, oi)} aria-label={t("modes.removeOption")}>×</button>
+                    </div>
+                  ))}
+                  <div className="modes-option add">
+                    <input
+                      value={novas[i] ?? ""}
+                      placeholder={t("modes.addOption")}
+                      onChange={(e) => setNovas((n) => ({ ...n, [i]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitNewOption(i); } }}
+                      onBlur={() => commitNewOption(i)}
+                    />
                   </div>
                 </div>
-              </article>
+              </div>
             ))}
-          </>
-        )}
+          </div>
+
+          {error && <div className="modes-error">{error}</div>}
+
+          <div className="modes-actions">
+            <button type="button" className="modes-save" onClick={save} disabled={saving}>
+              {saving ? t("common.saving") : editingId ? t("modes.saveChanges") : t("modes.createMode")}
+            </button>
+            {editingId && (
+              <button type="button" onClick={() => { setDraft(VAZIO); setEditingId(null); }}>{t("common.cancel")}</button>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );

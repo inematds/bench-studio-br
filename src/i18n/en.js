@@ -188,6 +188,8 @@ export default {
     subControls: "Sub-controls (optional)",
     addSubControl: "Add sub-control",
     removeSubControl: "Remove sub-control",
+    addOption: "type and press Enter",
+    removeOption: "Remove option",
     noSubControlsHint: "With no sub-controls, the mode applies the brief alone.",
     controlLabelPlaceholder: "Camera",
     controlOptionsPlaceholder: "handheld selfie, locked tripod, product close-up (comma separated)",

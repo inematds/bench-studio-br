@@ -189,6 +189,8 @@ export default {
     subControls: "Subcontroles (opcional)",
     addSubControl: "Adicionar subcontrole",
     removeSubControl: "Remover subcontrole",
+    addOption: "escreva e tecle Enter",
+    removeOption: "Remover opção",
     noSubControlsHint: "Sem subcontroles, o modo aplica só o brief.",
     controlLabelPlaceholder: "Câmera",
     controlOptionsPlaceholder: "selfie na mão, tripé fixo, close do produto (separe por vírgula)",
