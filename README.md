@@ -138,21 +138,34 @@ PORT=8790 BENCH_API_PORT=8790 BENCH_WEB_PORT=5201 npm run dev
 
 ## Updating an existing install
 
-No dependency changed in recent releases, so `npm install` is usually not
-needed — but the server reads everything at boot, so a restart is not optional.
+**Run these four, in this order. They are correct whichever way you start the
+studio** — you do not need to know which mode you are in:
 
 ```bash
 cd bench-studio-br
 git pull
-sudo systemctl restart bench-studio   # or kill the process and `npm run dev` again
+npm install       # no-op when nothing changed
+npm run build     # no-op in practice if you never serve dist/
 ```
 
-**If you serve the built site instead of `npm run dev`**, `dist/` is not
-versioned — the pull brings no new interface until you rebuild:
+Then restart, using whichever way you already start it:
 
 ```bash
-npm run build
+sudo systemctl restart bench-studio   # if it runs as a service
+# or: stop the process (Ctrl-C) and run `npm run dev` again
 ```
+
+Why `npm run build` is in the list even though most people run `npm run dev`:
+`dist/` is not versioned, so `git pull` never updates a site that is served
+pre-built. Running the build when you did not need it costs three seconds and
+leaves an unused folder; skipping it when you did need it leaves the interface
+frozen at the old version while the server updates underneath — which looks like
+a bug and is not one. Building always is the cheaper mistake.
+
+*(If you want to know anyway: if the command that keeps the studio up is
+`npm run dev`, Vite serves from source and the build is unnecessary. If a web
+server answers port 80/443 and proxies to the studio, it is serving `dist/` and
+the build is required.)*
 
 **One change can bite an existing install:** the API now binds to loopback by
 default (`BENCH_API_HOST`). It used to listen on every interface, which meant

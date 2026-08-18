@@ -284,13 +284,19 @@ OPENROUTER_API_KEY=<span class="s">sua-chave</span></pre></div>
 
   <div class="step"><div class="b">10</div><div>
     <h3>Atualizar uma instalação que já existe</h3>
-    <p>Nenhuma dependência mudou nas últimas versões, então o <code>npm install</code> costuma ser
-    dispensável — mas o servidor lê tudo na subida, e o restart não é opcional. Se você serve o
-    <code>dist/</code> por nginx em vez do <code>npm run dev</code>, ele não é versionado: refaça a build,
-    senão o backend atualiza e a tela continua a antiga.</p>
-<pre><span class="k">git pull</span>
-<span class="k">npm run build</span>                          <span class="c"># só se você serve o dist/</span>
-<span class="k">sudo systemctl restart bench-studio</span>   <span class="c"># ou mate o processo e suba de novo</span></pre>
+    <p>Rode os quatro comandos abaixo, nesta ordem. Eles valem <strong>de qualquer jeito que você suba o
+    estúdio</strong> — você não precisa saber em que modo está.</p>
+<pre><span class="k">cd bench-studio-br</span>
+<span class="k">git pull</span>
+<span class="k">npm install</span>      <span class="c"># não faz nada quando nada mudou</span>
+<span class="k">npm run build</span>    <span class="c"># na prática, inofensivo se você nunca serve o dist/</span></pre>
+    <p>Depois reinicie do jeito que você já sobe: <code>sudo systemctl restart bench-studio</code>, se for
+    serviço, ou pare o processo e rode <code>npm run dev</code> de novo.</p>
+    <p>Por que o <code>npm run build</code> está na lista mesmo com a maioria usando <code>npm run dev</code>:
+    o <code>dist/</code> não é versionado, então o <code>git pull</code> nunca atualiza um site servido
+    pronto. Buildar sem precisar custa três segundos e deixa uma pasta sem uso; <strong>não</strong> buildar
+    quando precisava deixa a tela congelada na versão antiga enquanto o servidor atualiza por baixo — o que
+    parece bug e não é. Buildar sempre é o erro mais barato.</p>
     <p>Um detalhe que morde instalação antiga: a API agora escuta em <strong>loopback por padrão</strong>
     (<code>BENCH_API_HOST</code>). Antes ela subia em todas as interfaces, então publicar a interface
     publicava junto a porta 8787 — a que grava arquivo e gasta dinheiro. Proxy na mesma máquina apontando
