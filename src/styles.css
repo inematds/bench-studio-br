@@ -1674,3 +1674,12 @@ p { text-wrap: pretty; }
    disputar o mesmo pixel. */
 .model-wall .card .body { padding-top: 34px; }
 .model-wall .card-switch { top: 8px; left: 8px; }
+
+/* Modo de fabrica agora tem acoes; escondido fica visivel, mas apagado. */
+.modes-card-actions { display: flex; align-items: center; gap: 8px; }
+.modes-badge {
+  padding: 2px 8px; border-radius: 999px; font-size: 10.5px;
+  letter-spacing: .04em; text-transform: uppercase;
+  border: 1px solid var(--accent, #6D7CFF); color: var(--accent, #6D7CFF);
+}
+.modes-card.hidden-mode { opacity: .55; }

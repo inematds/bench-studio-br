@@ -25,6 +25,7 @@ function notifyChanged() {
 export default function Modes() {
   const t = useT();
   const [builtin, setBuiltin] = useState([]);
+  const [hidden, setHidden] = useState([]);
   const [custom, setCustom] = useState([]);
   const [draft, setDraft] = useState(VAZIO);
   const [editingId, setEditingId] = useState(null);
@@ -36,6 +37,7 @@ export default function Modes() {
       const r = await fetch("/api/modes");
       const j = await r.json();
       setBuiltin(j.builtin ?? []);
+      setHidden(j.hidden ?? []);
       setCustom(j.custom ?? []);
     } catch (e) { setError(String(e.message ?? e)); }
   }
@@ -89,6 +91,16 @@ export default function Modes() {
     setEditingId(mode.id);
     setError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Modo de fabrica nao e apagado nem restaurado como um modo seu: o original
+  // vive no codigo e continua la. "Esconder" tira da barra; "restaurar" desfaz
+  // tanto o esconder quanto qualquer edicao.
+  async function restore(id) {
+    await fetch(`/api/modes/${encodeURIComponent(id)}/restore`, { method: "POST" });
+    if (editingId === id) { setDraft(VAZIO); setEditingId(null); }
+    await load();
+    notifyChanged();
   }
 
   function setControl(index, patch) {
@@ -191,10 +203,37 @@ export default function Modes() {
         <p className="modes-hint" dangerouslySetInnerHTML={{ __html: t("modes.builtinHint") }} />
         {builtin.map((mode) => (
           <article className="modes-card builtin" key={mode.id}>
-            <div className="modes-card-head"><strong>{mode.label}</strong></div>
+            <div className="modes-card-head">
+              <strong>{mode.label}</strong>
+              <div className="modes-card-actions">
+                {mode.edited && <span className="modes-badge">{t("modes.edited")}</span>}
+                <button type="button" onClick={() => edit(mode)}>{t("modes.edit")}</button>
+                {mode.edited && (
+                  <button type="button" onClick={() => restore(mode.id)}>{t("modes.restore")}</button>
+                )}
+                <button type="button" className="danger" onClick={() => remove(mode.id)}>{t("modes.hide")}</button>
+              </div>
+            </div>
             <p>{mode.brief || <em>{t("modes.noInstruction")}</em>}</p>
           </article>
         ))}
+
+        {hidden.length > 0 && (
+          <>
+            <h2>{t("modes.hiddenTitle")} <span>{hidden.length}</span></h2>
+            <p className="modes-hint">{t("modes.hiddenHint")}</p>
+            {hidden.map((mode) => (
+              <article className="modes-card builtin hidden-mode" key={mode.id}>
+                <div className="modes-card-head">
+                  <strong>{mode.label}</strong>
+                  <div className="modes-card-actions">
+                    <button type="button" onClick={() => restore(mode.id)}>{t("modes.restore")}</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </>
+        )}
       </div>
     </section>
   );

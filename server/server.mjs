@@ -733,9 +733,31 @@ function sameFamily(a, b) {
 const catalogPrefs = createCatalogPrefs({ dataDir: DATA });
 const modesStore = createModesStore({ dataDir: DATA, isReserved: (id) => Boolean(FORMATS[id]) });
 function customModes() { return modesStore.list(); }
+
+// A lista efetiva de modos: os de fabrica com as edicoes do usuario aplicadas,
+// sem os que ele escondeu, mais os que ele criou. UM lugar so calcula isto —
+// senao a aba Modes mostraria uma coisa e o refinador usaria outra.
+function modosEfetivos() {
+  const salvos = customModes();
+  const ocultos = new Set(modesStore.hidden());
+  const override = (id) => salvos.find((m) => m.overrides === id);
+
+  const fabrica = Object.entries(FORMATS)
+    .filter(([id]) => !ocultos.has(id))
+    .map(([id, f]) => {
+      const meu = override(id);
+      return meu
+        ? { id, label: meu.label, brief: meu.brief, controls: meu.controls, custom: false, edited: true }
+        : { id, label: f.label, brief: f.brief ?? "", custom: false, edited: false };
+    });
+
+  const meus = salvos.filter((m) => !m.overrides).map((m) => ({ ...m, custom: true }));
+  return { fabrica, meus, ocultos: [...ocultos] };
+}
+
 function briefFor(format) {
-  if (FORMATS[format]) return FORMATS[format].brief ?? "";
-  return customModes().find((m) => m.id === format)?.brief ?? "";
+  const { fabrica, meus } = modosEfetivos();
+  return [...fabrica, ...meus].find((m) => m.id === format)?.brief ?? "";
 }
 
 function shotDirectionLines(shotSettings = {}) {
@@ -1444,10 +1466,13 @@ app.get("/api/models", async (_req, res) => {
     providers: availability,
     generated_at: registry.generated_at,
     catalog_sync: CATALOG_SYNC,
-    formats: [
-      ...Object.entries(FORMATS).map(([id, f]) => ({ id, label: f.label, custom: false })),
-      ...customModes().map((m) => ({ id: m.id, label: m.label, custom: true, controls: m.controls })),
-    ],
+    formats: (() => {
+      const { fabrica, meus } = modosEfetivos();
+      return [
+        ...fabrica.map((m) => ({ id: m.id, label: m.label, custom: false, edited: m.edited, controls: m.controls })),
+        ...meus.map((m) => ({ id: m.id, label: m.label, custom: true, controls: m.controls })),
+      ];
+    })(),
     models: registry.models.map((m) => ({
       ...m,
       // Explícito, nunca implícito: a mesma família de modelo existe por mais de
@@ -1999,10 +2024,18 @@ app.delete("/api/results/:id", (req, res) => {
 // ---------------------------------------------------------------- modos
 // Os modos de fabrica continuam em codigo; estes sao os que a pessoa cria.
 app.get("/api/modes", (_req, res) => {
+  const { fabrica, meus, ocultos } = modosEfetivos();
   res.json({
-    builtin: Object.entries(FORMATS).map(([id, f]) => ({ id, label: f.label, brief: f.brief, custom: false })),
-    custom: customModes(),
+    // O de fabrica aparece com o que ESTA valendo (editado ou nao) e diz qual
+    // e o caso; o escondido vem a parte, para poder voltar.
+    builtin: fabrica,
+    hidden: ocultos.map((id) => ({ id, label: FORMATS[id]?.label ?? id, brief: FORMATS[id]?.brief ?? "" })),
+    custom: meus,
   });
+});
+
+app.post("/api/modes/:id/restore", (req, res) => {
+  res.json({ restored: modesStore.restore(req.params.id) });
 });
 
 app.post("/api/modes", (req, res) => {
@@ -2011,7 +2044,7 @@ app.post("/api/modes", (req, res) => {
 });
 
 app.delete("/api/modes/:id", (req, res) => {
-  res.json({ removed: modesStore.remove(req.params.id) });
+  res.json({ removed: modesStore.remove(req.params.id), builtin: Boolean(FORMATS[req.params.id]) });
 });
 
 app.post("/api/reload", (_req, res) => { reloadKnowledge(); res.json({ ok: true, profiles: Object.keys(PROFILES).length }); });
