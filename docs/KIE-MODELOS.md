@@ -52,22 +52,27 @@ de gravar.
 
 ### O que está registrado agora
 
-| Modelo | Rota | Entradas |
-|---|---|---|
-| `kie/z-image` | t2i | — |
-| `kie/nano-banana-2` | t2i | `image_input` (até 14) |
-| `kie/nano-banana-pro` | i2i | `image_input` (até 8) |
-| `kie/google/nano-banana-edit` | i2i | `image_urls` (até 10) |
-| `kie/seedream/5-pro-image-to-image` | i2i | `image_urls` (até 10) |
-| `kie/flux-2/flex-image-to-image` | i2i | `input_urls` (até 8) |
-| `kie/wan/2-7-image-to-video` | i2v | **quadro inicial + final** |
-| `kie/bytedance/seedance-2-fast` | i2v | **quadro inicial + final** + `reference_image_urls` (até 3) |
-| `kie/pixverse-v6/transition` | i2v | **quadro inicial + final** |
-| `kie/minimax-h3/image-to-video` | i2v | **quadro inicial + final** |
-| `kie/hailuo/2-3-image-to-video-pro` | i2v | `image_url` |
-| `kie/kling/v3-turbo-image-to-video` | i2v | `image_urls` |
+Preço em **negrito** é publicado pelo kie; o resto é estimativa nossa, e a
+interface mostra a diferença em vez de escondê-la.
 
-Quatro deles caem direto nos dois seletores numerados da interface.
+| Modelo | Rota | Preço | Entradas |
+|---|---|---|---|
+| `kie/z-image` | t2i | **US$ 0,004** / imagem · 0,8 cr | — |
+| `kie/nano-banana-2` | t2i | ~US$ 0,05 (est.) | `image_input` (até 14) |
+| `kie/nano-banana-pro` | i2i | **US$ 0,09** / imagem · 18 cr | `image_input` (até 8) |
+| `kie/google/nano-banana-edit` | i2i | ~US$ 0,02 (est.) | `image_urls` (até 10) |
+| `kie/seedream/5-pro-image-to-image` | i2i | ~US$ 0,03 (est.) | `image_urls` (até 10) |
+| `kie/flux-2/flex-image-to-image` | i2i | **US$ 0,025** / imagem · 5 cr | `input_urls` (até 8) |
+| `kie/wan/2-7-image-to-video` | i2v | ~US$ 0,30 (est.) | **quadro inicial + final** |
+| `kie/bytedance/seedance-2-fast` | i2v | ~US$ 0,25 (est.) | **quadro inicial + final** + `reference_image_urls` (até 3) |
+| `kie/pixverse-v6/transition` | i2v | ~US$ 0,20 (est.) | **quadro inicial + final** |
+| `kie/minimax-h3/image-to-video` | i2v | ~US$ 0,30 (est.) | **quadro inicial + final** |
+| `kie/hailuo/2-3-image-to-video-pro` | i2v | **US$ 0,15** / 6s · 30 cr | `image_url` |
+| `kie/kling/v3-turbo-image-to-video` | i2v | ~US$ 0,35 (est.) | `image_urls` |
+
+Quatro deles caem direto nos dois seletores numerados da interface. E, publicado
+ou estimado, **o custo real de qualquer um deles é medido depois** pelo delta de
+saldo × US$ 0,005 por crédito — ver "Preço".
 
 ---
 
@@ -108,8 +113,8 @@ final**, porque é o recurso que a interface já sabe mostrar como dois seletore
 
 | model | entradas |
 |---|---|
-| `kling-2.6/text-to-video` | aspect_ratio, duration |
-| `kling-2.6/image-to-video` | image_urls, duration |
+| `kling-2.6/text-to-video` | aspect_ratio, duration — grupo `kling-2-6`: **US$ 0,28 / 5s** (55 cr) |
+| `kling-2.6/image-to-video` | image_urls, duration — grupo `kling-2-6`: **US$ 0,28 / 5s** (55 cr) |
 | `kling/v2-5-turbo-image-to-video-pro` | image_url, duration, negative_prompt, quality |
 | `kling/v2-5-turbo-text-to-video-pro` | duration, aspect_ratio, negative_prompt, quality |
 | `kling/v2-1-master-image-to-video` | image_url, duration, negative_prompt, quality |
@@ -170,8 +175,8 @@ Kling (CLI), onde `v2_5`, `v2_6` e `v3_0` aceitam `tail_image`.
 | `minimax-h3/reference-to-video` | reference_image_urls, aspect_ratio, duration |
 | `minimax-h3/text-to-video` | aspect_ratio, duration |
 | **`hailuo/02-image-to-video-pro`** | **image_url, end_image_url** |
-| `hailuo/2-3-image-to-video-pro` / `-standard` | image_url, duration, resolution (+quality no standard) |
-| `grok-imagine/image-to-video` | image_urls, duration, resolution, aspect_ratio, mode |
+| `hailuo/2-3-image-to-video-pro` / `-standard` | image_url, duration, resolution (+quality no standard) — grupo `hailuo-2-3`: **US$ 0,15 / 6s** (30 cr) |
+| `grok-imagine/image-to-video` | image_urls, duration, resolution, aspect_ratio, mode — grupo `grok-imagine`: **US$ 0,10 / 6s** (20 cr) |
 | `grok-imagine/text-to-video` | duration, resolution, aspect_ratio, mode |
 | `grok-imagine-video-1-5-preview` | image_urls, duration, resolution, aspect_ratio |
 | `grok-imagine/upscale`, `/extend` | só o vídeo de entrada |
@@ -203,18 +208,18 @@ páginas.
 
 | model | entradas |
 |---|---|
-| `z-image` | aspect_ratio |
+| `z-image` | aspect_ratio — **US$ 0,004 / imagem** (0,8 cr) |
 | `google/nano-banana` / `nano-banana-edit` | (edit: image_urls) output_format, aspect_ratio |
-| `nano-banana-pro`, `nano-banana-2` | aspect_ratio, resolution, output_format |
+| `nano-banana-pro`, `nano-banana-2` | aspect_ratio, resolution, output_format — `nano-banana-pro`: **US$ 0,09 / imagem** (18 cr) |
 | `nano-banana-2-lite` | image_urls, aspect_ratio |
 | `google/imagen4`, `-fast`, `-ultra` | aspect_ratio, negative_prompt, style, seed |
 | `bytedance/seedream-v4-text-to-image` / `-edit` | image_size, quality, seed (edit: image_urls, style) |
-| `seedream/4.5-text-to-image` / `4.5-edit` | aspect_ratio, quality, style (edit: image_urls) |
+| `seedream/4.5-text-to-image` / `4.5-edit` | aspect_ratio, quality, style (edit: image_urls) — grupo `seedream-4-5`: **US$ 0,032 / imagem** (6,5 cr) |
 | `seedream/5-lite-text-to-image` | aspect_ratio, quality, style, output_format |
 | `seedream/5-pro-text-to-image` / `5-pro-image-to-image` | aspect_ratio, quality, style, output_format (i2i: image_urls) |
 | `seedream/5-pro-layer-decomposition` | image_url, quality, output_format |
 | `flux-2/pro-text-to-image` / `pro-image-to-image` | aspect_ratio, resolution, quality |
-| `flux-2/flex-text-to-image` / `flex-image-to-image` | aspect_ratio, resolution, quality |
+| `flux-2/flex-text-to-image` / `flex-image-to-image` | aspect_ratio, resolution, quality — grupo `flux-2`: **US$ 0,025 / imagem** (5 cr) |
 | `qwen3/text-to-image` / `image-to-image` | image_size, resolution, output_format, negative_prompt, quality, seed |
 | `qwen3/pro-text-to-image` / `pro-image-to-image` | idem |
 | `gpt-image-2-text-to-image` / `-image-to-image` | aspect_ratio |
@@ -222,7 +227,7 @@ páginas.
 | `ideogram/v3-edit` | image_url, mask_url, seed |
 | `ideogram/character` | reference_image_urls, style, num_images, image_size, negative_prompt |
 | `wan/2-7-image`, `wan/2-7-image-pro` | resolution, seed |
-| `topaz/image-upscale` | image_url, resolution, quality |
+| `topaz/image-upscale` | image_url, resolution, quality — **US$ 0,05 / imagem** (10 cr) |
 | `recraft/remove-background`, `recraft/crisp-upscale` | (upscale: resolution, quality) |
 
 Há ainda uma prateleira de **texto** no mesmo Market (Claude, GPT-5.x, Gemini,
