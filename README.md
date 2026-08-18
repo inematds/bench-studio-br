@@ -130,7 +130,9 @@ Open **[http://localhost:5200](http://localhost:5200)**.
 | Local API | `http://localhost:8787` |
 | Health and capability summary | `http://localhost:8787/api/health` |
 
-If either port is occupied:
+If either port is occupied, the studio **fails to start and says so** rather than
+quietly moving to the next port — a second interface on 5201 that no firewall
+rule allows is worse than an honest error. Pick the ports explicitly:
 
 ```bash
 PORT=8790 BENCH_API_PORT=8790 BENCH_WEB_PORT=5201 npm run dev
@@ -211,6 +213,15 @@ sudo systemctl restart bench-studio    # 6. drops the open socket
 The restarts are not ceremony: `open` and `close` write to `.env`, and the
 process reads the host it binds to at boot. Without the restart the file says
 one thing and the running socket does another — which `status` will tell you.
+
+> **If you updated from a version before 2026-08-18:** `open` could report OPEN,
+> write `.env`, add the firewall rule, and the interface would still answer only
+> `127.0.0.1`. Vite does not load `.env` into `process.env` while evaluating its
+> config, so `vite.config.js` never saw `BENCH_WEB_HOST` — the server read the
+> file and the interface did not. It now reads `.env` itself, with the same
+> precedence. `./scripts/remote.sh status` compares the file against the socket
+> actually listening, so it is the fastest way to confirm.
+
 
 Both ports bind to loopback, so a fresh install answers nobody but you. Opening
 that up means three things — the interface listening on every interface, a
