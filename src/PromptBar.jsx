@@ -49,125 +49,28 @@ function paramLabel(name, t) {
   return label === `prompt.params.${name}` ? prettyParam("", name, t) : label;
 }
 
-// Os submodos de fabrica. O `value` de cada opcao ENTRA NO PROMPT e por isso
-// continua em ingles, palavra por palavra como antes; o que muda de idioma e
-// so o rotulo, resolvido pela chave `key` no dicionario (`prompt.shot.opt.*`).
-export const SHOT_DIRECTION = {
-  ugc: [
-    {
-      id: "creator",
-      options: [
-        { value: "any creator", key: "anyCreator" },
-        { value: "a woman in her 20s", key: "woman20s" },
-        { value: "a man in his 30s", key: "man30s" },
-        { value: "a founder or expert", key: "founder" },
-      ],
-    },
-    {
-      id: "setting",
-      options: [
-        { value: "a real home setting", key: "realHome" },
-        { value: "a bathroom mirror", key: "bathroomMirror" },
-        { value: "a kitchen counter", key: "kitchenCounter" },
-        { value: "the front seat of a car", key: "carInterior" },
-      ],
-    },
-    {
-      id: "beat",
-      options: [
-        { value: "a problem, product proof, then a reaction", key: "problemProofReaction" },
-        { value: "a quick honest testimonial", key: "quickTestimonial" },
-        { value: "a product demonstration with one clear result", key: "productDemo" },
-        { value: "an unexpected first impression", key: "firstImpression" },
-      ],
-    },
-    {
-      id: "camera",
-      options: [
-        { value: "a front-facing selfie camera", key: "frontSelfie" },
-        { value: "a friend filming handheld", key: "friendFilming" },
-        { value: "a close handheld product detail", key: "closeHandheld" },
-        { value: "a locked-off phone on a surface", key: "phoneOnSurface" },
-      ],
-    },
-  ],
-  unboxing: [
-    {
-      id: "view",
-      options: [
-        { value: "top-down hands opening the package", key: "topDownHands" },
-        { value: "an over-the-shoulder unboxing", key: "overShoulder" },
-        { value: "a close handheld reveal", key: "closeReveal" },
-      ],
-    },
-    {
-      id: "surface",
-      options: [
-        { value: "a warm kitchen table", key: "kitchenTable" },
-        { value: "a clean desk by a window", key: "deskByWindow" },
-        { value: "a soft bedroom surface", key: "bedroomSurface" },
-      ],
-    },
-    {
-      id: "moment",
-      options: [
-        { value: "the satisfying reveal of the product", key: "satisfyingReveal" },
-        { value: "the first use straight from the box", key: "firstUse" },
-        { value: "a close look at the packaging details", key: "packagingDetails" },
-      ],
-    },
-  ],
-  hypermotion: [
-    {
-      id: "movement",
-      options: [
-        { value: "a fast push-in with a sharp orbit", key: "pushInOrbit" },
-        { value: "a whip-pan between product details", key: "whipPan" },
-        { value: "a smooth floating macro move", key: "floatingMacro" },
-      ],
-    },
-    {
-      id: "light",
-      options: [
-        { value: "a crisp electric blue rim light", key: "blueRim" },
-        { value: "hard studio light with deep shadows", key: "hardStudio" },
-        { value: "warm sunset light with bright highlights", key: "warmHighlights" },
-      ],
-    },
-  ],
-  tvspot: [
-    {
-      id: "camera",
-      options: [
-        { value: "a locked-off hero composition", key: "lockedHero" },
-        { value: "a slow, deliberate dolly forward", key: "slowDolly" },
-        { value: "a graceful product orbit", key: "productOrbit" },
-      ],
-    },
-    {
-      id: "mood",
-      options: [
-        { value: "quiet, refined and confident", key: "quietRefined" },
-        { value: "bold and high-contrast", key: "boldContrast" },
-        { value: "warm, optimistic and human", key: "warmHuman" },
-      ],
-    },
-  ],
-};
+// Os submodos dos modos de fabrica agora vem do SERVIDOR, junto do modo a que
+// pertencem (`SUBMODOS`, no server.mjs), e chegam aqui pelo catalogo. Antes
+// viviam nesta constante, o que tornava um modo de fabrica editavel pela metade:
+// dava para trocar o brief pela aba Modes e nao os seletores.
+
+// Um caminho so para os dois casos. O rotulo vem do dicionario quando o campo
+// traz `key` (submodo de fabrica) e vem cru quando nao traz (submodo que a
+// propria pessoa escreveu, na aba Modes ou editando um de fabrica).
+export function shotFields(controls, t) {
+  return (controls ?? []).map((field) => ({
+    id: field.id,
+    label: field.key ? t(field.key) : field.label,
+    options: (field.options ?? []).map((o) => ({
+      value: typeof o === "string" ? o : o.value,
+      label: typeof o === "string" ? o : (o.key ? t(o.key) : (o.label ?? o.value)),
+    })),
+  })).filter((field) => field.options.length);
+}
 
 function ShotDirection({ format, values, onChange, customControls }) {
   const t = useT();
-  // Modos de fabrica trazem os submodos daqui; os criados na aba Modes trazem
-  // os deles pelo catalogo, ja no mesmo formato — e os rotulos deles sao o
-  // texto que a propria pessoa escreveu, entao nao passam pelo dicionario.
-  const builtin = SHOT_DIRECTION[format];
-  const fields = builtin
-    ? builtin.map((field) => ({
-        id: field.id,
-        label: t(`prompt.shot.field.${field.id}`),
-        options: field.options.map((o) => ({ value: o.value, label: t(`prompt.shot.opt.${o.key}`) })),
-      }))
-    : customControls ?? [];
+  const fields = shotFields(customControls, t);
   if (!fields.length) return null;
 
   return (
@@ -747,7 +650,7 @@ export default function PromptBar({
           format={format}
           values={shotSettings}
           onChange={setShotSettings}
-          customControls={(catalog.formats ?? []).find((f) => f.id === format && f.custom)?.controls}
+          customControls={(catalog.formats ?? []).find((f) => f.id === format)?.controls}
         />
 
         <div className="bar-top">

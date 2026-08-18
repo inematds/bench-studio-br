@@ -748,7 +748,7 @@ function modosEfetivos() {
       const meu = override(id);
       return meu
         ? { id, label: meu.label, brief: meu.brief, controls: meu.controls, custom: false, edited: true }
-        : { id, label: f.label, brief: f.brief ?? "", custom: false, edited: false };
+        : { id, label: f.label, brief: f.brief ?? "", controls: SUBMODOS[id] ?? [], custom: false, edited: false };
     });
 
   const meus = salvos.filter((m) => !m.overrides).map((m) => ({ ...m, custom: true }));
@@ -953,6 +953,84 @@ async function rewriteWithCodex(sys, idea) {
 
 // The format presets. This is the Marketing-Studio layer, except you can read it —
 // e, com a aba Modes, tambem editar sem tocar em codigo.
+// Os SUBMODOS dos modos de fabrica. Viviam no PromptBar.jsx, em codigo do
+// front, e por isso a edicao de um modo de fabrica nao os alcancava: dava para
+// trocar o brief e nao os seletores. Aqui eles ficam ao lado do brief que
+// governam, e a interface passa a receber os dois pelo mesmo caminho.
+//
+// `value` VAI PARA O PROMPT e continua em ingles; `key` e so como a interface
+// traduz o rotulo. Modo editado pelo usuario nao tem key: o rotulo e o texto
+// que ele mesmo escreveu.
+const SUBMODOS = {
+  ugc: [
+    { id: "creator", key: "prompt.shot.field.creator", options: [
+      { value: "any creator", key: "prompt.shot.opt.anyCreator" },
+      { value: "a woman in her 20s", key: "prompt.shot.opt.woman20s" },
+      { value: "a man in his 30s", key: "prompt.shot.opt.man30s" },
+      { value: "a founder or expert", key: "prompt.shot.opt.founder" },
+    ] },
+    { id: "setting", key: "prompt.shot.field.setting", options: [
+      { value: "a real home setting", key: "prompt.shot.opt.realHome" },
+      { value: "a bathroom mirror", key: "prompt.shot.opt.bathroomMirror" },
+      { value: "a kitchen counter", key: "prompt.shot.opt.kitchenCounter" },
+      { value: "the front seat of a car", key: "prompt.shot.opt.carInterior" },
+    ] },
+    { id: "beat", key: "prompt.shot.field.beat", options: [
+      { value: "a problem, product proof, then a reaction", key: "prompt.shot.opt.problemProofReaction" },
+      { value: "a quick honest testimonial", key: "prompt.shot.opt.quickTestimonial" },
+      { value: "a product demonstration with one clear result", key: "prompt.shot.opt.productDemo" },
+      { value: "an unexpected first impression", key: "prompt.shot.opt.firstImpression" },
+    ] },
+    { id: "camera", key: "prompt.shot.field.camera", options: [
+      { value: "a front-facing selfie camera", key: "prompt.shot.opt.frontSelfie" },
+      { value: "a friend filming handheld", key: "prompt.shot.opt.friendFilming" },
+      { value: "a close handheld product detail", key: "prompt.shot.opt.closeHandheld" },
+      { value: "a locked-off phone on a surface", key: "prompt.shot.opt.phoneOnSurface" },
+    ] },
+  ],
+  unboxing: [
+    { id: "view", key: "prompt.shot.field.view", options: [
+      { value: "top-down hands opening the package", key: "prompt.shot.opt.topDownHands" },
+      { value: "an over-the-shoulder unboxing", key: "prompt.shot.opt.overShoulder" },
+      { value: "a close handheld reveal", key: "prompt.shot.opt.closeReveal" },
+    ] },
+    { id: "surface", key: "prompt.shot.field.surface", options: [
+      { value: "a warm kitchen table", key: "prompt.shot.opt.kitchenTable" },
+      { value: "a clean desk by a window", key: "prompt.shot.opt.deskByWindow" },
+      { value: "a soft bedroom surface", key: "prompt.shot.opt.bedroomSurface" },
+    ] },
+    { id: "moment", key: "prompt.shot.field.moment", options: [
+      { value: "the satisfying reveal of the product", key: "prompt.shot.opt.satisfyingReveal" },
+      { value: "the first use straight from the box", key: "prompt.shot.opt.firstUse" },
+      { value: "a close look at the packaging details", key: "prompt.shot.opt.packagingDetails" },
+    ] },
+  ],
+  hypermotion: [
+    { id: "movement", key: "prompt.shot.field.movement", options: [
+      { value: "a fast push-in with a sharp orbit", key: "prompt.shot.opt.pushInOrbit" },
+      { value: "a whip-pan between product details", key: "prompt.shot.opt.whipPan" },
+      { value: "a smooth floating macro move", key: "prompt.shot.opt.floatingMacro" },
+    ] },
+    { id: "light", key: "prompt.shot.field.light", options: [
+      { value: "a crisp electric blue rim light", key: "prompt.shot.opt.blueRim" },
+      { value: "hard studio light with deep shadows", key: "prompt.shot.opt.hardStudio" },
+      { value: "warm sunset light with bright highlights", key: "prompt.shot.opt.warmHighlights" },
+    ] },
+  ],
+  tvspot: [
+    { id: "camera", key: "prompt.shot.field.camera", options: [
+      { value: "a locked-off hero composition", key: "prompt.shot.opt.lockedHero" },
+      { value: "a slow, deliberate dolly forward", key: "prompt.shot.opt.slowDolly" },
+      { value: "a graceful product orbit", key: "prompt.shot.opt.productOrbit" },
+    ] },
+    { id: "mood", key: "prompt.shot.field.mood", options: [
+      { value: "quiet, refined and confident", key: "prompt.shot.opt.quietRefined" },
+      { value: "bold and high-contrast", key: "prompt.shot.opt.boldContrast" },
+      { value: "warm, optimistic and human", key: "prompt.shot.opt.warmHuman" },
+    ] },
+  ],
+};
+
 const FORMATS = {
   none: { label: "Freeform", brief: "" },
   ugc: {

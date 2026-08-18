@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import TopBar from "./TopBar.jsx";
-import PromptBar, { SHOT_DIRECTION } from "./PromptBar.jsx";
+import PromptBar from "./PromptBar.jsx";
 import ModelWall from "./ModelWall.jsx";
 import Work from "./Work.jsx";
 import Ledger from "./Ledger.jsx";
@@ -462,10 +462,18 @@ export default function App() {
   }, [modelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const next = Object.fromEntries((SHOT_DIRECTION[format] ?? []).map((field) => [field.id, field.options[0].value]));
+    // O padrao de cada seletor e a primeira opcao do que o SERVIDOR declara para
+    // aquele modo — inclusive quando o modo de fabrica foi editado. Ler de uma
+    // constante do front devolveria o submodo antigo depois da edicao.
+    const controls = (catalog?.formats ?? []).find((f) => f.id === format)?.controls ?? [];
+    const next = Object.fromEntries(controls
+      .filter((field) => field.options?.length)
+      .map((field) => [field.id, typeof field.options[0] === "string" ? field.options[0] : field.options[0].value]));
     setShotSettings(next);
     setRewritten(null);
-  }, [format]);
+    // Depende do catalogo tambem: ele chega depois do primeiro render, e e ele
+    // que carrega os submodos agora.
+  }, [format, catalog]);
 
   useEffect(() => {
     if (!model) return;
