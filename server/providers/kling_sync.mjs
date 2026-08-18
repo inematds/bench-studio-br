@@ -76,31 +76,78 @@ function paramsFrom(args) {
   return params;
 }
 
-const IMAGE_INPUT = {
-  name: "image",
-  type: "string",
-  title: "Imagem",
-  description: "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
-  modality: "image",
-  role: "source",
-  arity: "single",
-  required: true,
-};
+// As entradas NAO sao iguais em todo modelo, e supor que sao foi o defeito que
+// mandou `--tailImage` para o v3_0_turbo e recebeu recusa. O `who_am_i` declara
+// isso por modelo, no campo `inputs`, em tres formatos:
+//
+//   first_image + tail_image        -> quadro inicial e final (keyframes)
+//   first_image                     -> so o primeiro quadro
+//   image_1 .. image_N              -> ate N referencias soltas (a flag --image
+//                                      do CLI e repetivel)
+//
+// Traduzir isso e o trabalho desta funcao. O nome do CAMPO aqui e o nome da
+// FLAG do CLI, nao o nome que o Kling usa no schema.
+function mediaInputsFrom(inputs) {
+  const nomes = (inputs ?? []).map((i) => i.name);
+  if (!nomes.length) return [];
 
-// O `--tailImage` do CLI e opcao de CLIENTE do image_to_video (nao aparece em
-// `who_am_i`, que so lista argumentos de modelo), e e o que da keyframes ao
-// Kling: primeiro quadro no --image, ultimo no --tailImage. Sem declarar aqui a
-// interface nao tinha como oferecer os dois seletores.
-const TAIL_IMAGE_INPUT = {
-  name: "tailImage",
-  type: "string",
-  title: "Quadro final",
-  description: "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
-  modality: "image",
-  role: "source",
-  arity: "single",
-  required: false,
-};
+  const numeradas = nomes.filter((n) => /^image_\d+$/.test(n));
+  if (numeradas.length) {
+    return [{
+      name: "image",
+      type: "string",
+      title: "Imagens de referência",
+      description: `Até ${numeradas.length} imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.`,
+      modality: "image",
+      role: "source",
+      arity: "multiple",
+      required: true,
+      limits: { max_items: numeradas.length },
+    }];
+  }
+
+  const out = [];
+  if (nomes.includes("first_image")) {
+    out.push({
+      name: "image",
+      type: "string",
+      title: "Quadro inicial",
+      description: "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+      modality: "image",
+      role: "source",
+      arity: "single",
+      required: true,
+    });
+  }
+  if (nomes.includes("tail_image")) {
+    out.push({
+      name: "tailImage",
+      type: "string",
+      title: "Quadro final",
+      description: "Imagem em que o vídeo termina. Opcional: sem ela o modelo anima só a partir da primeira.",
+      modality: "image",
+      role: "source",
+      arity: "single",
+      required: false,
+    });
+  }
+  // Formatos que este tradutor ainda nao conhece (o v2_1 de imagem usa
+  // subject_image_N + scene_image + style_image): melhor uma referencia
+  // generica do que prometer campo que nao existe.
+  if (!out.length) {
+    out.push({
+      name: "image",
+      type: "string",
+      title: "Imagem",
+      description: `Imagem de referência (o modelo declara: ${nomes.join(", ")}).`,
+      modality: "image",
+      role: "source",
+      arity: "single",
+      required: true,
+    });
+  }
+  return out;
+}
 
 // MEDIDO 2026-08-16: o CLI do Kling TRUNCA a saída em exatamente 65536 bytes
 // quando stdout é um pipe — ele encerra antes de esvaziar o buffer. O
@@ -125,12 +172,12 @@ for (const [tool, meta] of Object.entries(TOOL_LANE)) {
       thumbnail: null,
       alias: m.alias ?? null,
       description: m.description ?? null,
-      image_input: wantsImage ? { name: "image", arity: "single", required: true } : null,
-      image_inputs: wantsImage ? (meta.lane === "i2v" ? ["image", "tailImage"] : ["image"]) : [],
-      media_inputs: wantsImage
-        ? (meta.lane === "i2v" ? [IMAGE_INPUT, TAIL_IMAGE_INPUT] : [IMAGE_INPUT])
-        : [],
-      accepts_image: wantsImage ? "single" : null,
+      image_input: wantsImage
+        ? { name: "image", arity: mediaInputsFrom(m.inputs)[0]?.arity ?? "single", required: true }
+        : null,
+      image_inputs: wantsImage ? mediaInputsFrom(m.inputs).map((i) => i.name) : [],
+      media_inputs: wantsImage ? mediaInputsFrom(m.inputs) : [],
+      accepts_image: wantsImage ? (mediaInputsFrom(m.inputs)[0]?.arity ?? "single") : null,
       image_param: wantsImage ? "image" : null,
       required: wantsImage ? ["image"] : ["prompt"],
       params: paramsFrom(m.arguments),

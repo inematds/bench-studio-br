@@ -94,13 +94,18 @@ function tailFrom(input) {
   return typeof first === "string" && first ? first : null;
 }
 
-function referenceFrom(input) {
+// TODAS as referencias, nao so a primeira: modelos como o o1 e o v3_0_omni
+// aceitam ate 7 imagens, e a flag `--image` do CLI e repetivel. Mandar uma so
+// jogaria fora o que a pessoa anexou, em silencio.
+function referencesFrom(input) {
+  const out = [];
   for (const field of ["image", "image_url", "images", "image_urls"]) {
     const v = input[field];
-    const first = Array.isArray(v) ? v[0] : v;
-    if (typeof first === "string" && first) return first;
+    for (const item of (Array.isArray(v) ? v : [v])) {
+      if (typeof item === "string" && item && !out.includes(item)) out.push(item);
+    }
   }
-  return null;
+  return out;
 }
 
 // Parâmetros do modelo viram flags `--nome valor`. Só entram os que o registry
@@ -122,15 +127,19 @@ export function createKlingProvider({ modelById } = {}) {
   async function submit(modelId, input) {
     const { model, tool } = route(modelId);
     const declared = modelById?.(modelId)?.params ?? null;
-    const reference = referenceFrom(input);
-    if ((tool === "image_to_video" || tool === "image_to_image") && !reference) {
+    const references = referencesFrom(input);
+    if ((tool === "image_to_video" || tool === "image_to_image") && !references.length) {
       throw new Error(`${modelId} precisa de uma imagem de referência.`);
     }
 
     const before = await credits();
     const args = [tool, "--model", model, ...flagsFor(model, input, declared)];
-    if (reference) args.push("--image", reference);
-    const tail = tool === "image_to_video" ? tailFrom(input) : null;
+    for (const reference of references) args.push("--image", reference);
+    // O quadro final so vai para quem declara `tail_image` no who_am_i. O
+    // v3_0_turbo, por exemplo, aceita SO o primeiro quadro, e mandar a flag
+    // assim mesmo fazia o CLI recusar a geracao inteira.
+    const aceitaTail = (modelById?.(modelId)?.media_inputs ?? []).some((i) => i.name === "tailImage");
+    const tail = tool === "image_to_video" && aceitaTail ? tailFrom(input) : null;
     if (tail) args.push("--tailImage", tail);
     args.push(input.prompt ?? "");
 

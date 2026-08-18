@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generated_at": "2026-08-18T03:35:00.740Z",
+  "generated_at": "2026-08-18T10:35:41.131Z",
   "schema_generated_at": "2026-08-12T18:57:37.821Z",
-  "registry_signature": "fal-ai/flux-2/flash:,fal-ai/flux-2-pro:,fal-ai/nano-banana-pro:,fal-ai/nano-banana-2:,openai/gpt-image-2:,bytedance/seedream/v5/pro/text-to-image:,alibaba/qwen-image-3/text-to-image:,fal-ai/recraft/v4.1/text-to-image:,xai/grok-imagine-image/v2.0/text-to-image:,fal-ai/nano-banana-pro/edit:image_urls,fal-ai/nano-banana-2/edit:audio_url|image_urls|video_url|pdf_url,openai/gpt-image-2/edit:mask_url|image_urls,bytedance/seedream/v5/pro/edit:image_urls,alibaba/qwen-image-3/edit:image_urls,fal-ai/flux-2-pro/edit:image_urls,lightricks/ltx-2.5/text-to-video/fast:,fal-ai/kling-video/v3/turbo/standard/text-to-video:,fal-ai/kling-video/v3/pro/text-to-video:,bytedance/seedance-2.5/text-to-video:,bytedance/seedance-2.0/fast/text-to-video:,minimax/h3/text-to-video:,fal-ai/wan/v2.7/text-to-video:audio_url,fal-ai/veo3.1/fast:,fal-ai/veo3.1:,blackforestlabs/flux-3/text-to-video:,xai/grok-imagine-video/v1.5/text-to-video:,lightricks/ltx-2.5/image-to-video/fast:image_url|end_image_url,fal-ai/kling-video/v3/pro/image-to-video:elements|end_image_url|start_image_url,bytedance/seedance-2.5/image-to-video:image_url|end_image_url,minimax/h3/image-to-video:end_image_url|image_url,wan/v2.6/image-to-video:image_url|audio_url,fal-ai/veo3.1/fast/image-to-video:image_url,fal-ai/veo3.1/reference-to-video:image_urls,bytedance/seedance-2.0/reference-to-video:audio_urls|image_urls|video_urls,minimax/h3/reference-to-video:reference_image_urls|reference_audio_urls|reference_video_urls,fal-ai/wan/v2.7/reference-to-video:reference_image_urls|reference_video_urls,xai/grok-imagine-video/reference-to-video:reference_image_urls,agnes/agnes-image-2.1-flash:,agnes/agnes-image-2.1-flash/edit:image,agnes/agnes-video-v2.0:,agnes/agnes-video-v2.0/i2v:image,inemaimg/flux2-klein:,inemaimg/flux2-klein/edit:images,kie/z-image:,kie/nano-banana-pro:,kie/nano-banana-pro/edit:image_urls,kie/veo3_fast:image_urls,kling/kling-video-v2_5:,kling/kling-video-v2_6:,kling/kling-video-o1:,kling/kling-video-v3_0_omni:,kling/kling-video-v3_0:,kling/kling-video-v3_0_turbo:,kling/kling-video-v2_5/i2v:image|tailImage,kling/kling-video-v2_6/i2v:image|tailImage,kling/kling-video-o1/i2v:image|tailImage,kling/kling-video-v3_0_omni/i2v:image|tailImage,kling/kling-video-v3_0/i2v:image|tailImage,kling/kling-video-v3_0_turbo/i2v:image|tailImage,kling/gemini-3.1-flash-image:,kling/gpt-image-2:,kling/gemini-3-pro-image:,kling/kling-image-v3_0_omni:,kling/kling-image-o1:,kling/kling-image-v3_0:,kling/kling-image-v2_1:,kling/gemini-3.1-flash-image/edit:image,kling/gpt-image2/edit:image,kling/gemini-3-pro-image/edit:image,kling/kling-image-v3_0_omni/edit:image,kling/kling-image-o1/edit:image,kling/kling-image-v3_0/edit:image,kling/kling-image-v2_1/edit:image",
+  "registry_signature": "fal-ai/flux-2/flash:,fal-ai/flux-2-pro:,fal-ai/nano-banana-pro:,fal-ai/nano-banana-2:,openai/gpt-image-2:,bytedance/seedream/v5/pro/text-to-image:,alibaba/qwen-image-3/text-to-image:,fal-ai/recraft/v4.1/text-to-image:,xai/grok-imagine-image/v2.0/text-to-image:,fal-ai/nano-banana-pro/edit:image_urls,fal-ai/nano-banana-2/edit:audio_url|image_urls|video_url|pdf_url,openai/gpt-image-2/edit:mask_url|image_urls,bytedance/seedream/v5/pro/edit:image_urls,alibaba/qwen-image-3/edit:image_urls,fal-ai/flux-2-pro/edit:image_urls,lightricks/ltx-2.5/text-to-video/fast:,fal-ai/kling-video/v3/turbo/standard/text-to-video:,fal-ai/kling-video/v3/pro/text-to-video:,bytedance/seedance-2.5/text-to-video:,bytedance/seedance-2.0/fast/text-to-video:,minimax/h3/text-to-video:,fal-ai/wan/v2.7/text-to-video:audio_url,fal-ai/veo3.1/fast:,fal-ai/veo3.1:,blackforestlabs/flux-3/text-to-video:,xai/grok-imagine-video/v1.5/text-to-video:,lightricks/ltx-2.5/image-to-video/fast:image_url|end_image_url,fal-ai/kling-video/v3/pro/image-to-video:elements|end_image_url|start_image_url,bytedance/seedance-2.5/image-to-video:image_url|end_image_url,minimax/h3/image-to-video:end_image_url|image_url,wan/v2.6/image-to-video:image_url|audio_url,fal-ai/veo3.1/fast/image-to-video:image_url,fal-ai/veo3.1/reference-to-video:image_urls,bytedance/seedance-2.0/reference-to-video:audio_urls|image_urls|video_urls,minimax/h3/reference-to-video:reference_image_urls|reference_audio_urls|reference_video_urls,fal-ai/wan/v2.7/reference-to-video:reference_image_urls|reference_video_urls,xai/grok-imagine-video/reference-to-video:reference_image_urls,agnes/agnes-image-2.1-flash:,agnes/agnes-image-2.1-flash/edit:image,agnes/agnes-video-v2.0:,agnes/agnes-video-v2.0/i2v:image,inemaimg/flux2-klein:,inemaimg/flux2-klein/edit:images,kie/z-image:,kie/nano-banana-pro:,kie/nano-banana-pro/edit:image_urls,kie/veo3_fast:image_urls,kling/kling-video-v2_5:,kling/kling-video-v2_6:,kling/kling-video-o1:,kling/kling-video-v3_0_omni:,kling/kling-video-v3_0:,kling/kling-video-v3_0_turbo:,kling/kling-video-v2_5/i2v:image|tailImage,kling/kling-video-v2_6/i2v:image|tailImage,kling/kling-video-o1/i2v:image,kling/kling-video-v3_0_omni/i2v:image,kling/kling-video-v3_0/i2v:image|tailImage,kling/kling-video-v3_0_turbo/i2v:image,kling/gemini-3.1-flash-image:,kling/gpt-image-2:,kling/gemini-3-pro-image:,kling/kling-image-v3_0_omni:,kling/kling-image-o1:,kling/kling-image-v3_0:,kling/kling-image-v2_1:,kling/gemini-3.1-flash-image/edit:image,kling/gpt-image2/edit:image,kling/gemini-3-pro-image/edit:image,kling/kling-image-v3_0_omni/edit:image,kling/kling-image-o1/edit:image,kling/kling-image-v3_0/edit:image,kling/kling-image-v2_1/edit:image",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
     "schema-supported": "Declared by fal's live OpenAPI schema; not necessarily exercised.",
@@ -1758,7 +1758,7 @@
           "role": "source",
           "arity": "single",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -1782,7 +1782,7 @@
           "role": "source",
           "arity": "single",
           "required": false,
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Imagem em que o vídeo termina. Opcional: sem ela o modelo anima só a partir da primeira.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -1823,7 +1823,7 @@
           "role": "source",
           "arity": "single",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -1847,7 +1847,7 @@
           "role": "source",
           "arity": "single",
           "required": false,
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Imagem em que o vídeo termina. Opcional: sem ela o modelo anima só a partir da primeira.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -1886,33 +1886,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": null,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
-            }
-          ]
-        },
-        {
-          "field": "tailImage",
-          "modality": "image",
-          "role": "source",
-          "arity": "single",
-          "required": false,
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Até 7 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -1935,7 +1911,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -1951,33 +1927,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": null,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
-            }
-          ]
-        },
-        {
-          "field": "tailImage",
-          "modality": "image",
-          "role": "source",
-          "arity": "single",
-          "required": false,
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Até 7 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2000,7 +1952,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -2018,7 +1970,7 @@
           "role": "source",
           "arity": "single",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2042,7 +1994,7 @@
           "role": "source",
           "arity": "single",
           "required": false,
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Imagem em que o vídeo termina. Opcional: sem ela o modelo anima só a partir da primeira.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2083,31 +2035,7 @@
           "role": "source",
           "arity": "single",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": null,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
-            }
-          ]
-        },
-        {
-          "field": "tailImage",
-          "modality": "image",
-          "role": "source",
-          "arity": "single",
-          "required": false,
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2244,9 +2172,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2269,7 +2197,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -2285,9 +2213,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2310,7 +2238,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -2326,9 +2254,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Até 2 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2351,7 +2279,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -2367,9 +2295,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2392,7 +2320,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -2408,9 +2336,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2433,7 +2361,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -2449,9 +2377,9 @@
           "field": "image",
           "modality": "image",
           "role": "source",
-          "arity": "single",
+          "arity": "multiple",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "accepted_type": "string",
           "item_type": null,
           "limits": {
@@ -2474,7 +2402,7 @@
         "image"
       ],
       "primary_image_field": "image",
-      "image_arity": "single",
+      "image_arity": "multiple",
       "prompt_profile": false,
       "researched_input_evidence": null,
       "confidence": "schema-supported"
@@ -2492,7 +2420,7 @@
           "role": "source",
           "arity": "single",
           "required": true,
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Imagem de referência (o modelo declara: subject_image_0, subject_image_1, subject_image_2, subject_image_3, scene_image, style_image).",
           "accepted_type": "string",
           "item_type": null,
           "limits": {

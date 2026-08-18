@@ -1,7 +1,7 @@
 {
   "_meta": {
     "provider": "kling",
-    "generated_at": "2026-08-18T03:33:59.309Z",
+    "generated_at": "2026-08-18T10:35:00.795Z",
     "source": "kling who_am_i (CLI oficial @klingai/cli-global)",
     "account": "userId 3422648",
     "regenerate": "node server/providers/kling_sync.mjs",
@@ -578,8 +578,8 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Quadro inicial",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
           "arity": "single",
@@ -589,7 +589,7 @@
           "name": "tailImage",
           "type": "string",
           "title": "Quadro final",
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Imagem em que o vídeo termina. Opcional: sem ela o modelo anima só a partir da primeira.",
           "modality": "image",
           "role": "source",
           "arity": "single",
@@ -698,8 +698,8 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Quadro inicial",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
           "arity": "single",
@@ -709,7 +709,7 @@
           "name": "tailImage",
           "type": "string",
           "title": "Quadro final",
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Imagem em que o vídeo termina. Opcional: sem ela o modelo anima só a partir da primeira.",
           "modality": "image",
           "role": "source",
           "arity": "single",
@@ -784,36 +784,28 @@
       "description": "Unified video model with all-in-one multimodal instructions and exceptional consistency.",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
-        "image",
-        "tailImage"
+        "image"
       ],
       "media_inputs": [
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 7 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
-        },
-        {
-          "name": "tailImage",
-          "type": "string",
-          "title": "Quadro final",
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
-          "modality": "image",
-          "role": "source",
-          "arity": "single",
-          "required": false
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 7
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -888,36 +880,28 @@
       "description": "All-in-one multimodal input, voice-driven characters, and native audio output. Default model for multi-image to video generation (first-tail and multi image ref). For single-image to video generation, use kling3.0-turbo instead.",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
-        "image",
-        "tailImage"
+        "image"
       ],
       "media_inputs": [
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 7 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
-        },
-        {
-          "name": "tailImage",
-          "type": "string",
-          "title": "Quadro final",
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
-          "modality": "image",
-          "role": "source",
-          "arity": "single",
-          "required": false
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 7
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -1031,8 +1015,8 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Quadro inicial",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
           "arity": "single",
@@ -1042,7 +1026,7 @@
           "name": "tailImage",
           "type": "string",
           "title": "Quadro final",
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
+          "description": "Imagem em que o vídeo termina. Opcional: sem ela o modelo anima só a partir da primeira.",
           "modality": "image",
           "role": "source",
           "arity": "single",
@@ -1144,29 +1128,18 @@
         "required": true
       },
       "image_inputs": [
-        "image",
-        "tailImage"
+        "image"
       ],
       "media_inputs": [
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Quadro inicial",
+          "description": "Imagem em que o vídeo começa. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
           "arity": "single",
           "required": true
-        },
-        {
-          "name": "tailImage",
-          "type": "string",
-          "title": "Quadro final",
-          "description": "Ultimo quadro do video. Opcional: sem ele o modelo anima so a partir da primeira imagem.",
-          "modality": "image",
-          "role": "source",
-          "arity": "single",
-          "required": false
         }
       ],
       "accepts_image": "single",
@@ -1748,7 +1721,7 @@
       "description": "Nano Banana 2 Flash (Gemini 3.1 Flash) image-to-image; single or multi-image reference (up to 10 via URL).",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
@@ -1758,15 +1731,18 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 10
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -1842,7 +1818,7 @@
       "description": "GPT-Image2 image-to-image; single or multi-image reference (up to 10, total ≤ 50 MB).",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
@@ -1852,15 +1828,18 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 10
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -1943,7 +1922,7 @@
       "description": "Higher-fidelity edit / blend / restyle from reference images with Gemini 3 Pro (Nano Banana Pro). Supports up to 4K.",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
@@ -1953,15 +1932,18 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 2 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 2
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -2032,7 +2014,7 @@
       "description": "Enhanced narrative expression, native 2K/4K ultra-high definition output, and image series generation. Default model for image to image generation (single or multi image ref).",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
@@ -2042,15 +2024,18 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 10
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -2132,7 +2117,7 @@
       "description": "High feature consistency with precise detail editing and accurate style transfer.",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
@@ -2142,15 +2127,18 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 10
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -2219,7 +2207,7 @@
       "description": "Strengthen consistency, free multi-reference images, comprehensive effect upgrade.",
       "image_input": {
         "name": "image",
-        "arity": "single",
+        "arity": "multiple",
         "required": true
       },
       "image_inputs": [
@@ -2229,15 +2217,18 @@
         {
           "name": "image",
           "type": "string",
-          "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "title": "Imagens de referência",
+          "description": "Até 10 imagens de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
           "modality": "image",
           "role": "source",
-          "arity": "single",
-          "required": true
+          "arity": "multiple",
+          "required": true,
+          "limits": {
+            "max_items": 10
+          }
         }
       ],
-      "accepts_image": "single",
+      "accepts_image": "multiple",
       "image_param": "image",
       "required": [
         "image"
@@ -2317,7 +2308,7 @@
           "name": "image",
           "type": "string",
           "title": "Imagem",
-          "description": "Imagem de referência. O CLI aceita URL pública ou caminho local e faz o upload sozinho.",
+          "description": "Imagem de referência (o modelo declara: subject_image_0, subject_image_1, subject_image_2, subject_image_3, scene_image, style_image).",
           "modality": "image",
           "role": "source",
           "arity": "single",
