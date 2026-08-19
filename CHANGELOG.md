@@ -4,6 +4,20 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.13.7
+
+### Mudou
+- **`npm run update` agora termina o trabalho: ele reinicia.** Antes ele parava
+  imprimindo o que você deveria digitar, o que deixava a máquina com o código
+  novo no disco e o antigo na memória — o jeito mais fácil de concluir que "a
+  correção não funcionou". Se existe um serviço systemd ativo, ele reinicia o
+  serviço; se não, usa `stop.sh` + `start.sh`. E devolve o que estava no ar:
+  se a interface estava publicada na rede, volta publicada; se a interface de
+  celular estava de pé, volta também (`start.sh --mobile`). `--no-restart`
+  desliga esse passo.
+- **`npm install` também roda quando não há `node_modules`**, não só quando o
+  `package.json` mudou — clone novo não tinha por que exigir um passo extra.
+
 ## 1.12.7
 
 ### Corrigido

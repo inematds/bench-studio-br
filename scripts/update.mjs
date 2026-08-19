@@ -119,11 +119,30 @@ if (semReinicio) {
   const sudo = process.getuid?.() === 0 ? [] : ["sudo"];
   run(sudo.length ? "sudo" : "systemctl", sudo.length ? ["systemctl", "restart", servico] : ["restart", servico]);
 } else if (existsSync(join(ROOT, "stop.sh")) && existsSync(join(ROOT, "start.sh"))) {
-  // Sem systemd: derruba o que estiver deste projeto e sobe de novo do mesmo
-  // jeito documentado. O stop nao reclama quando nao ha nada rodando.
-  say("reiniciando (start.sh/stop.sh)…");
+  // Sem systemd: derruba o que e deste projeto e sobe de novo.
+  //
+  // Antes de derrubar, olha COMO a interface estava escutando. Quem publicou na
+  // rede (`dev.sh --lan`, ou BENCH_WEB_HOST=0.0.0.0) tem a exposicao no
+  // ambiente do processo, nao em arquivo: reiniciar sem isso devolveria um
+  // estudio preso em 127.0.0.1, e da maquina que atualizou tudo pareceria certo
+  // enquanto o telefone e o resto da rede veriam um servico morto.
+  const porta = process.env.BENCH_WEB_PORT ?? "5200";
+  const portaCelular = process.env.BENCH_MOBILE_PORT ?? "5300";
+  const escuta = spawnSync("ss", ["-tln"], { encoding: "utf8" }).stdout ?? "";
+  const naRede = new RegExp(`0\\.0\\.0\\.0:${porta}\\b`).test(escuta);
+  // A interface de celular e outro processo: o stop derruba os dois, e sem isto
+  // o update devolveria so o desktop — o telefone ficaria fora do ar sem aviso.
+  const tinhaCelular = new RegExp(`:${portaCelular}\\b`).test(escuta);
+  if (tinhaCelular) say("a interface de celular estava no ar — vou devolvê-la também.");
+  if (naRede) say("a interface estava publicada na rede — vou devolvê-la assim.");
+
+  say("reiniciando (stop.sh + start.sh)…");
   spawnSync("./stop.sh", [], { cwd: ROOT, stdio: "inherit" });
-  const subiu = spawnSync("./start.sh", [], { cwd: ROOT, stdio: "inherit" });
+  const subiu = spawnSync("./start.sh", tinhaCelular ? ["--mobile"] : [], {
+    cwd: ROOT,
+    stdio: "inherit",
+    env: naRede ? { ...process.env, BENCH_WEB_HOST: "0.0.0.0" } : process.env,
+  });
   if (subiu.status !== 0) die("o estúdio não voltou. Veja o log indicado acima.");
 } else {
   say("nada rodando por aqui — suba quando quiser: ./start.sh");
