@@ -84,23 +84,53 @@ them on purpose, or `git stash` if you did.
 
 ## Quick install
 
-Three scripts at the root, for the common path. They do exactly what the manual
-steps below do — and stop on the requirement that is missing, instead of leaving
-you with an interface that opens and answers nothing.
+Six scripts at the root cover the whole life of an install. Run them in this
+order; each stops on the problem instead of leaving you with an interface that
+opens and answers nothing.
 
 ```bash
+# 1. get the code
 git clone https://github.com/inematds/bench-studio-br.git
 cd bench-studio-br
-./install.sh        # checks Node, installs deps, creates .env, runs the doctor
-./start.sh          # starts it detached and confirms it is really up
-./stop.sh           # stops server and interface
+
+# 2. install — checks Node, installs dependencies, creates .env, runs the doctor
+./instalar.sh
+
+# 3. start — detached, and it confirms the ports really answered
+./start.sh --mobile        # without --mobile, only the desktop interface
+
+# 4. from here on, updating is one command
+./atualizar.sh
+
+# when something looks wrong
+./resolver.sh              # diagnoses, and fixes what is safe to fix
+./resolver.sh --so-ver     # diagnoses only, touches nothing
+
+# stopping, or handling only the phone interface
+./stop.sh
+./mobile.sh [subir|parar|status]
 ```
 
-`./install.sh` refuses to continue on Node older than 22.5 and prints how to
-upgrade. `./start.sh` writes to `~/bench.log` (override with `BENCH_LOG`), waits
-for the port and shows `/api/health` — `authRequired` there means the server is
-working and asking for your password. To update later: `npm run update`. To
-re-check the machine at any time: `npm run doctor`.
+What each one guarantees:
+
+- **`./instalar.sh`** refuses to continue on Node older than 22.5 — where the
+  server cannot start at all — and prints exactly how to upgrade.
+- **`./start.sh`** writes to `~/bench.log` (`BENCH_LOG` overrides), waits for the
+  port, and shows `/api/health`. `authRequired` there is the server **working**,
+  asking for the password you set.
+- **`./atualizar.sh`** fetches, installs, rebuilds, verifies and restarts. It
+  fetches *before* running the update logic, on purpose — see
+  [The five verbs](#the-five-verbs).
+- **`./resolver.sh`** checks in the order things actually break, and stops at
+  Node when that is the problem, because nothing else matters until it is fixed.
+  It never opens a firewall port for you: exposure is your decision.
+- **`./stop.sh`** only touches processes started from *this* folder.
+- **`./mobile.sh`** exists because the phone interface is a separate process. It
+  refuses to start while the API is down, instead of opening a screen with
+  nothing to talk to.
+
+The English names still work — `install.sh`, `npm run update`, `npm run doctor`
+are the same code underneath — but the scripts above are the documented path.
 
 Publishing to the network needs two more steps, in this order — see
 [Install B](#install-b--vps-reachable-from-outside):
@@ -225,10 +255,9 @@ node -v && npm -v
 # 1. code and dependencies
 git clone https://github.com/inematds/bench-studio-br.git
 cd bench-studio-br
-npm install
 
-# 2. check every requirement before going further — stops on what is wrong
-npm run doctor
+# 2. install and check every requirement — stops on whatever is wrong
+./instalar.sh
 
 # 3. credentials
 cp .env.example .env      # fill in your keys; DELETE the lines you have no key
@@ -242,8 +271,7 @@ npm run set-password
 ./scripts/remote.sh open
 
 # 6. start it so it survives your SSH session ending
-setsid nohup npm run dev > ~/bench.log 2>&1 < /dev/null &
-sleep 15
+./start.sh --mobile        # detached, waits for the ports, reports what answered
 
 # 7. verify — the machine first, the browser after
 ./scripts/remote.sh status
@@ -457,8 +485,16 @@ Going back is one command: `./scripts/install-service.sh --serve dev`.
 
 ```bash
 cd bench-studio-br
-npm run update
+./atualizar.sh
 ```
+
+Use `./atualizar.sh`, not `npm run update` directly. The update logic that runs
+is the copy **on disk** — the old one — so an improvement to the updater would
+only take effect the *next* time. `./atualizar.sh` fetches first and then runs
+the freshly pulled logic, which is why one pass is always enough. (It also
+clears, by itself, the files the machine rewrites and the `nohup.out` that
+otherwise block `git pull` with a message that frightens anyone who just wanted
+to update.)
 
 That is the whole update. It:
 
@@ -777,9 +813,14 @@ opening the desktop says nothing about it.
 ss -tlnp | grep -E '5200|5300'   # 5300 present? and on 0.0.0.0, not 127.0.0.1?
 ```
 
-- **Nothing on 5300** — it was never started. `./start.sh --mobile` starts both;
-  `npm run update` brings back whatever was already running, which is not the
-  same thing as starting something for the first time.
+- **Nothing on 5300** — it was never started. `./start.sh --mobile` starts both,
+  and `./mobile.sh subir` starts just the phone one. `./atualizar.sh` brings back
+  whatever was already running, which is not the same as starting it the first
+  time.
+- **Answers by IP, refuses by name** — `403 Blocked request. This host is not
+  allowed` comes from Vite, which rejects a `Host` header it does not know (DNS
+  rebinding protection). Because the IP works, it looks like DNS or firewall and
+  is neither. Fixed in 1.15.11; on an older install, update.
 - **On 5300 but unreachable from the phone** — firewall: `ufw allow 5300/tcp`.
 - **Started and died** — the reason is in the log, and the fastest way to read it
   is to run it in the foreground, where nothing swallows the error:
@@ -810,6 +851,10 @@ the first four before they bite.
 | A fix that "did not work" on the VPS | It was pulled on a **different machine** than the one serving | `hostname` first. Confirm the version through the running process — `curl -s localhost:8787/api/health` — not just the files | — |
 | A fix that "did not work" on the right machine | Update left new code on disk and the old process in memory | `npm run update` now restarts too (since 1.13.7) | 1.13.7 |
 | `<domain>:5300` never answers | The name resolves to a machine that does not run the studio | `dig +short <domain>` vs `curl -s ifconfig.me` on the studio host | — |
+| `<domain>:5300` answers `403 Blocked request` while the IP works | Vite rejects an unknown `Host` header | Update: the phone config lacked `allowedHosts` | 1.15.11 |
+| `./algo.sh: command not found` | Unix does not look in the current folder | Prefix it: `./atualizar.sh` | — |
+| `git pull` blocked by a file you never edited | Only its **permission** changed (`old mode 100755 / new mode 100644`) — git counts that as a change | `git checkout -- <file>`, or just `./atualizar.sh` | — |
+| Updated, but the process still reports the old version | The update fetched and then exited saying "already up to date" | `./atualizar.sh` now compares the running version too | 1.15.12 |
 | certbot fails on a domain you own | Same thing: the record points elsewhere | Fix the A record, or use a subdomain aimed at the studio machine | — |
 | `authRequired` on `/api/health` | A password is set — this is the server working | Log in through the interface | — |
 | Port 5200 unreachable from outside | Firewall rule missing | `./scripts/remote.sh open` | — |

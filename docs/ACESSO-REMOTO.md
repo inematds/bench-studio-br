@@ -16,20 +16,28 @@ Numa máquina nova que vai ser alcançada de fora, nesta ordem:
 node -v                     # PRECISA ser 22.5+ — veja o passo 0 abaixo
 git clone git@github.com:inematds/bench-studio-br.git
 cd bench-studio-br
-npm install
-npm run doctor              # confere Node, npm, git, deps, .env, portas, repo
-cp .env.example .env        # apague as linhas de chave que você não tem
+./instalar.sh               # dependências, .env e a conferência de requisitos
 npm run set-password        # antes de abrir a porta, não depois
 ./scripts/remote.sh open    # publica a interface + regra de firewall
-setsid nohup npm run dev > ~/bench.log 2>&1 < /dev/null &
-sleep 15
-curl -s localhost:8787/api/health    # {"ok":true,...} ou authRequired = no ar
+ufw allow 5300/tcp          # só se quiser a interface de celular alcançável
+./start.sh --mobile         # sobe, espera as portas e diz o que respondeu
 ```
 
-Para atualizar depois, um comando só: **`npm run update`** — ele descarta os dois
-arquivos que a máquina regrava sozinha, avança sem merge, reinstala dependências
-só quando mudaram e termina rodando o `doctor`. Se houver qualquer outra
-alteração local, ele para e mostra quais, em vez de atropelar.
+Ao terminar de trabalhar: `./stop.sh` (e `./scripts/remote.sh close` para
+fechar a porta).
+
+**Para atualizar, depois, é um comando só: `./atualizar.sh`.** Ele busca o código
+novo ANTES de executar a lógica de atualização — a ordem importa, porque quem
+roda a atualização é a cópia que está no disco, a antiga; sem inverter isso, uma
+melhoria no atualizador só valeria da próxima vez. Ele também limpa sozinho o que
+a máquina regrava e o `nohup.out`, reinstala dependências quando preciso,
+reconstrói o que existir, confere requisitos e **reinicia devolvendo o que estava
+no ar** — inclusive a interface de celular, se ela estava de pé.
+
+**Quando algo não estiver funcionando: `./resolver.sh`.** Ele confere na ordem em
+que as coisas quebram (Node, dependências, API parada, interfaces, firewall) e
+termina comparando a versão do disco com a do processo em execução — divergência
+ali é a causa clássica de "a correção não funcionou".
 
 ### Passo 0: a versão do Node, antes de tudo
 
