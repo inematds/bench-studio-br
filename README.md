@@ -699,6 +699,60 @@ Since 1.6.4 `npm run dev` refuses to start on an old Node and prints what to
 install, instead of dying with a stack trace. If you hit the silent version,
 upgrade Node as shown in [what you need](#before-anything-what-you-need).
 
+### Before you debug anything: which machine, which port
+
+Most of the time lost on a VPS is not spent on a bug. It is spent debugging the
+wrong host. Two checks, first, always:
+
+```bash
+hostname            # is this the machine that actually serves the studio?
+curl -s ifconfig.me # and is this the IP your name resolves to?
+```
+
+If you keep more than one server, it is entirely possible to update one, restart
+it, verify it — and be looking at the other one in the browser the whole time.
+Confirm the version through the **running process**, never through the files:
+
+```bash
+curl -s localhost:8787/api/health   # {"ok":true,"version":"…"}  or authRequired
+```
+
+`authRequired` is the server working and asking for the password you set.
+
+**A domain that resolves elsewhere cannot get a certificate.** Let's Encrypt
+validates by reaching the IP the name resolves to. If `dig +short your.domain`
+does not equal `curl -s ifconfig.me` on the studio machine, `production-nginx.sh`
+will fail at the certbot step, and no flag works around it. Fix the DNS record
+first — or point a fresh subdomain at the right machine, which changes nothing
+that already works.
+
+### The phone interface is not answering
+
+It is a **separate process** from the desktop one. Updating, restarting or
+opening the desktop says nothing about it.
+
+```bash
+ss -tlnp | grep -E '5200|5300'   # 5300 present? and on 0.0.0.0, not 127.0.0.1?
+```
+
+- **Nothing on 5300** — it was never started. `./start.sh --mobile` starts both;
+  `npm run update` brings back whatever was already running, which is not the
+  same thing as starting something for the first time.
+- **On 5300 but unreachable from the phone** — firewall: `ufw allow 5300/tcp`.
+- **Started and died** — the reason is in the log, and the fastest way to read it
+  is to run it in the foreground, where nothing swallows the error:
+
+```bash
+cd <project> && npm run mobile 2>&1 | head -30
+```
+
+`Missing script: mobile` or a missing `mobile/` folder both mean the same thing:
+the pull never landed. Run `npm run update` and read its output to the end — it
+stops and names the files when a local change would be overwritten.
+
+In production behind nginx none of this applies: the phone interface is served
+at `/m` on the same domain and port 5300 is not used at all.
+
 ### The failures we actually hit, by symptom
 
 Every line below cost real time on a real machine. `npm run doctor` now catches
@@ -712,6 +766,9 @@ the first four before they bite.
 | The model changed by itself after attaching an image | Deliberate shortcut — a text-to-X model handed the job to its image-capable sibling — but it happened silently | It asks first, in an in-app dialog | 1.6.3 |
 | `git pull`: *"local changes would be overwritten"* on files you never touched | The machine rewrites them: `kie.models.json` (boot) and `package-lock.json` (npm install) | `npm run update` discards exactly those two and nothing else | 1.7.5 |
 | A fix that "did not work" on the VPS | It was pulled on a **different machine** than the one serving | `hostname` first. Confirm the version through the running process — `curl -s localhost:8787/api/health` — not just the files | — |
+| A fix that "did not work" on the right machine | Update left new code on disk and the old process in memory | `npm run update` now restarts too (since 1.13.7) | 1.13.7 |
+| `<domain>:5300` never answers | The name resolves to a machine that does not run the studio | `dig +short <domain>` vs `curl -s ifconfig.me` on the studio host | — |
+| certbot fails on a domain you own | Same thing: the record points elsewhere | Fix the A record, or use a subdomain aimed at the studio machine | — |
 | `authRequired` on `/api/health` | A password is set — this is the server working | Log in through the interface | — |
 | Port 5200 unreachable from outside | Firewall rule missing | `./scripts/remote.sh open` | — |
 

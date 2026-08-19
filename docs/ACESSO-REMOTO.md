@@ -67,6 +67,60 @@ Ao terminar:
 `./scripts/remote.sh status` responde a qualquer momento: aberto ou fechado, em
 que porta, com ou sem senha, firewall ativo ou não.
 
+### Antes de depurar: qual máquina, qual porta
+
+A maior parte do tempo perdido numa VPS não é gasta com defeito. É gasta
+depurando o servidor errado. Duas checagens, sempre primeiro:
+
+```bash
+hostname             # é esta a máquina que serve o estúdio?
+curl -s ifconfig.me  # e é este o IP para onde o seu domínio aponta?
+```
+
+Com mais de um servidor, é perfeitamente possível atualizar um, reiniciar,
+verificar — e estar olhando o outro no navegador o tempo inteiro. Confirme a
+versão pelo **processo que está rodando**, nunca pelos arquivos:
+
+```bash
+curl -s localhost:8787/api/health
+```
+
+`authRequired` ali é o servidor funcionando, pedindo a senha que você definiu.
+
+**Domínio que resolve para outra máquina não tira certificado.** O Let's Encrypt
+valida batendo no IP que o nome resolve. Se `dig +short seu.dominio` não for
+igual ao `curl -s ifconfig.me` da máquina do estúdio, o `production-nginx.sh`
+falha no certbot, e não há flag que contorne. Arrume o registro A antes — ou
+aponte um subdomínio novo para a máquina certa, o que não mexe em nada que já
+funciona.
+
+### A interface de celular não responde
+
+Ela é um **processo separado** do desktop. Atualizar, reiniciar ou abrir o
+desktop não diz nada sobre ela.
+
+```bash
+ss -tlnp | grep -E '5200|5300'   # a 5300 aparece? e em 0.0.0.0, não 127.0.0.1?
+```
+
+- **Nada na 5300** — ela nunca foi iniciada. `./start.sh --mobile` sobe as duas;
+  o `npm run update` devolve o que já estava no ar, que não é a mesma coisa que
+  iniciar algo pela primeira vez.
+- **Na 5300 mas o celular não alcança** — firewall: `ufw allow 5300/tcp`.
+- **Subiu e morreu** — o motivo está no log, e o jeito mais rápido de ler é
+  rodar no primeiro plano, onde nada engole o erro:
+
+```bash
+npm run mobile 2>&1 | head -30
+```
+
+`Missing script: mobile`, ou pasta `mobile/` inexistente, significam a mesma
+coisa: o pull não entrou. Rode `npm run update` e leia a saída até o fim — ele
+para e nomeia os arquivos quando alguma alteração local seria atropelada.
+
+Em produção atrás do nginx nada disso se aplica: o celular é servido em `/m` do
+mesmo domínio e a porta 5300 não é usada.
+
 ---
 
 ## 2. Por que a senha vem antes da porta
