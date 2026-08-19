@@ -4,6 +4,16 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.6.3
+
+### Mudou
+- **A confirmação de troca de raia virou um diálogo do app.** Na 1.6.2 ela usava
+  `window.confirm`, que desenha uma caixa clara do navegador no meio de uma
+  interface escura — e que o usuário pode suprimir no próprio navegador, o que
+  faria a troca voltar a ser silenciosa. Agora é um `ConfirmDialog` com os
+  tokens do app: fecha no Esc, no clique fora e no botão de cancelar, confirma
+  no Enter, e o botão de confirmar recebe o foco ao abrir.
+
 ## 1.6.2
 
 Duas correções no caminho da imagem de referência: uma que impedia usar

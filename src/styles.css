@@ -774,6 +774,49 @@ p { text-wrap: pretty; }
 .error-actions a { border-color: var(--danger); color: #ffc0b8; }
 .error-actions a:hover, .error-actions button:hover { background: rgba(255,255,255,.06); color: var(--text); }
 
+/* ----------------------------------------------------------- confirmacao */
+/* Substitui o window.confirm do navegador, que desenhava uma caixa clara e
+   estranha no meio da interface escura. Mesmos tokens do resto do app. */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 10, 14, .72);
+  backdrop-filter: blur(2px);
+}
+.confirm-card {
+  width: min(420px, 100%);
+  padding: 20px;
+  border: 1px solid var(--line-bright);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+}
+.confirm-card strong { display: block; font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+.confirm-card p { margin: 8px 0 0; color: var(--text-2); font-size: 14px; line-height: 1.5; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.confirm-actions button {
+  padding: 9px 14px;
+  border: 1px solid var(--line-bright);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+.confirm-actions button:hover { background: rgba(255, 255, 255, .06); color: var(--text); }
+.confirm-actions .primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #0b0f1a;
+}
+.confirm-actions .primary:hover { background: #8aa1ff; color: #0b0f1a; }
+.confirm-actions .primary:focus-visible { outline: 2px solid var(--accent-glow); outline-offset: 2px; }
+
 /* ---------------------------------------------------------------- sections */
 
 .wall { max-width: none; padding: 0; margin: 0; }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TopBar from "./TopBar.jsx";
 import PromptBar from "./PromptBar.jsx";
 import ModelWall from "./ModelWall.jsx";
@@ -163,6 +163,40 @@ function ErrorNotice({ error, onClose }) {
   );
 }
 
+// Confirmacao no estilo do app. Existe porque `window.confirm` bloqueia a thread
+// e desenha uma caixa do navegador no meio de uma interface escura — destoava, e
+// em alguns navegadores o usuario pode suprimir o dialogo, o que faria a troca
+// de raia voltar a ser silenciosa.
+function ConfirmDialog({ ask, onAnswer }) {
+  const t = useT();
+  const confirmRef = useRef(null);
+  useEffect(() => {
+    // Sem pergunta aberta nao se escuta tecla nenhuma: um Enter solto na tela
+    // nao pode responder um dialogo que nao existe.
+    if (!ask) return undefined;
+    confirmRef.current?.focus();
+    const onKey = (event) => {
+      if (event.key === "Escape") onAnswer(false);
+      if (event.key === "Enter") onAnswer(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [ask, onAnswer]);
+  if (!ask) return null;
+  return (
+    <div className="confirm-overlay" onClick={(event) => { if (event.target === event.currentTarget) onAnswer(false); }}>
+      <section className="confirm-card" role="alertdialog" aria-modal="true" aria-label={ask.title}>
+        <strong>{ask.title}</strong>
+        {ask.lines.map((line, index) => <p key={index}>{line}</p>)}
+        <div className="confirm-actions">
+          <button type="button" className="ghost" onClick={() => onAnswer(false)}>{ask.cancelLabel ?? t("app.cancel")}</button>
+          <button type="button" className="primary" ref={confirmRef} onClick={() => onAnswer(true)}>{ask.okLabel ?? t("app.confirm")}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function relativeTime(iso, t) {
   const elapsed = Date.now() - Date.parse(iso || "");
   if (!Number.isFinite(elapsed) || elapsed < 0) return t("app.pending");
@@ -265,6 +299,16 @@ export default function App() {
   // Id da raia de imagem que o usuario ja autorizou trocar nesta sessao de
   // anexo. Zera quando ele escolhe outro modelo na mao (ver pickModel).
   const laneSwitchOkRef = useRef(null);
+  // Pergunta pendente do ConfirmDialog: guarda o `resolve` da promessa para que
+  // quem perguntou possa dar `await` e seguir como se fosse um confirm.
+  const [confirmAsk, setConfirmAsk] = useState(null);
+  const askConfirm = useCallback(
+    (ask) => new Promise((resolve) => setConfirmAsk({ ...ask, resolve })),
+    []
+  );
+  const answerConfirm = useCallback((answer) => {
+    setConfirmAsk((pending) => { pending?.resolve(answer); return null; });
+  }, []);
   const [quote, setQuote] = useState(null);
   const [job, setJob] = useState(null);
   const [shots, setShots] = useState([]);
@@ -530,9 +574,15 @@ export default function App() {
         // vez por arquivo: sem memoria, a mesma pergunta apareceria N vezes.
         // A aprovacao vale para a raia de destino ate ela mudar.
         if (laneSwitchOkRef.current !== referenceModel.id) {
-          const ok = window.confirm(
-            t("app.confirmLaneSwitch", { from: model?.label ?? t("app.thisModel"), to: referenceModel.label })
-          );
+          const ok = await askConfirm({
+            title: t("app.laneSwitchTitle"),
+            lines: [
+              t("app.laneSwitchWhy", { from: model?.label ?? t("app.thisModel") }),
+              t("app.laneSwitchWhat", { to: referenceModel.label }),
+            ],
+            okLabel: t("app.laneSwitchOk", { to: referenceModel.label }),
+            cancelLabel: t("app.laneSwitchCancel"),
+          });
           if (!ok) return;
           laneSwitchOkRef.current = referenceModel.id;
         }
@@ -802,6 +852,7 @@ export default function App() {
   return (
     <div className="shell">
       <a className="skip-link" href="#main-content">{t("app.skipLink")}</a>
+      <ConfirmDialog ask={confirmAsk} onAnswer={answerConfirm} />
       <TopBar
         summary={ledger.summary}
         activeView={activeView}
