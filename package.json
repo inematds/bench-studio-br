@@ -1,7 +1,7 @@
 {
   "name": "bench-studio-public",
   "private": true,
-  "version": "1.11.6",
+  "version": "1.12.6",
   "engines": { "node": ">=22.5.0" },
   "type": "module",
   "scripts": {

@@ -575,5 +575,8 @@ createRoot(document.getElementById("root")).render(<App />);
 // Service worker so em producao: em desenvolvimento ele guardaria o modulo
 // antigo e faria o Vite parecer quebrado.
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+  const base = import.meta.env.BASE_URL || "/";
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${base}sw.js`, { scope: base }).catch(() => {});
+  });
 }

@@ -8,7 +8,10 @@
 // que vir do servidor, sempre.
 
 const CACHE = "bench-mobile-v1";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];
+// Relativo ao escopo: na VPS o app mora em /m/, aqui na raiz. Caminho absoluto
+// faria o cache pedir /index.html do DESKTOP quando servido em /m/.
+const BASE = new URL("./", self.registration.scope).pathname;
+const SHELL = ["", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"].map((p) => BASE + p);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -37,6 +40,6 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE).then((c) => c.put(event.request, copia)).catch(() => {});
         return response;
       })
-      .catch(() => caches.match(event.request).then((hit) => hit ?? caches.match("/index.html"))),
+      .catch(() => caches.match(event.request).then((hit) => hit ?? caches.match(BASE + "index.html"))),
   );
 });

@@ -38,7 +38,13 @@ const host = process.env.BENCH_MOBILE_HOST || "0.0.0.0";
 // nenhuma imagem — foi assim que o desktop descobriu isso.
 const proxied = ["/api", "/media", "/inputs", "/previews", "/projects"];
 
+// Na VPS o celular e servido pelo nginx em /m/, e nao na raiz do dominio: sem
+// isto os arquivos gerados apontariam para /assets/... e a pagina abriria em
+// branco. Em desenvolvimento a base continua sendo "/".
+const base = process.env.BENCH_MOBILE_BASE || "/";
+
 export default defineConfig({
+  base,
   root: HERE,
   plugins: [react()],
   server: {

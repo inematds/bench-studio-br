@@ -35,10 +35,17 @@ bold "1/3  requisitos"
 npm run doctor >/dev/null || die "o doctor reprovou. Rode 'npm run doctor' e resolva antes."
 printf '     ok\n'
 
-bold "2/3  construindo a interface"
+bold "2/3  construindo as interfaces"
 npm run build
 [ -f dist/index.html ] || die "a build terminou sem dist/index.html."
 printf '     dist/ pronto (%s)\n' "$(du -sh dist | cut -f1)"
+
+# O celular e servido em /m/ pelo nginx, nao na raiz: sem a base os arquivos
+# gerados apontariam para /assets/... — que pertence ao desktop — e a pagina
+# abriria em branco, sem erro nenhum no log.
+BENCH_MOBILE_BASE="${BENCH_MOBILE_BASE:-/m/}" npm run build:mobile
+[ -f dist-mobile/index.html ] || die "a build do celular terminou sem dist-mobile/index.html."
+printf '     dist-mobile/ pronto (%s), servido em %s\n' "$(du -sh dist-mobile | cut -f1)" "${BENCH_MOBILE_BASE:-/m/}"
 
 if [ "$BUILD_ONLY" = "1" ]; then
   bold "pronto (apenas build)"
@@ -68,6 +75,7 @@ cat <<EOF
 
   A interface agora e um arquivo, nao um servidor de desenvolvimento.
   ENQUANTO NAO HOUVER NGINX NA FRENTE, ela nao responde em lugar nenhum.
+  O mesmo vale para a interface de celular, que ficara em /m/.
 
   Parte 2, o nginx:
     ./scripts/production-nginx.sh --domain seu.dominio.com --email voce@dominio.com

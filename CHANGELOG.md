@@ -4,6 +4,37 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.12.6
+
+### Novo
+- **A interface de celular passa a funcionar na VPS, em `/m` do mesmo domínio.**
+  Sem porta nova, sem segundo certificado: ela divide o domínio, o TLS e a API
+  com o desktop. `production-build.sh` agora constrói as duas interfaces (a do
+  celular com base `/m/`, senão os arquivos apontariam para `/assets/…`, que
+  pertence ao desktop, e a página abriria em branco sem erro nenhum no log), e
+  `production-nginx.sh` publica as duas.
+- **`npm run update` reconstrói o celular também**, quando existe `dist-mobile/`.
+  Reconstruir só o desktop deixaria o telefone servindo o pacote antigo — com o
+  service worker ajudando a esconder isso.
+
+### Documentação
+- **Como instalar no celular (PWA), e por que hoje não instala.** O manifesto, os
+  ícones e o service worker já existiam; o que falta é HTTPS. O Chrome só oferece
+  "Instalar" em contexto seguro, e `http://192.168.x.x:5300` não é — então o
+  worker nem registra. A tabela no README diz o que se obtém em cada endereço,
+  incluindo que o iPhone adiciona à tela de início mesmo em HTTP (ícone e tela
+  cheia, sem offline).
+
+### Detalhes que evitam armadilha
+- `/m/` usa `alias` e não `root` no nginx: com `root` ele procuraria
+  `dist-mobile/m/...` e devolveria 404 em tudo.
+- `/m/sw.js` vai com `no-store`: senão uma versão nova do app fica presa atrás do
+  service worker antigo e o telefone continua abrindo o de ontem.
+- `/m` sem barra redireciona para `/m/` — ninguém digita a barra no celular.
+- O manifesto e os ícones ficaram com caminho relativo, e o worker calcula o
+  escopo a partir de `registration.scope`: o mesmo arquivo serve na raiz (dev) e
+  em `/m/` (produção).
+
 ## 1.11.6
 
 ### Novo

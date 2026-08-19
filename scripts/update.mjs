@@ -31,8 +31,8 @@ const gitRaw = (...args) => {
   return r.stdout ?? "";
 };
 const git = (...args) => gitRaw(...args).trim();
-const run = (cmd, args) => {
-  const r = spawnSync(cmd, args, { cwd: ROOT, stdio: "inherit" });
+const run = (cmd, args, extraEnv = {}) => {
+  const r = spawnSync(cmd, args, { cwd: ROOT, stdio: "inherit", env: { ...process.env, ...extraEnv } });
   if (r.status !== 0) die(`${cmd} ${args.join(" ")} falhou.`);
 };
 
@@ -87,6 +87,14 @@ if (mudou.some((f) => f === "package.json" || f === "package-lock.json")) {
 if (existsSync(join(ROOT, "dist", "index.html"))) {
   say("dist/ encontrado — reconstruindo a interface…");
   run("npm", ["run", "build"]);
+}
+
+// O celular tem build propria e base propria (/m/ atras do nginx). Reconstruir
+// so o desktop deixaria o telefone servindo o pacote antigo — e ainda por cima
+// com o service worker ajudando a esconder isso.
+if (existsSync(join(ROOT, "dist-mobile", "index.html"))) {
+  say("dist-mobile/ encontrado — reconstruindo a interface de celular…");
+  run("npm", ["run", "build:mobile"], { BENCH_MOBILE_BASE: process.env.BENCH_MOBILE_BASE ?? "/m/" });
 }
 
 say("conferindo os requisitos…");

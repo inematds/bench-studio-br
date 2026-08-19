@@ -69,6 +69,29 @@ SITE="server {
         try_files \$uri \$uri/ /index.html;
     }
 
+    # A interface de CELULAR, construida com base /m/. Usa alias, e nao root,
+    # porque o prefixo /m nao existe dentro de dist-mobile: com root o nginx
+    # procuraria dist-mobile/m/... e devolveria 404 em tudo.
+    # A barra final no location e no alias e obrigatoria; sem ela o nginx junta
+    # os caminhos errado.
+    location /m/ {
+        alias ${ROOT}/dist-mobile/;
+        try_files \$uri \$uri/ /m/index.html;
+
+        # O service worker nao pode ser servido de cache: senao uma versao nova
+        # do app fica presa atras do worker antigo, e o telefone continua
+        # abrindo o de ontem mesmo depois do deploy.
+        location = /m/sw.js {
+            alias ${ROOT}/dist-mobile/sw.js;
+            add_header Cache-Control \"no-cache, no-store, must-revalidate\";
+        }
+    }
+
+    # /m sem barra vira /m/ — quem digita no celular nao poe a barra.
+    location = /m {
+        return 301 /m/;
+    }
+
     # Arquivos com hash no nome podem ser guardados para sempre; o index nao.
     location /assets/ {
         expires 1y;
@@ -151,8 +174,12 @@ cat <<EOF
 
     curl -sI http://${DOMAIN}            # deve responder 301 para https
     curl -s https://${DOMAIN}/api/health # {"ok":true,...} ou authRequired
+    curl -sI https://${DOMAIN}/m/        # 200 — a interface de celular
 
-  Abra https://${DOMAIN} no navegador.
+  Abra https://${DOMAIN} no computador e https://${DOMAIN}/m no celular.
+  Como agora e HTTPS, o celular vai OFERECER INSTALAR o app (PWA):
+  no Android, o proprio Chrome pergunta; no iPhone, Compartilhar >
+  Adicionar a Tela de Inicio.
 
   A API continua so em 127.0.0.1 — quem fala com ela e o nginx.
   A porta ${BENCH_WEB_PORT:-5200} nao precisa mais ficar aberta.

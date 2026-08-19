@@ -285,6 +285,10 @@ npm run mobile        # http://<your-lan-ip>:5300
 npm run build:mobile  # static build into dist-mobile/
 ```
 
+On a VPS it is served by nginx at **`/m`** on the same domain, next to the
+desktop — see [Production](#production-two-steps-and-what-each-one-buys-you).
+No second port, no second certificate.
+
 Two screens and nothing else. **Create**: mode (with its sub-controls), image or
 video, provider, model, prompt, refine, attach from gallery or camera, the price
 before you commit, and one big Generate. **Gallery**: 30 results at a time with
@@ -308,9 +312,30 @@ testing:
   that only answers on loopback is useless — the phone is never the machine
   running the studio. `BENCH_MOBILE_HOST` overrides it.
 
-It is installable: manifest, icons and a service worker that caches the shell
-only. Nothing under `/api`, `/media`, `/inputs`, `/previews` or `/projects` is
-ever cached — a stale ledger would show an old gallery as if it were current.
+### Installing it on the phone (PWA)
+
+The pieces are all there — manifest, icons, and a service worker that caches the
+shell only. Nothing under `/api`, `/media`, `/inputs`, `/previews` or
+`/projects` is ever cached: a stale ledger would show an old gallery as if it
+were current.
+
+But **installability needs HTTPS**, and that is the part people trip on. Chrome
+only offers "Install" in a secure context — HTTPS or `localhost`. Reaching the
+studio at `http://192.168.1.x:5300` is neither, so the service worker never
+registers and the prompt never appears. That is also why the worker is only
+registered in production builds: in dev it would cache stale modules and make
+Vite look broken.
+
+| Where you open it | What you get |
+| --- | --- |
+| `http://<lan-ip>:5300` (dev) | Works fully. No install, no offline. |
+| `http://localhost:5300` on the machine itself | Installable — useful to verify the PWA. |
+| `https://your.domain/m` (VPS, step 2) | Installable on the phone, offline shell, own icon. |
+| iPhone on plain HTTP | *Add to Home Screen* still works: icon and full screen, but no service worker. |
+
+So: for a phone you actually install to, put it behind the nginx of step 2. A
+tunnel (cloudflared, ngrok) or Tailscale also produces a valid HTTPS origin if
+you want to test before setting up a domain.
 
 ## Production: two steps, and what each one buys you
 
@@ -339,14 +364,23 @@ Two scripts, in this order:
 ./scripts/production-nginx.sh --domain your.domain --email you@your.domain   # 2. nginx + certificate
 ```
 
-`production-build.sh` runs the doctor, builds `dist/`, and switches the systemd
-unit to `npm run server` — the API alone. **Between the two scripts the
+`production-build.sh` runs the doctor, builds **both** interfaces — `dist/` for
+the desktop and `dist-mobile/` for the phone, the latter with base `/m/` so its
+assets resolve under that path — and switches the systemd unit to `npm run
+server`, the API alone. **Between the two scripts the
 interface is down on purpose**: the Express app serves `/media`, `/inputs`,
 `/previews` and `/projects`, but never `dist/`. Something has to serve those
 files, and that something is nginx.
 
 `production-nginx.sh` writes the site, reloads nginx, opens 80/443, closes the
-old 5200, and calls certbot. Two values in that config are deliberate: uploads
+old 5200, and calls certbot. The site serves the desktop at `/`, the phone
+interface at `/m` (with `/m` redirecting to `/m/`), and proxies `/api`, `/media`,
+`/inputs`, `/previews` and `/projects` to the Node process. Three details in
+there are deliberate and easy to get wrong by hand: `/m/` uses `alias`, not
+`root` — with `root` nginx would look for `dist-mobile/m/...` and 404 on
+everything; `/m/sw.js` is served with `no-store`, or a new version of the app
+stays trapped behind yesterday's service worker; and the phone shares the
+desktop's certificate and API, so there is no second port to open. Two values in that config are deliberate: uploads
 are allowed up to 128 MB (nginx defaults to 1 MB, which would reject an ordinary
 reference image with a 413 that looks like a studio bug), and the proxy waits up
 to 15 minutes (the 60s default would cut a healthy video generation short with a
@@ -365,7 +399,7 @@ to 15 minutes (the 60s default would cut a healthy video generation short with a
    when you say so, rather than a server watching your files.
 
 **What it costs.** Every update now needs a rebuild — `npm run update` does it
-for you when a `dist/` exists, but if you build by hand, remember it or the
+for you when a `dist/` (or `dist-mobile/`) exists, but if you build by hand, remember it or the
 browser keeps getting the old bundle. You also take on an nginx config and a
 certificate, and you lose live reload, which on a server is a feature.
 
