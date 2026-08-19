@@ -4,6 +4,20 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.6.5
+
+### Documentação
+- **A versão do Node virou passo 0 da instalação, e ganhou um capítulo de
+  diagnóstico.** O README agora mostra como levar um Ubuntu ao Node 24 pelo
+  NodeSource (e a alternativa com nvm, quando é preciso manter versões lado a
+  lado), lembra de refazer `node_modules` depois da troca, e traz a seção
+  "quando a interface abre mas nada carrega" — o `ECONNREFUSED` em massa que
+  parece rede e é versão. O runbook de VPS ganhou o mesmo passo 0, com a nota de
+  que o Node do nvm não é encontrado por um serviço do systemd sem ajustar o
+  `PATH`. A tabela de sintomas cobre ainda o `authRequired` (que é o servidor
+  funcionando), o `git pull` travado pelos dois arquivos que a máquina regrava
+  sozinha, e a porta fechada por falta de regra de firewall.
+
 ## 1.6.4
 
 ### Corrigido

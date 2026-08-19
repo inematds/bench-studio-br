@@ -43,7 +43,20 @@ units instead of disappearing into mystery credits.
 ## Before anything: what you need
 
 - **Node.js 22.5+** (24 recommended — the studio uses `node:sqlite`) and npm.
-  Nothing else is required to start.
+  Nothing else is required to start. Check with `node -v` **before** installing:
+  a fresh Ubuntu commonly ships Node 20, and on 20 the server cannot start at
+  all (see [When the interface opens but nothing loads](#when-the-interface-opens-but-nothing-loads)).
+  To move a system to Node 24 without keeping several versions side by side:
+
+  ```bash
+  curl -fsSL https://deb.nodesource.com/setup_24.x | sudo bash -
+  sudo apt install -y nodejs
+  node -v && npm -v
+  ```
+
+  That replaces the system Node. To keep versions side by side instead, use nvm:
+  `nvm install 24 && nvm use 24`. Either way, if `node_modules` was installed
+  under the old version, redo it: `rm -rf node_modules && npm install`.
 - **A provider, to generate anything.** Every one is optional and degrades on
   its own: a missing key marks those models unavailable, with the reason and the
   fix, and the studio still starts.
@@ -444,6 +457,36 @@ In the editor each option is **its own line** — type it, press Enter, and the
 next empty line is already waiting. Options used to be one comma-separated
 field, which quietly made a comma impossible inside a value; `de cima, mãos
 abrindo` is a legitimate direction and used to break into two.
+
+## When the interface opens but nothing loads
+
+The one failure that looks like a network problem and is not. Symptom: the page
+answers on `:5200`, and **every** `/api/` call fails with `ECONNREFUSED` in the
+Vite proxy log.
+
+`npm run dev` starts the server and Vite in parallel. When the server dies, Vite
+still comes up — so the interface opens and has nothing to talk to. The cause is
+almost always Node: the database imports `node:sqlite`, which only exists from
+Node 22.5, and on Node 20 the process exits immediately with
+`ERR_UNKNOWN_BUILTIN_MODULE`.
+
+```bash
+node -v                              # below 22.5 is the answer
+grep -c "\[server\]" ~/bench.log     # zero server lines = it never started
+```
+
+Since 1.6.4 `npm run dev` refuses to start on an old Node and prints what to
+install, instead of dying with a stack trace. If you hit the silent version,
+upgrade Node as shown in [what you need](#before-anything-what-you-need).
+
+Other things worth checking in the same situation:
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `authRequired` on `/api/health` | A password is set — this is the server working | Log in through the interface |
+| `git pull` refuses: local changes | The machine rewrote `kie.models.json` (boot) and `package-lock.json` (npm install) | `git checkout -- package-lock.json server/providers/kie.models.json`, then pull |
+| Upload fails naming fal credentials | Pre-1.6.4 build, or an empty `FAL_KEY=` line | Update, and delete the empty line rather than leaving it blank |
+| Port 5200 unreachable from outside | Firewall rule missing | `./scripts/remote.sh open` |
 
 ## Maintenance
 

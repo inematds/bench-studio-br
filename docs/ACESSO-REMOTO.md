@@ -13,6 +13,7 @@ Versão de referência: **1.5.2** (este repositório).
 Numa máquina nova que vai ser alcançada de fora, nesta ordem:
 
 ```bash
+node -v                     # PRECISA ser 22.5+ — veja o passo 0 abaixo
 git clone git@github.com:inematds/bench-studio-br.git
 cd bench-studio-br
 npm install
@@ -20,6 +21,33 @@ npm run set-password        # antes de abrir a porta, não depois
 ./scripts/remote.sh open    # publica a interface + regra de firewall
 npm run dev
 ```
+
+### Passo 0: a versão do Node, antes de tudo
+
+Um Ubuntu recém-instalado costuma vir com Node 20, e nele **o servidor não sobe**
+— o banco importa `node:sqlite`, que só existe a partir do 22.5. O sintoma é
+cruel: o Vite sobe assim mesmo, a tela abre em `:5200`, e todo `/api/` responde
+`ECONNREFUSED`, o que parece firewall ou proxy quando é versão.
+
+Para levar o sistema ao Node 24, sem manter várias versões lado a lado:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+apt install -y nodejs
+node -v && npm -v
+```
+
+Esse caminho é o mais simples, mas **substitui** o Node do sistema. Se você
+precisa de várias versões convivendo (outros projetos na mesma VPS), use o nvm:
+`nvm install 24 && nvm use 24` — e leia a nota sobre `PATH` do systemd na seção
+6, porque o Node do nvm não é encontrado por um serviço.
+
+Se as dependências já tinham sido instaladas sob o Node velho, refaça:
+`rm -rf node_modules && npm install`.
+
+Desde a 1.6.4 o `npm run dev` recusa a subir em Node antigo e diz o que instalar,
+em vez de morrer com um stack trace. Feito nesta VPS em 2026-08-18: era Node
+20.20.0, foi para 24.19.0 por esse mesmo comando do NodeSource.
 
 Ao terminar:
 
