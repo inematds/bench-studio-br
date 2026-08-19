@@ -617,11 +617,11 @@ export default function PromptBar({
   const ATALHOS = [
     { id: "ugc", label: t("work.formats.ugc") },
     { id: "none", label: t("prompt.freeform") },
-    // Reframe fica na fileira, e nao dentro de "mais modos", porque ele nao e um
-    // genero de peca entre outros: e a operacao que resolve "tenho isto em 16:9
-    // e preciso em 9:16", que aparece o tempo todo. Escondido num menu, ele
-    // simplesmente nao era encontrado.
-    { id: "reframe", label: t("work.formats.reframe"), destaque: true },
+    // Reframe fica na fileira, e nao dentro de "mais modos": e a operacao que
+    // resolve "tenho isto em 16:9 e preciso em 9:16", que aparece o tempo todo,
+    // e escondido num menu ninguem achava. Estar visivel basta — sem cor
+    // propria, para nao competir com o modo que esta selecionado.
+    { id: "reframe", label: t("work.formats.reframe") },
     { id: "unboxing", label: t("work.formats.unboxing") },
     { id: "product", label: t("work.formats.product") },
   ];
@@ -629,7 +629,7 @@ export default function PromptBar({
     .map((atalho) => {
       const noCatalogo = (catalog.formats ?? []).find((f) => f.id === atalho.id);
       if (!noCatalogo) return null;
-      return { id: atalho.id, label: noCatalogo.edited ? noCatalogo.label : atalho.label, destaque: atalho.destaque };
+      return { id: atalho.id, label: noCatalogo.edited ? noCatalogo.label : atalho.label };
     })
     .filter(Boolean);
   const quickFormatIds = new Set(quickFormats.map(({ id }) => id));
@@ -651,7 +651,7 @@ export default function PromptBar({
             <button
               key={preset.id}
               type="button"
-              className={`preset${format === preset.id ? " on" : ""}${preset.destaque ? " destaque" : ""}`}
+              className={`preset${format === preset.id ? " on" : ""}`}
               onClick={() => setFormat(preset.id)}
             >
               {preset.label}
@@ -803,11 +803,11 @@ export default function PromptBar({
               unico caminho visivel para gerar passava pelo refinamento. Gerar
               direto ja funcionava, mas so pelo Ctrl+Enter, que ninguem adivinha.
               O primario e Gerar; refinar virou escolha, nao pedagio. */}
-          {/* Os dois cheios, por escolha do usuario: refinar nao e um passo
-              secundario aqui — ele e usado tanto quanto gerar, e qualquer
-              tratamento mais fraco fazia ele passar despercebido. */}
+          {/* Refinar e cheio enquanto ha o que refinar; depois que o prompt JA
+              foi refinado ele fica so com a borda — continua ali, clicavel para
+              refinar de novo, sem disputar atencao com o gerar. */}
           <div className="go-pair">
-            <button type="button" className="go" onClick={onOptimize} disabled={busy || !ready}>
+            <button type="button" className={`go${rewritten ? " ghost" : ""}`} onClick={onOptimize} disabled={busy || !ready}>
               {busy && !running ? t("prompt.working") : t("prompt.refine")}
             </button>
             <button type="button" className="go" onClick={onGenerate} disabled={busy || !ready}>

@@ -641,6 +641,12 @@ export default function App() {
     const soReenquadra = format === "reframe" && refs.length > 0;
     if ((!prompt && !soReenquadra) || !modelId) return;
 
+    // O servidor recusa prompt vazio (`promptRequired`), e com razao: para todo
+    // o resto, gerar sem texto nao quer dizer nada. No Reframe quer — a imagem e
+    // o pedido, e o brief do modo carrega a instrucao. Entao aqui vai um texto
+    // minimo, so para o contrato existir; quem descreve a operacao e o modo.
+    const promptFinal = prompt || (soReenquadra ? "reenquadrar" : prompt);
+
     const assignment = assignInputFields(model, refs);
     if (!assignment.ok) return setError(assignment.reason);
 
@@ -656,7 +662,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
         body: JSON.stringify({
-          modelId, prompt, params, format, rawIdea: idea,
+          modelId, prompt: promptFinal, params, format, rawIdea: idea,
           shotSettings,
           inputAssets: refs.map(({ url, field, media_type, upload_id, name }) => ({ url, field, media_type, upload_id, name })),
         }),

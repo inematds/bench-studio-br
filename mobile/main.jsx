@@ -96,7 +96,7 @@ function primaryImageField(model) {
 
 // -------------------------------------------------------------------- criar
 
-function Criar({ models, formats, recents, onDone }) {
+function Criar({ models, formats, recents, receita, onDone }) {
   const [kind, setKind] = useState("image");
   const [format, setFormat] = useState("none");
   const [shotSettings, setShotSettings] = useState({});
@@ -126,6 +126,28 @@ function Criar({ models, formats, recents, onDone }) {
     for (const c of controles) padrao[c.id] = c.options[0].value;
     setShotSettings(padrao);
   }, [format, controles.length]);
+
+  // Receita vinda da galeria. `quando` no gatilho para refazer o MESMO resultado
+  // duas vezes seguidas continuar funcionando — sem ele, o segundo toque nao
+  // mudaria o objeto e o efeito nao rodaria.
+  useEffect(() => {
+    if (!receita) return;
+    const alvo = models.find((m) => m.id === receita.model);
+    if (alvo) {
+      setKind(alvo.kind);
+      setProvedor(alvo.provider ?? "all");
+      setModelId(alvo.id);
+    }
+    if (receita.format) setFormat(receita.format);
+    setPrompt(receita.raw_idea || receita.prompt || "");
+    const p = { ...(receita.params ?? {}) };
+    delete p.prompt;
+    // Referencia nao volta: o arquivo pode nao existir mais, e reenviar por conta
+    // propria uma imagem antiga seria decidir pela pessoa.
+    for (const k of Object.keys(p)) if (typeof p[k] === "object") delete p[k];
+    setParams(p);
+    setRef(null);
+  }, [receita?.quando]);
 
   // Provedores existentes PARA O TIPO escolhido: oferecer um provedor que so tem
   // modelo de imagem quando a pessoa esta em video daria uma lista vazia.
@@ -157,7 +179,12 @@ function Criar({ models, formats, recents, onDone }) {
   const model = doTipo.find((m) => m.id === modelId) ?? doTipo[0] ?? null;
 
   useEffect(() => { setProvedor("all"); }, [kind]);
-  useEffect(() => { setModelId(doTipo[0]?.id ?? null); }, [kind, provedor, format, models.length]);
+  // Só troca de modelo quando o escolhido deixa de existir na lista (mudou o
+  // tipo, o provedor, o modo). Trocar sempre atropelava a receita vinda do
+  // "refazer": ela definia o modelo e este efeito, rodando depois, o descartava.
+  useEffect(() => {
+    if (!doTipo.some((m) => m.id === modelId)) setModelId(doTipo[0]?.id ?? null);
+  }, [kind, provedor, format, models.length, modelId]);
 
   // Parametros zeram ao trocar de modelo: enum de um nao vale para o outro, e
   // mandar valor invalido faz o provedor recusar com uma mensagem obscura.
@@ -371,10 +398,9 @@ function Criar({ models, formats, recents, onDone }) {
         rows={5}
       />
 
-      {/* Os dois cheios: refinar e usado tanto quanto gerar, e tratamento mais
-          fraco o fazia passar despercebido. */}
+      {/* Cheio enquanto ha o que refinar; depois de refinado, so a borda. */}
       <div className="refino">
-        <button type="button" className="refinar principal" onClick={refinar} disabled={!prompt.trim() || refinando || Boolean(job)}>
+        <button type="button" className={`refinar${original === null ? " principal" : ""}`} onClick={refinar} disabled={!prompt.trim() || refinando || Boolean(job)}>
           {refinando ? "Refinando…" : "Refinar prompt"}
         </button>
         {original !== null && (
@@ -437,11 +463,70 @@ function Criar({ models, formats, recents, onDone }) {
   );
 }
 
+// Ficha do resultado: a tela cheia tambem e onde se le O QUE foi feito e se
+// refaz. No celular nao ha espaco para uma coluna de detalhes ao lado do
+// resultado, entao ela mora aqui — abaixo da midia, rolavel.
+function Ficha({ item, onFechar, onRefazer }) {
+  const r = item.row ?? {};
+  const [aberto, setAberto] = useState(false);
+  const quando = r.ts ? new Date(r.ts).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : null;
+  // Parametros que valem a leitura: o resto do schema e ruido numa tela pequena,
+  // e a midia ja esta a vista.
+  const params = Object.entries(r.params ?? {})
+    .filter(([k, v]) => k !== "prompt" && typeof v !== "object" && String(v).length <= 40);
+
+  return (
+    <div className="cheia" onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <button type="button" className="cheia-fechar" aria-label="Fechar" onClick={onFechar}>×</button>
+
+      <div className="cheia-conteudo">
+        {item.video
+          ? <video src={item.src} controls autoPlay loop playsInline />
+          : <img src={item.src} alt={r.label ?? ""} />}
+
+        <div className="ficha">
+          <div className="ficha-topo">
+            <b>{r.label}</b>
+            <span>{money(r.cost)}{quando ? ` · ${quando}` : ""}</span>
+          </div>
+
+          {(r.raw_idea || r.prompt) && (
+            <p className={`ficha-prompt${aberto ? " todo" : ""}`} onClick={() => setAberto((v) => !v)}>
+              {r.raw_idea || r.prompt}
+            </p>
+          )}
+
+          {aberto && r.raw_idea && r.prompt && r.prompt !== r.raw_idea && (
+            <>
+              <span className="ficha-rotulo">prompt enviado ao modelo</span>
+              <p className="ficha-prompt todo">{r.prompt}</p>
+            </>
+          )}
+
+          {aberto && params.length > 0 && (
+            <div className="ficha-params">
+              {params.map(([k, v]) => <span key={k}><i>{rotuloParam(k)}</i> {String(v)}</span>)}
+            </div>
+          )}
+
+          <div className="ficha-acoes">
+            <button type="button" onClick={() => setAberto((v) => !v)}>
+              {aberto ? "menos" : "detalhes"}
+            </button>
+            <button type="button" onClick={() => { onRefazer?.(r); onFechar(); }}>refazer</button>
+            <a href={item.src} download>baixar</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------ galeria
 
 const PAGINA = 30;
 
-function Galeria({ rows, onReload }) {
+function Galeria({ rows, onReload, onRefazer }) {
   const [limite, setLimite] = useState(PAGINA);
   const [tipo, setTipo] = useState("all");
   const [provedor, setProvedor] = useState("all");
@@ -489,7 +574,7 @@ function Galeria({ rows, onReload }) {
           const video = String(saida.content_type ?? "").startsWith("video") || /\.mp4($|\?)/.test(src);
           return (
             <button type="button" className="cartao" key={`${r.archive_id ?? r.request_id}-${i}`}
-              onClick={() => setZoom({ src, video, label: r.label, prompt: r.raw_idea || r.prompt })}>
+              onClick={() => setZoom({ src, video, row: r })}>
               {/* Vídeo NAO vira <video> aqui. Trinta players carregando metadados
                   ao mesmo tempo travaram ate o navegador do desktop no teste —
                   num celular seria pior, e ainda gastaria o plano de dados da
@@ -510,18 +595,7 @@ function Galeria({ rows, onReload }) {
         </button>
       )}
 
-      {zoom && (
-        <div className="cheia" onClick={() => setZoom(null)}>
-          <button type="button" className="cheia-fechar" aria-label="Fechar">×</button>
-          {zoom.video
-            ? <video src={zoom.src} controls autoPlay loop playsInline />
-            : <img src={zoom.src} alt={zoom.label} />}
-          <div className="cheia-legenda">
-            <b>{zoom.label}</b>
-            {zoom.prompt && <p>{zoom.prompt}</p>}
-          </div>
-        </div>
-      )}
+      {zoom && <Ficha item={zoom} onFechar={() => setZoom(null)} onRefazer={onRefazer} />}
     </div>
   );
 }
@@ -532,6 +606,10 @@ function App() {
   const [aba, setAba] = useState("criar");
   const [models, setModels] = useState([]);
   const [formats, setFormats] = useState([{ id: "none", label: "Livre" }]);
+  // "Refazer" leva a receita de um resultado antigo para a tela de criacao:
+  // mesmo modelo, mesmo texto, mesmos parametros. Nao gera nada sozinho — a
+  // pessoa confere e decide, porque gerar custa dinheiro.
+  const [receita, setReceita] = useState(null);
   const [rows, setRows] = useState([]);
   const [erro, setErro] = useState(null);
   const [precisaSenha, setPrecisaSenha] = useState(false);
@@ -605,8 +683,12 @@ function App() {
 
       <main>
         {aba === "criar"
-          ? <Criar models={models} formats={formats} recents={recents} onDone={(ledger) => { setRows((p) => [ledger, ...p]); setAba("galeria"); carregarLedger(); }} />
-          : <Galeria rows={rows} onReload={carregarLedger} />}
+          ? <Criar models={models} formats={formats} recents={recents} receita={receita} onDone={(ledger) => { setRows((p) => [ledger, ...p]); setAba("galeria"); carregarLedger(); }} />
+          : <Galeria
+              rows={rows}
+              onReload={carregarLedger}
+              onRefazer={(row) => { setReceita({ ...row, quando: Date.now() }); setAba("criar"); }}
+            />}
       </main>
 
       <nav className="abas">
