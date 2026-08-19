@@ -4,6 +4,38 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.8.6
+
+### Novo
+- **`install.sh`, `start.sh` e `stop.sh` na raiz.** O caminho comum em três
+  verbos. O install para no requisito que falta em vez de deixar você com uma
+  interface que abre e não responde; o start sobe destacado, espera a porta e
+  mostra o `/api/health` (avisando que `authRequired` é o servidor funcionando);
+  o stop encerra servidor e interface pelo padrão do comando, filtrando pelo
+  diretório do projeto para não derrubar outro Node da máquina. README ganhou a
+  seção **Quick install**.
+
+### Mudou
+- **Gerar e Refinar agora são dois botões.** Era um só, que dizia "Refinar
+  prompt" e virava "Gerar" depois de refinar — então o único caminho visível
+  para gerar passava pelo refinamento. Gerar direto já existia, mas só pelo
+  Ctrl+Enter, que ninguém adivinha. Gerar é o primário; refinar virou escolha.
+  A tecla Enter continua refinando, de propósito: transformar um hábito em
+  gasto de crédito seria uma armadilha cara.
+- **Clicar no resultado abre em tela cheia.** Antes o clique não fazia nada e a
+  única forma de ver grande era baixar o arquivo ou abrir a cópia do provedor.
+  Vídeo ganhou um botão de ampliar, porque o clique no quadro cai nos controles
+  nativos. Fecha no Esc ou clicando fora.
+
+### Corrigido
+- **O card de vídeo saía torto no mural.** O elemento não declara proporção
+  nenhuma até o navegador ler os metadados: desenhava na caixa padrão 300x150,
+  o `object-fit: cover` cortava o quadro e o `min-height` deixava faixa preta.
+  Agora a proporção real do arquivo é aplicada assim que os metadados chegam.
+- **"Abrir a cópia hospedada na fal" aparecia para qualquer provedor**, inclusive
+  quando o arquivo estava na Agnes, na kie ou na Kling. O texto passa a nomear o
+  provedor real do resultado.
+
 ## 1.7.6
 
 ### Corrigido

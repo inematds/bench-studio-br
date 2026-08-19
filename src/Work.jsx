@@ -1,6 +1,30 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "./i18n/index.jsx";
 
+// Clicar no resultado abre a midia em tela cheia. Antes o clique nao fazia nada
+// e a unica forma de ver grande era baixar o arquivo ou abrir a copia hospedada
+// — dois caminhos para o que devia ser um clique. O overlay e um so, no topo da
+// lista, e cada card so avisa qual arquivo mostrar.
+function Lightbox({ item, onClose }) {
+  const t = useT();
+  useEffect(() => {
+    if (!item) return undefined;
+    const onKey = (event) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [item, onClose]);
+  if (!item) return null;
+  return (
+    <div className="lightbox" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <button type="button" className="lightbox-close" onClick={onClose} aria-label={t("common.close")}>&times;</button>
+      {item.isVideo
+        ? <video src={item.src} controls autoPlay loop playsInline />
+        : <img src={item.src} alt={item.label ?? ""} />}
+      {item.label && <div className="lightbox-cap">{item.label}</div>}
+    </div>
+  );
+}
+
 // Results, big. Each one keeps its own price and billing confidence.
 
 // Os nomes dos formatos vivem no dicionario; aqui fica so a lista dos ids que
@@ -24,6 +48,7 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
   const [kind, setKind] = useState("all");
   const [provider, setProvider] = useState("all");
   const [model, setModel] = useState("all");
+  const [zoom, setZoom] = useState(null);
 
   const kinds = useMemo(() => optionsFrom(shots, (s) => s.kind), [shots]);
   const providers = useMemo(() => optionsFrom(shots, (s) => s.provider ?? "fal"), [shots]);
@@ -51,6 +76,7 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
 
   return (
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
+      <Lightbox item={zoom} onClose={() => setZoom(null)} />
       <div className="wall-head">
         <h2>{standalone ? t("work.library") : t("work.yourResults")}</h2>
         <span>
@@ -85,7 +111,7 @@ export default function Work({ job, shots, standalone = false, onDelete, onReuse
         <div className="masonry">
           {job && <Job job={job} />}
           {filtered.map((s) => (
-            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onReuse={onReuse} />
+            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onReuse={onReuse} onZoom={setZoom} />
           ))}
         </div>
       )}
@@ -125,7 +151,7 @@ function Job({ job }) {
   );
 }
 
-function Shot({ shot, onDelete, onReuse }) {
+function Shot({ shot, onDelete, onReuse, onZoom }) {
   const t = useT();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -165,9 +191,16 @@ function Shot({ shot, onDelete, onReuse }) {
         const isVideo =
           String(o.content_type ?? "").startsWith("video") || /\.mp4($|\?)/.test(source);
         return isVideo ? (
-          <VideoPreview key={i} src={source} />
+          <VideoPreview key={i} src={source} onZoom={() => onZoom?.({ src: source, isVideo: true, label: resultLabel })} />
         ) : (
-          <img key={i} src={source} alt={resultLabel} loading="lazy" />
+          <img
+            key={i}
+            className="work-zoomable"
+            src={source}
+            alt={resultLabel}
+            loading="lazy"
+            onClick={() => onZoom?.({ src: source, isVideo: false, label: resultLabel })}
+          />
         );
       })}
 
@@ -241,7 +274,7 @@ function Shot({ shot, onDelete, onReuse }) {
                 {t("work.redoWide")}
               </button>
             )}
-            {shot.outputs[0]?.remote_url && <a className="hosted-copy" href={shot.outputs[0].remote_url} target="_blank" rel="noreferrer">{t("work.openHosted")}</a>}
+            {shot.outputs[0]?.remote_url && <a className="hosted-copy" href={shot.outputs[0].remote_url} target="_blank" rel="noreferrer">{t("work.openHosted", { provider: shot.provider ?? "fal" })}</a>}
           </div>
         )}
         {confirmingDelete && (
@@ -263,11 +296,17 @@ function Shot({ shot, onDelete, onReuse }) {
   );
 }
 
-function VideoPreview({ src }) {
+function VideoPreview({ src, onZoom }) {
   const t = useT();
   const videoRef = useRef(null);
   const soundEnabledRef = useRef(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  // O card ficava torto porque o video nao declara proporcao nenhuma ate o
+  // navegador ler os metadados: ele desenhava na caixa padrao 300x150, o
+  // `object-fit: cover` cortava o quadro e o `min-height` deixava faixa preta —
+  // e no masonry cada card de video destoava dos de imagem. Assim que os
+  // metadados chegam, a proporcao real do arquivo vai para o proprio elemento.
+  const [ratio, setRatio] = useState(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -312,9 +351,19 @@ function VideoPreview({ src }) {
 
   return (
     <div className="work-video-shell">
+      {onZoom && (
+        <button type="button" className="work-zoom-btn" onClick={onZoom} aria-label={t("work.expand")} title={t("work.expand")}>
+          ⤢
+        </button>
+      )}
       <video
         ref={videoRef}
         className="work-video"
+        style={ratio ? { aspectRatio: ratio } : undefined}
+        onLoadedMetadata={(event) => {
+          const { videoWidth, videoHeight } = event.currentTarget;
+          if (videoWidth && videoHeight) setRatio(`${videoWidth} / ${videoHeight}`);
+        }}
         src={src}
         controls
         loop

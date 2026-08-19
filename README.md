@@ -40,6 +40,36 @@ units instead of disappearing into mystery credits.
 > history, uploads, private database, personal paths, credentials, or local
 > build artifacts. Your archive begins empty.
 
+## Quick install
+
+Three scripts at the root, for the common path. They do exactly what the manual
+steps below do — and stop on the requirement that is missing, instead of leaving
+you with an interface that opens and answers nothing.
+
+```bash
+git clone https://github.com/inematds/bench-studio-br.git
+cd bench-studio-br
+./install.sh        # checks Node, installs deps, creates .env, runs the doctor
+./start.sh          # starts it detached and confirms it is really up
+./stop.sh           # stops server and interface
+```
+
+`./install.sh` refuses to continue on Node older than 22.5 and prints how to
+upgrade. `./start.sh` writes to `~/bench.log` (override with `BENCH_LOG`), waits
+for the port and shows `/api/health` — `authRequired` there means the server is
+working and asking for your password. To update later: `npm run update`. To
+re-check the machine at any time: `npm run doctor`.
+
+Publishing to the network needs two more steps, in this order — see
+[Install B](#install-b--vps-reachable-from-outside):
+
+```bash
+npm run set-password        # the password comes BEFORE the port opens
+./scripts/remote.sh open
+```
+
+---
+
 ## Before anything: what you need
 
 - **Node.js 22.5+** (24 recommended — the studio uses `node:sqlite`) and npm.

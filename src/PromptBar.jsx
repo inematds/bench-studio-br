@@ -785,9 +785,19 @@ export default function PromptBar({
             }}
           />
 
-          <button type="button" className="go" onClick={rewritten ? onGenerate : onOptimize} disabled={busy || !ready}>
-            {running ? t("prompt.running") : busy ? t("prompt.working") : rewritten ? t("prompt.generate") : t("prompt.refine")}
-          </button>
+          {/* Dois botoes, nao um que troca de papel. Antes so existia um: dizia
+              "Refinar prompt" e, depois de refinar, virava "Gerar" — entao o
+              unico caminho visivel para gerar passava pelo refinamento. Gerar
+              direto ja funcionava, mas so pelo Ctrl+Enter, que ninguem adivinha.
+              O primario e Gerar; refinar virou escolha, nao pedagio. */}
+          <div className="go-pair">
+            <button type="button" className="go ghost" onClick={onOptimize} disabled={busy || !ready}>
+              {busy && !running ? t("prompt.working") : t("prompt.refine")}
+            </button>
+            <button type="button" className="go" onClick={onGenerate} disabled={busy || !ready}>
+              {running ? t("prompt.running") : t("prompt.generate")}
+            </button>
+          </div>
         </div>
 
         {showDropzone && (
