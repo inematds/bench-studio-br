@@ -268,6 +268,7 @@ export default {
       tvspot: "TV spot",
       product: "Product still",
       poster: "Ad with headline",
+      reframe: "Reframe",
     },
   },
 

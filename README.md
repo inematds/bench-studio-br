@@ -273,6 +273,45 @@ sudo journalctl -u bench-studio -f     # logs
 ./scripts/install-service.sh --remove  # disable and delete it
 ```
 
+## The phone interface (port 5300)
+
+A second, deliberately small interface for a phone. It does **not** reimplement
+the studio: it talks to the same API on 8787, through the same routes the
+desktop uses. Nothing in `src/` was changed to make it exist, and no new server
+route was added — if the desktop works, this works.
+
+```bash
+npm run mobile        # http://<your-lan-ip>:5300
+npm run build:mobile  # static build into dist-mobile/
+```
+
+Two screens and nothing else. **Create**: mode (with its sub-controls), image or
+video, provider, model, prompt, refine, attach from gallery or camera, the price
+before you commit, and one big Generate. **Gallery**: 30 results at a time with
+a "load more", filters by type, provider and model, and tap to open full screen.
+
+What it deliberately leaves out: the model catalog, projects, configuration.
+Those stay on the desktop, where there is room for them.
+
+Three decisions worth knowing, because each came from something that broke in
+testing:
+
+- **The grid never mounts a `<video>`.** Thirty players preloading metadata
+  froze even a desktop browser, and on a phone it would also spend the data
+  plan just to draw thumbnails. Video tiles are a placeholder; the file is only
+  fetched when you tap.
+- **Models that require an image sink to the bottom** of the list — unless you
+  have attached one, or you are in Reframe mode, where the image *is* the input.
+  The first version defaulted to an edit model with nothing to edit, and the
+  request just hung.
+- **It binds `0.0.0.0` by default**, unlike the desktop interface. A phone UI
+  that only answers on loopback is useless — the phone is never the machine
+  running the studio. `BENCH_MOBILE_HOST` overrides it.
+
+It is installable: manifest, icons and a service worker that caches the shell
+only. Nothing under `/api`, `/media`, `/inputs`, `/previews` or `/projects` is
+ever cached — a stale ledger would show an old gallery as if it were current.
+
 ## Production: two steps, and what each one buys you
 
 Everything above runs `npm run dev` — a **development** server, published to the

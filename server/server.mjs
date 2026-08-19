@@ -1058,6 +1058,18 @@ const FORMATS = {
     brief:
       "Clean studio product photography. Seamless sweep background, controlled soft lighting with one crisp specular highlight, product perfectly in focus and centered, catalogue-grade.",
   },
+  // Reenquadrar troca a PROPORCAO sem reescrever a imagem. E o unico modo que
+  // nao descreve um genero de peca: ele descreve uma operacao, e por isso vale
+  // para qualquer assunto. Existe porque o caminho ingenuo — pedir a mesma
+  // imagem em outra proporcao — faz o modelo ESTICAR ou CORTAR, e o corte de
+  // 16:9 para 9:16 fica com ~32% da largura original, quase sempre decapitando
+  // o personagem. O que se quer e o contrario: manter tudo que existe e INVENTAR
+  // o que falta em cima e embaixo (ou nas laterais).
+  reframe: {
+    label: "Reframe",
+    brief:
+      "Change ONLY the aspect ratio of the attached image by extending it, never by cropping, stretching, squeezing or letterboxing it. Treat the original pixels as fixed: every subject, edge and detail already present must survive unchanged, in the same relative scale, and stay fully inside the new frame. Generate the new area as a natural continuation of the existing scene — the same lighting direction, colour grade, grain, perspective and depth of field — so the seam is invisible. Going from landscape to portrait, invent what lies above and below (sky, ceiling, ground, floor, background falloff); going from portrait to landscape, invent what lies to the left and right. Do not add new subjects, text, logos or objects into the extended area unless the user asked for them, and do not restate the target ratio in words: the aspect ratio control already carries it.",
+  },
   poster: {
     label: "Ad with Headline",
     brief:

@@ -269,6 +269,7 @@ export default {
       tvspot: "Comercial de TV",
       product: "Foto de produto",
       poster: "Anúncio com headline",
+      reframe: "Mudar proporção",
     },
   },
 

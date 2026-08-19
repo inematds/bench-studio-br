@@ -4,6 +4,29 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.11.6
+
+### Novo
+- **Interface de celular, na porta 5300 (`npm run mobile`).** Duas telas: criar e
+  galeria. Fala com a MESMA API, pelas mesmas rotas do desktop — nada em `src/`
+  foi tocado e nenhuma rota nova foi criada no servidor. Criar tem modo (com os
+  subcontroles dele), imagem ou vídeo, provedor, modelo, prompt, refinar, anexo
+  pela galeria ou pela câmera, o preço antes de decidir, e um botão grande.
+  Galeria tem 30 por vez com "carregar mais", filtros de tipo, provedor e
+  modelo, e toque para ver em tela cheia. É instalável (manifesto, ícones e um
+  service worker que guarda só o esqueleto — nunca `/api` nem mídia, porque um
+  histórico velho em cache mostraria uma galeria vencida como se fosse a atual).
+  Fica fora, de propósito: catálogo de modelos, projetos e configuração.
+- **Modo novo: Reframe (Mudar proporção).** É o único modo que não descreve um
+  gênero de peça — descreve uma operação, e por isso vale para qualquer assunto.
+  Ele instrui o modelo a mudar a proporção **estendendo** a imagem, nunca
+  cortando, esticando ou pondo faixas: o que já existe permanece intocado na
+  mesma escala, e o que falta em cima e embaixo (ou nas laterais) é inventado
+  como continuação natural da cena — mesma luz, mesmo grão, mesma perspectiva.
+  Existe porque o caminho ingênuo, pedir a mesma imagem noutra proporção, faz o
+  modelo cortar: de 16:9 para 9:16 sobra cerca de 32% da largura, quase sempre
+  decapitando o personagem.
+
 ## 1.10.6
 
 ### Novo
