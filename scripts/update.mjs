@@ -81,6 +81,14 @@ if (mudou.some((f) => f === "package.json" || f === "package-lock.json")) {
   say("dependências inalteradas.");
 }
 
+// Em producao quem responde e o dist/, nao o Vite: sem reconstruir, o navegador
+// continua recebendo o pacote antigo e a atualizacao parece nao ter acontecido.
+// So reconstroi se ja existe um dist/ — quem roda em modo dev nao precisa.
+if (existsSync(join(ROOT, "dist", "index.html"))) {
+  say("dist/ encontrado — reconstruindo a interface…");
+  run("npm", ["run", "build"]);
+}
+
 say("conferindo os requisitos…");
 run("node", ["scripts/doctor.mjs"]);
 

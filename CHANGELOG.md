@@ -4,6 +4,30 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.10.6
+
+### Novo
+- **Produção em dois degraus, com os scripts prontos.** O degrau 1 já existia
+  (`install-service.sh`: sobe no boot, volta sozinho se morrer, log no
+  `journalctl`). O degrau 2 são dois scripts novos:
+  `production-build.sh` constrói o `dist/` e troca a unit do systemd para
+  `npm run server`; `production-nginx.sh` escreve o site, recarrega o nginx,
+  abre 80/443, fecha a 5200 antiga e chama o certbot. Entre um e outro a
+  interface fica fora do ar **de propósito**: o Express serve `/media`,
+  `/inputs`, `/previews` e `/projects`, mas nunca o `dist/`. Dois valores da
+  config são deliberados — upload até 128 MB (o padrão do nginx, 1 MB, recusaria
+  uma referência comum com um 413 que parece defeito do estúdio) e espera de 15
+  minutos no proxy (os 60s padrão cortariam uma geração de vídeo sadia com 504).
+  `--print` mostra a config sem gravar nada. O README ganhou a seção explicando
+  o que cada degrau compra e o que cobra.
+- **O `update` reconstrói sozinho quando existe `dist/`.** Em produção quem
+  responde é o pacote construído: sem isso, dava para atualizar e continuar
+  servindo o bundle antigo sem perceber.
+
+### Mudou
+- **Refinar e Gerar ficaram um sobre o outro**, os dois sempre clicáveis. Lado a
+  lado, o Refinar era lido como enfeite do Gerar e passava despercebido.
+
 ## 1.9.6
 
 ### Novo

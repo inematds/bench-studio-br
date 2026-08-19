@@ -596,7 +596,11 @@ p { text-wrap: pretty; }
   transition: transform 0.15s, background 0.15s;
 }
 
-.go-pair { display: flex; flex: none; gap: 8px; }
+/* Empilhados, nao lado a lado: com os dois na horizontal o Refinar era lido como
+   enfeite do Gerar e passava despercebido. Um sobre o outro, os dois entram na
+   mesma varredura vertical do olho — e ambos ficam sempre clicaveis. */
+.go-pair { display: flex; flex: none; flex-direction: column; gap: 6px; }
+.go-pair .go { height: 38px; min-width: 150px; }
 /* Refinar e a acao secundaria: mesma altura e peso do primario, sem o preenchimento
    de destaque — quem paga credito e o Gerar, entao ele fica sozinho no azul. */
 .go.ghost { min-width: 118px; border: 1px solid var(--line-bright); background: transparent; color: var(--text-2); }

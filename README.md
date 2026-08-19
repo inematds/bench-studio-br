@@ -273,12 +273,68 @@ sudo journalctl -u bench-studio -f     # logs
 ./scripts/install-service.sh --remove  # disable and delete it
 ```
 
-If nginx or Caddy serves `npm run build`'s `dist/` and you only need the API
-behind it:
+## Production: two steps, and what each one buys you
+
+Everything above runs `npm run dev` — a **development** server, published to the
+network. It works, but it is not what that server was built for. Moving to
+production is two steps, and you can stop after the first.
+
+### Step 1 — same command, under systemd
 
 ```bash
-./scripts/install-service.sh --serve build     # ExecStart becomes `npm run server`
+./scripts/install-service.sh
 ```
+
+What you get: it starts at boot, **comes back on its own if it dies**, and logs
+to `journalctl` instead of a `~/bench.log` nobody rotates. No more `setsid
+nohup`. Still the Vite dev server — this step fixes *"it fell over and nobody
+noticed"*, nothing else. If the studio only stays up while you are testing, stop
+here.
+
+### Step 2 — a built artifact behind nginx, with TLS
+
+Two scripts, in this order:
+
+```bash
+./scripts/production-build.sh                                    # 1. build + switch the unit
+./scripts/production-nginx.sh --domain your.domain --email you@your.domain   # 2. nginx + certificate
+```
+
+`production-build.sh` runs the doctor, builds `dist/`, and switches the systemd
+unit to `npm run server` — the API alone. **Between the two scripts the
+interface is down on purpose**: the Express app serves `/media`, `/inputs`,
+`/previews` and `/projects`, but never `dist/`. Something has to serve those
+files, and that something is nginx.
+
+`production-nginx.sh` writes the site, reloads nginx, opens 80/443, closes the
+old 5200, and calls certbot. Two values in that config are deliberate: uploads
+are allowed up to 128 MB (nginx defaults to 1 MB, which would reject an ordinary
+reference image with a 413 that looks like a studio bug), and the proxy waits up
+to 15 minutes (the 60s default would cut a healthy video generation short with a
+504). Read it first with `--print`, which writes nothing.
+
+**What step 2 actually buys, in order of importance:**
+
+1. **HTTPS.** Today the traffic is plain HTTP: your studio password and
+   everything you type are readable in transit. On a public VPS this argument
+   decides on its own.
+2. **Less exposed.** The dev server hands out your sources and source maps; the
+   build serves a minified bundle. Less surface, and less memory sitting idle.
+3. **Faster pages.** One hashed bundle, compressed and cached by nginx, instead
+   of modules served one by one.
+4. **Predictable behaviour.** What is live is a fixed artifact that changes only
+   when you say so, rather than a server watching your files.
+
+**What it costs.** Every update now needs a rebuild — `npm run update` does it
+for you when a `dist/` exists, but if you build by hand, remember it or the
+browser keeps getting the old bundle. You also take on an nginx config and a
+certificate, and you lose live reload, which on a server is a feature.
+
+TLS needs a **domain pointing at the machine**: Let's Encrypt does not issue
+certificates for a bare IP. Without one, run with `--no-tls` and understand that
+the password still travels in the clear.
+
+Going back is one command: `./scripts/install-service.sh --serve dev`.
 
 ## Updating an existing install
 
@@ -580,6 +636,7 @@ Routine care, in rough order of how often you will need it.
 | Task | Command |
 | --- | --- |
 | Update the install | `npm run update`, then restart |
+| Move to production (build + nginx + TLS) | `./scripts/production-build.sh` then `./scripts/production-nginx.sh --domain …` |
 | Check requirements (Node, deps, ports, keys) | `npm run doctor` |
 | Is it healthy? | `curl -s localhost:8787/api/health` |
 | Is it exposed, and how? | `./scripts/remote.sh status` |
