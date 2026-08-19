@@ -408,6 +408,13 @@ p { text-wrap: pretty; }
   text-transform: uppercase;
 }
 
+/* Modo em destaque: continua sendo um botao da fileira, mas com a cor de acao —
+   ele resolve um problema recorrente (mudar a proporcao de uma imagem) e, no
+   menu de "mais modos", ninguem achava. Quando selecionado, vira o preenchido
+   normal, entao nao ha dois azuis brigando. */
+.preset.destaque:not(.on) { border-color: var(--accent); color: #b9c6ff; background: var(--accent-soft); }
+.preset.destaque:not(.on):hover { background: rgba(111,140,255,.2); color: var(--text); }
+
 .preset {
   min-height: 34px;
   padding: 7px 12px;

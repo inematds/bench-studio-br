@@ -37,17 +37,41 @@ const api = async (url, options) => {
 
 const money = (value) => `$${Number(value ?? 0).toFixed(3)}`;
 
-// Ordem de exibicao dos parametros: os tres que mudam o resultado num telefone.
-// O resto do schema continua existindo — so nao cabe aqui, e o padrao do modelo
-// ja e uma escolha razoavel.
-const PARAM_ORDER = ["aspect_ratio", "image_size", "duration", "resolution"];
+// Quais parametros aparecem no telefone.
+//
+// Antes isto era uma lista fechada de nomes conhecidos, e foi um erro: a Agnes
+// chama o campo de `size` (1312x736, 736x1312…), que nao estava na lista — entao
+// o modelo dela aparecia SEM nenhuma opcao de tamanho, e nao havia como pedir
+// vertical. Agora entra qualquer parametro que ofereca escolha; a lista abaixo
+// so decide a ORDEM, para o que mais importa ficar em cima.
+const PRIORIDADE = ["aspect_ratio", "size", "image_size", "resolution", "duration", "quality"];
+
+const ROTULOS = {
+  aspect_ratio: "Proporção",
+  size: "Tamanho",
+  image_size: "Tamanho",
+  resolution: "Resolução",
+  duration: "Duração",
+  quality: "Qualidade",
+  num_images: "Quantidade",
+};
+
+function rotuloParam(name) {
+  return ROTULOS[name] ?? name.replace(/_/g, " ");
+}
 
 function paramOptions(model) {
   const params = model?.params ?? {};
-  return PARAM_ORDER
-    .filter((name) => Array.isArray(params[name]?.enum) && params[name].enum.length > 1)
-    .slice(0, 3)
-    .map((name) => ({ name, values: params[name].enum, fallback: params[name].default ?? params[name].enum[0] }));
+  return Object.entries(params)
+    .filter(([, spec]) => Array.isArray(spec?.enum) && spec.enum.length > 1)
+    .sort(([a], [b]) => {
+      const pa = PRIORIDADE.indexOf(a), pb = PRIORIDADE.indexOf(b);
+      return (pa === -1 ? 99 : pa) - (pb === -1 ? 99 : pb) || a.localeCompare(b);
+    })
+    // Teto de 4: tela de telefone. O resto do schema continua existindo e usa o
+    // padrao do modelo, que ja e uma escolha razoavel.
+    .slice(0, 4)
+    .map(([name, spec]) => ({ name, values: spec.enum, fallback: spec.default ?? spec.enum[0] }));
 }
 
 function acceptsImage(model) {
@@ -168,7 +192,10 @@ function Criar({ models, formats, recents, onDone }) {
   }
 
   async function gerar() {
-    if (!prompt.trim() || !model) return;
+    // No Reframe o texto e opcional: o brief do modo ja descreve a operacao, e o
+    // que a pessoa escreve compete com ele. A imagem anexada e o pedido.
+    const soReenquadra = format === "reframe" && Boolean(ref);
+    if ((!prompt.trim() && !soReenquadra) || !model) return;
     if (format === "reframe" && !ref) {
       setErro("O modo Mudar proporção reenquadra uma imagem existente: anexe a imagem antes de gerar.");
       return;
@@ -186,7 +213,7 @@ function Criar({ models, formats, recents, onDone }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           modelId: model.id,
-          prompt: prompt.trim(),
+          prompt: prompt.trim() || "reenquadrar",
           rawIdea: prompt.trim(),
           format,
           params,
@@ -272,6 +299,24 @@ function Criar({ models, formats, recents, onDone }) {
         </select>
       </label>
 
+      {/* Reframe tem botao proprio, e nao so uma linha na lista: ele resolve um
+          problema recorrente — "tenho em 16:9 e preciso em 9:16" — e dentro de
+          um seletor com nove opcoes ele simplesmente nao era encontrado. Um
+          toque liga, outro volta para o modo livre. */}
+      {formats.some((f) => f.id === "reframe") && (
+        <button
+          type="button"
+          className={`reframe-atalho${format === "reframe" ? " on" : ""}`}
+          onClick={() => setFormat(format === "reframe" ? "none" : "reframe")}
+        >
+          <b>⇅</b>
+          <span>
+            {format === "reframe" ? "Mudando a proporção" : "Mudar proporção da imagem"}
+            <i>16:9 ⇄ 9:16 sem cortar — estende a cena</i>
+          </span>
+        </button>
+      )}
+
       {controles.map((controle) => (
         <label className="campo sub" key={controle.id}>
           <span>{traduzir(controle.key, controle.label ?? controle.id)}</span>
@@ -339,7 +384,7 @@ function Criar({ models, formats, recents, onDone }) {
 
       {opcoes.map((option) => (
         <label className="campo" key={option.name}>
-          <span>{option.name.replace(/_/g, " ")}</span>
+          <span>{rotuloParam(option.name)}</span>
           <select
             value={params[option.name] ?? option.fallback}
             onChange={(e) => setParams((p) => ({ ...p, [option.name]: e.target.value }))}
@@ -382,7 +427,7 @@ function Criar({ models, formats, recents, onDone }) {
             : quote?.basis ? <span>{quote.basis}</span>
             : <span>preço indisponível</span>}
         </div>
-        <button type="button" className="gerar" disabled={!prompt.trim() || !model || Boolean(job)} onClick={gerar}>
+        <button type="button" className="gerar" disabled={(!prompt.trim() && !(format === "reframe" && ref)) || !model || Boolean(job)} onClick={gerar}>
           {job ? (job.phase === "submitting" ? "Enviando…" : "Gerando…") : "Gerar"}
         </button>
       </div>

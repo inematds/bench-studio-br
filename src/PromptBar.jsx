@@ -570,7 +570,9 @@ export default function PromptBar({
     .sort(([a], [b]) => rank(a) - rank(b))
     .slice(0, 5);
 
-  const ready = Boolean((rewritten?.prompt ?? idea).trim());
+  // No Reframe, uma imagem anexada JA e um pedido completo: o modo diz o que
+  // fazer com ela. Nos demais modos, sem texto nao ha o que gerar.
+  const ready = Boolean((rewritten?.prompt ?? idea).trim()) || (format === "reframe" && refs.length > 0);
   const rewriteWords = String(rewritten?.prompt ?? "")
     .trim()
     .split(/\s+/)
@@ -615,6 +617,11 @@ export default function PromptBar({
   const ATALHOS = [
     { id: "ugc", label: t("work.formats.ugc") },
     { id: "none", label: t("prompt.freeform") },
+    // Reframe fica na fileira, e nao dentro de "mais modos", porque ele nao e um
+    // genero de peca entre outros: e a operacao que resolve "tenho isto em 16:9
+    // e preciso em 9:16", que aparece o tempo todo. Escondido num menu, ele
+    // simplesmente nao era encontrado.
+    { id: "reframe", label: t("work.formats.reframe"), destaque: true },
     { id: "unboxing", label: t("work.formats.unboxing") },
     { id: "product", label: t("work.formats.product") },
   ];
@@ -622,7 +629,7 @@ export default function PromptBar({
     .map((atalho) => {
       const noCatalogo = (catalog.formats ?? []).find((f) => f.id === atalho.id);
       if (!noCatalogo) return null;
-      return { id: atalho.id, label: noCatalogo.edited ? noCatalogo.label : atalho.label };
+      return { id: atalho.id, label: noCatalogo.edited ? noCatalogo.label : atalho.label, destaque: atalho.destaque };
     })
     .filter(Boolean);
   const quickFormatIds = new Set(quickFormats.map(({ id }) => id));
@@ -644,7 +651,7 @@ export default function PromptBar({
             <button
               key={preset.id}
               type="button"
-              className={`preset${format === preset.id ? " on" : ""}`}
+              className={`preset${format === preset.id ? " on" : ""}${preset.destaque ? " destaque" : ""}`}
               onClick={() => setFormat(preset.id)}
             >
               {preset.label}

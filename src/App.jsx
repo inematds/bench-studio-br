@@ -633,7 +633,13 @@ export default function App() {
 
   async function generate() {
     const prompt = (rewritten?.prompt ?? idea).trim();
-    if (!prompt || !modelId) return;
+    // Reframe nao precisa de texto: o brief do modo JA diz o que fazer (estender
+    // a imagem ate a nova proporcao, sem cortar). Exigir prompt aqui empurrava a
+    // pessoa a escrever alguma coisa — e o que ela escreve COMPETE com o brief e
+    // vence. Num teste, "mantendo o cavalo e a praia" fez o modelo inventar uma
+    // praia numa foto que era de um skate no concreto.
+    const soReenquadra = format === "reframe" && refs.length > 0;
+    if ((!prompt && !soReenquadra) || !modelId) return;
 
     const assignment = assignInputFields(model, refs);
     if (!assignment.ok) return setError(assignment.reason);
