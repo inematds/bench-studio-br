@@ -74,8 +74,9 @@ say(`atualizado: ${git("log", "--oneline", "-1")}`);
 
 // 3. dependencias e build so quando o que as define mudou.
 const mudou = git("diff", "--name-only", `${local}..HEAD`).split("\n").filter(Boolean);
-if (mudou.some((f) => f === "package.json" || f === "package-lock.json")) {
-  say("dependências mudaram — reinstalando…");
+const semDependencias = !existsSync(join(ROOT, "node_modules"));
+if (semDependencias || mudou.some((f) => f === "package.json" || f === "package-lock.json")) {
+  say(semDependencias ? "node_modules ausente — instalando…" : "dependências mudaram — reinstalando…");
   run("npm", ["install"]);
 } else {
   say("dependências inalteradas.");
@@ -100,11 +101,35 @@ if (existsSync(join(ROOT, "dist-mobile", "index.html"))) {
 say("conferindo os requisitos…");
 run("node", ["scripts/doctor.mjs"]);
 
+// 4. reiniciar E parte de atualizar. Codigo novo no disco com o processo antigo
+//    na memoria e o jeito mais facil de concluir que "a correcao nao funcionou".
 const depois = version();
+const servico = process.env.BENCH_SERVICE ?? "bench-studio";
+const semReinicio = process.argv.includes("--no-restart");
+
+function servicoAtivo() {
+  const r = spawnSync("systemctl", ["is-active", "--quiet", servico], { stdio: "ignore" });
+  return r.status === 0;
+}
+
+if (semReinicio) {
+  say("--no-restart: o processo antigo continua no ar.");
+} else if (servicoAtivo()) {
+  say(`reiniciando o serviço ${servico}…`);
+  const sudo = process.getuid?.() === 0 ? [] : ["sudo"];
+  run(sudo.length ? "sudo" : "systemctl", sudo.length ? ["systemctl", "restart", servico] : ["restart", servico]);
+} else if (existsSync(join(ROOT, "stop.sh")) && existsSync(join(ROOT, "start.sh"))) {
+  // Sem systemd: derruba o que estiver deste projeto e sobe de novo do mesmo
+  // jeito documentado. O stop nao reclama quando nao ha nada rodando.
+  say("reiniciando (start.sh/stop.sh)…");
+  spawnSync("./stop.sh", [], { cwd: ROOT, stdio: "inherit" });
+  const subiu = spawnSync("./start.sh", [], { cwd: ROOT, stdio: "inherit" });
+  if (subiu.status !== 0) die("o estúdio não voltou. Veja o log indicado acima.");
+} else {
+  say("nada rodando por aqui — suba quando quiser: ./start.sh");
+}
+
 process.stdout.write(
   `\n  ${antes} → ${depois}.\n` +
-  `  Reinicie o estúdio para o processo pegar o código novo:\n` +
-  `    pkill -f "node server/server.mjs"\n` +
-  `    setsid nohup npm run dev > ~/bench.log 2>&1 < /dev/null &\n` +
-  `  Depois confira:  curl -s localhost:8787/api/health\n\n`
+  `  Confira:  curl -s localhost:${process.env.PORT ?? 8787}/api/health\n\n`
 );
