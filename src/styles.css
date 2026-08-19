@@ -610,8 +610,13 @@ p { text-wrap: pretty; }
 .go-pair .go { height: 38px; min-width: 150px; }
 /* Refinar e a acao secundaria: mesma altura e peso do primario, sem o preenchimento
    de destaque — quem paga credito e o Gerar, entao ele fica sozinho no azul. */
-.go.ghost { min-width: 118px; border: 1px solid var(--line-bright); background: transparent; color: var(--text-2); }
-.go.ghost:hover:not(:disabled) { border-color: var(--accent); background: rgba(111,140,255,.10); color: var(--text); transform: none; }
+/* Refinar tambem em azul, mas VAZADO — o cheio fica so no Gerar. Dois botoes
+   preenchidos com a mesma cor brigariam entre si e a acao que gasta credito
+   deixaria de ser a mais evidente. Cinza, porem, o fazia sumir: era lido como
+   desabilitado, e o refino passava despercebido. */
+.go.ghost { min-width: 118px; border: 1px solid var(--accent); background: var(--accent-soft); color: #b9c6ff; }
+.go.ghost:hover:not(:disabled) { background: rgba(111,140,255,.22); color: var(--text); transform: none; }
+.go.ghost:disabled { border-color: var(--line-bright); background: transparent; color: var(--text-3); }
 .go:hover:not(:disabled) { background: #8fa6ff; transform: translateY(-1px); }
 .go:active:not(:disabled) { transform: scale(0.98); }
 

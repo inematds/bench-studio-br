@@ -80,8 +80,9 @@ select, .prompt, input[type="password"] {
 select:focus, .prompt:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .refino { display: flex; gap: 8px; }
-.refinar { flex: 1; min-height: 46px; border: 1px solid var(--line-bright); border-radius: 10px; background: var(--panel); color: var(--text-2); font: inherit; font-weight: 700; }
-.refinar:disabled { opacity: .5; }
+/* Mesmo criterio do desktop: azul vazado no refinar, azul cheio no gerar. */
+.refinar { flex: 1; min-height: 46px; border: 1px solid var(--accent); border-radius: 10px; background: rgba(111,140,255,.13); color: #c3cdff; font: inherit; font-weight: 700; }
+.refinar:disabled { border-color: var(--line-bright); background: transparent; color: var(--text-3); }
 .desfazer { min-height: 46px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: var(--accent); font: inherit; font-weight: 700; }
 
 .anexo-botoes { display: grid; grid-auto-flow: column; gap: 8px; }
