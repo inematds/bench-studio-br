@@ -14,6 +14,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CHURN = ["package-lock.json", "server/providers/kie.models.json"];
+// Saida de build nao e trabalho humano: numa maquina que ainda nao tinha o
+// .gitignore atual, um dist-mobile/ solto travava o update inteiro pedindo uma
+// decisao sobre uma pasta que o proprio update reconstroi.
+const ARTEFATOS = ["dist/", "dist-mobile/", "node_modules/"];
 
 const say = (msg) => process.stdout.write(`  ${msg}\n`);
 const die = (msg, fix) => {
@@ -46,7 +50,7 @@ say(`versão atual: ${antes}`);
 
 // 1. so os arquivos de churn podem ser descartados; o resto e decisao sua.
 const sujos = gitRaw("status", "--porcelain").split("\n").map((l) => l.slice(3).trim()).filter(Boolean);
-const meus = sujos.filter((f) => !CHURN.includes(f));
+const meus = sujos.filter((f) => !CHURN.includes(f) && !ARTEFATOS.some((a) => f === a || f.startsWith(a)));
 if (meus.length) {
   die(
     `você tem alterações locais que o update não vai atropelar:\n  ${meus.join("\n  ")}`,
