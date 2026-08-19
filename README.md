@@ -40,6 +40,48 @@ units instead of disappearing into mystery credits.
 > history, uploads, private database, personal paths, credentials, or local
 > build artifacts. Your archive begins empty.
 
+## The five verbs
+
+Everything you normally need is a script at the root. No flags to memorise, no
+sequence to get right.
+
+| Verb | What it does |
+| --- | --- |
+| `./instalar.sh` (or `./install.sh`) | First install: checks Node, installs dependencies, creates `.env`, runs the doctor. Stops on the requirement that is missing. |
+| `./atualizar.sh` | Everything an update is: fetch, install, rebuild, verify, restart. One command. |
+| `./start.sh` / `./start.sh --mobile` | Starts it detached and confirms it is really up — with the phone interface too, if you ask. |
+| `./stop.sh` | Stops the interfaces and server **of this project**, and nothing else on the machine. |
+| `./resolver.sh` | *"It is not working, now what?"* Checks what actually breaks, in the order it usually breaks, and fixes what is safe to fix. `--so-ver` only reports. |
+
+Plus `./mobile.sh [subir|parar|status]` when only the phone interface matters —
+it is a separate process from the desktop one and can be handled on its own.
+
+**Why `./atualizar.sh` and not just `npm run update`.** The update logic that
+runs is the copy **on disk** — the old one. An improvement to the updater only
+takes effect the *next* time you update. That is how a VPS once updated its
+files and did not restart: the version installed there did not yet know how to.
+`./atualizar.sh` inverts the order — fetch first, then run the freshly pulled
+logic — so one pass is always enough.
+
+### First update of an older install
+
+Anything installed before 1.13.7 hits this once, and only once. The updater on
+that machine does not restart yet, and the machine has usually edited or dirtied
+a file or two just by running. From the project folder:
+
+```bash
+git checkout -- stop.sh package-lock.json server/providers/kie.models.json
+rm -f nohup.out
+./atualizar.sh
+./stop.sh && ./start.sh --mobile     # only needed this first time
+```
+
+From then on, updating that machine is `./atualizar.sh` and nothing else.
+
+If it refuses and names files you do not recognise, that is the point: it will
+not overwrite work. Discard them (`git checkout -- <file>`) if you did not touch
+them on purpose, or `git stash` if you did.
+
 ## Quick install
 
 Three scripts at the root, for the common path. They do exactly what the manual
