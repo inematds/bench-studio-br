@@ -418,13 +418,30 @@ cd bench-studio-br
 npm run update
 ```
 
-It does the whole sequence and refuses to guess: discards the two files the
-machine rewrites by itself — `server/providers/kie.models.json` (the server
-rewrites `generated_at` on every boot) and `package-lock.json` (npm install) —
-fast-forwards only, reinstalls dependencies **only if** `package.json` changed,
-and finishes by running `npm run doctor`. If you have any other local change it
-**stops and shows you the files** instead of running them over: `git stash`,
-update, `git stash pop`.
+That is the whole update. It:
+
+1. discards the two files the machine rewrites by itself —
+   `server/providers/kie.models.json` (the server rewrites `generated_at` on
+   every boot) and `package-lock.json` (npm install) — plus build output
+   (`dist/`, `dist-mobile/`, `node_modules/`), which it rebuilds anyway;
+2. fast-forwards only, never merges;
+3. reinstalls dependencies if `package.json` changed or `node_modules` is missing;
+4. rebuilds `dist/` and `dist-mobile/` when they exist — in production the
+   browser is served the built bundle, so skipping this leaves yesterday's app
+   on screen;
+5. runs `npm run doctor`;
+6. **restarts**, and gives back exactly what was running: the systemd service if
+   there is one, otherwise `stop.sh` + `start.sh`; an interface that was
+   published on the network comes back published, and the phone interface comes
+   back if it was up.
+
+If you have any other local change it **stops and shows you the files** instead
+of running them over: `git stash`, update, `git stash pop`. Use `--no-restart`
+(`npm run update -- --no-restart`) to update the files and leave the running
+process alone.
+
+Step 6 exists because leaving it out is the most reliable way to conclude that a
+fix did not work: new code on disk, old code in memory.
 
 A plain `git pull` also works, but on a machine that has already run the studio
 it usually aborts with *"local changes would be overwritten"* on exactly those
