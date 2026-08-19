@@ -20,11 +20,17 @@ const die = (msg, fix) => {
   process.stderr.write(`\n  ${msg}\n${fix ? `  → ${fix}\n` : ""}\n`);
   process.exit(1);
 };
-const git = (...args) => {
+// `raw` existe por causa do `git status --porcelain`: a coluna de status ocupa os
+// dois primeiros caracteres e o caminho comeca no terceiro. Aparar a saida
+// inteira comia o espaco inicial da PRIMEIRA linha, devolvia "erver/providers/..."
+// e — pior — fazia o arquivo deixar de casar com a lista de churn, entao o update
+// parava pedindo decisao sobre um arquivo que ele mesmo deveria descartar.
+const gitRaw = (...args) => {
   const r = spawnSync("git", args, { cwd: ROOT, encoding: "utf8" });
   if (r.status !== 0) die(`git ${args[0]} falhou:\n  ${(r.stderr || r.stdout || "").trim()}`);
-  return (r.stdout ?? "").trim();
+  return r.stdout ?? "";
 };
+const git = (...args) => gitRaw(...args).trim();
 const run = (cmd, args) => {
   const r = spawnSync(cmd, args, { cwd: ROOT, stdio: "inherit" });
   if (r.status !== 0) die(`${cmd} ${args.join(" ")} falhou.`);
@@ -39,7 +45,7 @@ const antes = version();
 say(`versão atual: ${antes}`);
 
 // 1. so os arquivos de churn podem ser descartados; o resto e decisao sua.
-const sujos = git("status", "--porcelain").split("\n").map((l) => l.slice(3).trim()).filter(Boolean);
+const sujos = gitRaw("status", "--porcelain").split("\n").map((l) => l.slice(3).trim()).filter(Boolean);
 const meus = sujos.filter((f) => !CHURN.includes(f));
 if (meus.length) {
   die(

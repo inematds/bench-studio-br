@@ -4,6 +4,16 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.7.6
+
+### Corrigido
+- **O `update` parava pedindo decisão sobre um arquivo que ele mesmo deveria
+  descartar.** A saída do `git status --porcelain` era aparada inteira, o que
+  comia o espaço inicial da primeira linha: o caminho voltava como
+  `erver/providers/kie.models.json` e deixava de casar com a lista de arquivos
+  que a máquina regrava. O `doctor` tinha o mesmo defeito, exibindo
+  `ackage.json`. Agora quem lê a saída é que apara o que precisa.
+
 ## 1.7.5
 
 ### Novo
