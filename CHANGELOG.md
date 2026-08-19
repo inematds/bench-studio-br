@@ -4,6 +4,20 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.12.7
+
+### Corrigido
+- **O `stop.sh` se matava sozinho.** Ele procurava qualquer processo cuja linha
+  de comando citasse `server/server.mjs`, `vite` ou `concurrently` — e a linha de
+  comando do próprio shell que roda o script cita exatamente isso. Ele derrubava
+  o terminal e morria antes de encerrar o estúdio, então "o stop não funcionou"
+  era literalmente verdade. O filtro por diretório que o comentário prometia
+  também nunca era aplicado: a variável ia para o `awk` e não era usada, então
+  outro projeto com Vite na mesma máquina estava no alcance. Agora são padrões
+  que casam com o processo (e não com quem fala dele), o diretório de trabalho
+  precisa estar dentro deste projeto, e nem o script nem o shell que o chamou
+  entram na lista.
+
 ## 1.12.6
 
 ### Novo
