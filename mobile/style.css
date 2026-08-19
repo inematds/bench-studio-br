@@ -82,6 +82,7 @@ select:focus, .prompt:focus, input:focus { outline: 2px solid var(--accent); out
 .refino { display: flex; gap: 8px; }
 /* Mesmo criterio do desktop: azul vazado no refinar, azul cheio no gerar. */
 .refinar { flex: 1; min-height: 46px; border: 1px solid var(--accent); border-radius: 10px; background: rgba(111,140,255,.13); color: #c3cdff; font: inherit; font-weight: 700; }
+.refinar.principal { background: var(--accent); color: #0b0f1a; }
 .refinar:disabled { border-color: var(--line-bright); background: transparent; color: var(--text-3); }
 .desfazer { min-height: 46px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: var(--accent); font: inherit; font-weight: 700; }
 
@@ -115,7 +116,8 @@ select:focus, .prompt:focus, input:focus { outline: 2px solid var(--accent); out
   background: var(--accent); color: #0b0f1a;
   font: inherit; font-size: 16px; font-weight: 800;
 }
-.gerar:disabled { background: var(--panel); color: var(--text-3); }
+.gerar.vazado { border: 1px solid var(--accent); background: rgba(111,140,255,.13); color: #c3cdff; }
+.gerar:disabled, .gerar.vazado:disabled { border-color: var(--line-bright); background: var(--panel); color: var(--text-3); }
 
 /* ---------------------------------------------------------------- galeria */
 

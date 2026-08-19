@@ -803,8 +803,11 @@ export default function PromptBar({
               unico caminho visivel para gerar passava pelo refinamento. Gerar
               direto ja funcionava, mas so pelo Ctrl+Enter, que ninguem adivinha.
               O primario e Gerar; refinar virou escolha, nao pedagio. */}
+          {/* Os dois cheios, por escolha do usuario: refinar nao e um passo
+              secundario aqui — ele e usado tanto quanto gerar, e qualquer
+              tratamento mais fraco fazia ele passar despercebido. */}
           <div className="go-pair">
-            <button type="button" className="go ghost" onClick={onOptimize} disabled={busy || !ready}>
+            <button type="button" className="go" onClick={onOptimize} disabled={busy || !ready}>
               {busy && !running ? t("prompt.working") : t("prompt.refine")}
             </button>
             <button type="button" className="go" onClick={onGenerate} disabled={busy || !ready}>

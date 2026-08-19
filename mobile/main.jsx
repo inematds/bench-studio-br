@@ -371,8 +371,10 @@ function Criar({ models, formats, recents, onDone }) {
         rows={5}
       />
 
+      {/* Os dois cheios: refinar e usado tanto quanto gerar, e tratamento mais
+          fraco o fazia passar despercebido. */}
       <div className="refino">
-        <button type="button" className="refinar" onClick={refinar} disabled={!prompt.trim() || refinando || Boolean(job)}>
+        <button type="button" className="refinar principal" onClick={refinar} disabled={!prompt.trim() || refinando || Boolean(job)}>
           {refinando ? "Refinando…" : "Refinar prompt"}
         </button>
         {original !== null && (
