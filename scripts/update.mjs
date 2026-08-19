@@ -68,16 +68,34 @@ say("buscando atualizações…");
 git("fetch", "--quiet", "origin");
 const local = git("rev-parse", "HEAD");
 const remoto = git("rev-parse", "@{u}");
-if (local === remoto) {
-  say(`já está atualizado (${antes}).`);
-  process.stdout.write("\n");
-  process.exit(0);
+
+// "Ja esta atualizado" NAO significa "nada a fazer". O ./atualizar.sh busca o
+// codigo antes de chamar este script, entao quando ele chega aqui o repositorio
+// ja avancou — e sair neste ponto deixava o disco novo e o PROCESSO velho, que e
+// justamente o problema que o atualizar.sh existe para resolver. Medido: disco
+// em 1.15.11 e processo em 1.15.9 depois de uma passada.
+const APIPORT = process.env.PORT ?? 8787;
+function versaoEmExecucao() {
+  const r = spawnSync("curl", ["-s", "--max-time", "4", `localhost:${APIPORT}/api/health`], { encoding: "utf8" });
+  return (r.stdout ?? "").match(/"version":"([^"]+)"/)?.[1] ?? null;
 }
-git("merge", "--ff-only", "@{u}");
-say(`atualizado: ${git("log", "--oneline", "-1")}`);
+
+if (local === remoto) {
+  const rodando = versaoEmExecucao();
+  if (rodando && rodando !== antes) {
+    say(`o repositório já está em ${antes}, mas o processo no ar ainda é ${rodando}.`);
+  } else {
+    say(`já está atualizado (${antes}).`);
+    process.stdout.write("\n");
+    process.exit(0);
+  }
+} else {
+  git("merge", "--ff-only", "@{u}");
+  say(`atualizado: ${git("log", "--oneline", "-1")}`);
+}
 
 // 3. dependencias e build so quando o que as define mudou.
-const mudou = git("diff", "--name-only", `${local}..HEAD`).split("\n").filter(Boolean);
+const mudou = local === git("rev-parse", "HEAD") ? [] : git("diff", "--name-only", `${local}..HEAD`).split("\n").filter(Boolean);
 const semDependencias = !existsSync(join(ROOT, "node_modules"));
 if (semDependencias || mudou.some((f) => f === "package.json" || f === "package-lock.json")) {
   say(semDependencias ? "node_modules ausente — instalando…" : "dependências mudaram — reinstalando…");
