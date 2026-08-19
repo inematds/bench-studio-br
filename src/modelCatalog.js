@@ -42,6 +42,17 @@ export function modelKindLabel(model, t) {
   return MODEL_KIND_LABELS[kind] ?? "Model";
 }
 
+// Codigo curto da raia, para caber onde a frase nao cabe: t2i, i2i, t2v, i2v,
+// r2v — com o sufixo K quando o modelo trabalha por quadro inicial/final
+// (i2vK). Antes essa informacao so existia como frase ("varias imagens de
+// referencia"), que ocupava o chip inteiro e ainda assim nao dizia se havia
+// keyframe; e ao selecionar o modelo ela sumia.
+export function laneCode(model) {
+  const lane = model?.lane;
+  if (!lane) return null;
+  return keyframeSlotsFor(model) ? `${lane}K` : lane;
+}
+
 export function modelLaneLabel(model, t) {
   const lane = model?.lane;
   if (t) {

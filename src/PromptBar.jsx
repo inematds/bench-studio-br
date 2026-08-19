@@ -10,6 +10,7 @@ import {
   slotRole,
   modelKindLabel,
   modelLaneLabel,
+  laneCode,
   modelPriority,
   sortModels,
 } from "./modelCatalog.js";
@@ -382,6 +383,9 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
         {referenceCapacityLabel(model, t) && (
           <span className="model-picker-capacity">{referenceCapacityLabel(model, t)}</span>
         )}
+        {laneCode(model) && (
+          <span className="model-lane-code" title={modelLaneLabel(model, t)}>{laneCode(model)}</span>
+        )}
         <span className={`model-picker-kind kind-${model.kind}${referenceActive ? " reference" : ""}`}>
           {referenceActive ? modelLaneLabel(model, t) : modelKindLabel(model, t)}
         </span>
@@ -482,7 +486,9 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
                     <span className="model-option-provider">{candidate.provider ?? "fal"}</span>
                   </b>
                   <small>
-                    {candidate.vendor} · {modelLaneLabel(candidate, t)} · {modelPrice(candidate, t)}
+                    {candidate.vendor} · {modelLaneLabel(candidate, t)}
+                    {laneCode(candidate) && <span className="model-lane-code list">{laneCode(candidate)}</span>}
+                    {" · "}{modelPrice(candidate, t)}
                     {candidate.capabilities?.modalities?.length ? t("prompt.takesInline", { list: candidate.capabilities.modalities.join(" + ") }) : ""}
                     {referenceCapacityLabel(candidate, t) ? ` · ${referenceCapacityLabel(candidate, t)}` : ""}
                   </small>

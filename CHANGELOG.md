@@ -4,6 +4,27 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.9.6
+
+### Novo
+- **Código da raia no chip do modelo, com `K` quando há quadro inicial/final.**
+  `t2i`, `i2i`, `t2v`, `i2v`, `r2v` — e **`i2vK`** quando o modelo trabalha por
+  keyframe. Antes essa informação só existia como frase ("várias imagens de
+  referência"), que ocupava o chip inteiro, não dizia se havia keyframe, e sumia
+  assim que o modelo era escolhido. Agora aparece na lista e continua no chip
+  depois de selecionado.
+
+### Corrigido
+- **O nome do modelo sumia do chip.** Ele era o único filho encolhível: faltando
+  espaço, ia a zero e o chip exibia provedor, capacidade e tipo — tudo menos
+  qual modelo estava escolhido. Quem cede espaço primeiro passa a ser a frase de
+  capacidade, e o nome ganhou um piso.
+- **O botão de ampliar do vídeo cobria a etiqueta de custo.** Os dois moravam no
+  canto superior direito; o de ampliar desceu para a coluna da esquerda.
+- **A tela cheia abria presa dentro da coluna de resultados.** Um ancestral com
+  filtro vira bloco de contenção e o `position: fixed` passa a se medir por ele.
+  Agora ela vai para o `body` por portal, como o seletor de modelos já fazia.
+
 ## 1.8.6
 
 ### Novo

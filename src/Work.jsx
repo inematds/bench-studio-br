@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useT } from "./i18n/index.jsx";
 
 // Clicar no resultado abre a midia em tela cheia. Antes o clique nao fazia nada
@@ -14,7 +15,11 @@ function Lightbox({ item, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [item, onClose]);
   if (!item) return null;
-  return (
+  // Portal para o body: a tela cheia estava presa dentro da coluna de resultados,
+  // porque um ancestral com filtro/transform vira bloco de contencao e o
+  // `position: fixed` passa a se medir por ele, nao pela janela. O seletor de
+  // modelos ja resolvia assim.
+  return createPortal((
     <div className="lightbox" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <button type="button" className="lightbox-close" onClick={onClose} aria-label={t("common.close")}>&times;</button>
       {item.isVideo
@@ -22,7 +27,7 @@ function Lightbox({ item, onClose }) {
         : <img src={item.src} alt={item.label ?? ""} />}
       {item.label && <div className="lightbox-cap">{item.label}</div>}
     </div>
-  );
+  ), document.body);
 }
 
 // Results, big. Each one keeps its own price and billing confidence.
