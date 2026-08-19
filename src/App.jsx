@@ -262,6 +262,9 @@ export default function App() {
   const [params, setParams] = useState({});
   const [refs, setRefs] = useState([]);
   const refsRef = useRef([]);
+  // Id da raia de imagem que o usuario ja autorizou trocar nesta sessao de
+  // anexo. Zera quando ele escolhe outro modelo na mao (ver pickModel).
+  const laneSwitchOkRef = useRef(null);
   const [quote, setQuote] = useState(null);
   const [job, setJob] = useState(null);
   const [shots, setShots] = useState([]);
@@ -519,6 +522,20 @@ export default function App() {
       if (mediaType === "file") throw new Error(t("app.unsupportedFile"));
       let targetModel = model;
       if (!mediaInputsFor(targetModel, mediaType).length && mediaType === "image" && referenceModel) {
+        // A troca de raia era SILENCIOSA: anexar uma imagem num modelo
+        // texto->X trocava o modelo sem o usuario mandar, e ele so descobria
+        // depois, no rodape. O atalho continua existindo, mas agora ele
+        // confirma antes — a decisao de trocar de modelo e de quem pediu.
+        // Um clique no seletor pode trazer varios arquivos, e attach() roda uma
+        // vez por arquivo: sem memoria, a mesma pergunta apareceria N vezes.
+        // A aprovacao vale para a raia de destino ate ela mudar.
+        if (laneSwitchOkRef.current !== referenceModel.id) {
+          const ok = window.confirm(
+            t("app.confirmLaneSwitch", { from: model?.label ?? t("app.thisModel"), to: referenceModel.label })
+          );
+          if (!ok) return;
+          laneSwitchOkRef.current = referenceModel.id;
+        }
         targetModel = referenceModel;
       }
       if (!mediaInputsFor(targetModel, mediaType).length) {
@@ -759,6 +776,9 @@ export default function App() {
   function pickModel(nextId) {
     const picked = catalog?.models.find((candidate) => candidate.id === nextId);
     if (!picked) return;
+    // Escolher modelo na mao invalida a autorizacao anterior de troca de raia:
+    // a proxima troca automatica volta a perguntar.
+    laneSwitchOkRef.current = null;
     let switchNotice = null;
     if (refs.length && picked) {
       const retained = retainCompatibleAssets(picked, refs);

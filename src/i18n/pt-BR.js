@@ -737,6 +737,7 @@ export default {
     notInArchive: "Este resultado não está no arquivo local.",
     unsupportedFile: "Use uma imagem, um vídeo, um áudio ou um PDF.",
     modelRejectsInput: "{model} não aceita entrada de {type}. Escolha antes um modelo compatível.",
+    confirmLaneSwitch: "{from} não aceita imagem de referência.\n\nAnexar esta imagem troca o modelo para {to}.\n\nTrocar?",
     thisModel: "Este modelo",
     dismiss: "Dispensar",
     dismissAria: "Dispensar mensagem",

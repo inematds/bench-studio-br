@@ -692,6 +692,7 @@ export default {
     notInArchive: "This result is not in the local archive.",
     unsupportedFile: "Use an image, video, audio file, or PDF.",
     modelRejectsInput: "{model} does not accept {type} input. Choose a compatible model first.",
+    confirmLaneSwitch: "{from} takes no reference image.\n\nAttaching this image switches the model to {to}.\n\nSwitch?",
     thisModel: "This model",
     dismiss: "Dismiss",
     dismissAria: "Dismiss message",

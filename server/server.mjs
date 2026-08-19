@@ -2131,12 +2131,31 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ code: "noFile", error: "no file" });
     const local = localUploadCopy(req.file);
-    const url = await falUpload(req.file.buffer, req.file.originalname, req.file.mimetype);
+    // O upload para o fal e OPCIONAL. Ele so existe para dar uma URL publica aos
+    // modelos fal; Agnes/Kie/Kling recebem o arquivo por outro caminho, via
+    // resolveAssetForProvider (caminho local ou base64). Chamar o fal aqui
+    // incondicionalmente quebrava imagem->imagem em TODO provider quando nao ha
+    // FAL_KEY — texto->imagem passava so porque nao sobe arquivo nenhum.
+    let remote = null;
+    if (FAL_KEY) {
+      try {
+        remote = await falUpload(req.file.buffer, req.file.originalname, req.file.mimetype);
+      } catch (e) {
+        // Falhar aqui nao pode derrubar o upload: a copia local ja serve os
+        // outros providers. Quem precisa de URL publica e so o fal, e esse
+        // modelo vai falhar na geracao com a mensagem dele, nao aqui.
+        console.warn(`fal upload failed, using local copy: ${String(e.message ?? e)}`);
+      }
+    }
+    // Sem fal, a referencia canonica passa a ser a copia local. `uploads.remote_url`
+    // e NOT NULL no schema, e o /inputs/... e resolvivel por resolveAssetForProvider,
+    // entao ele serve como a URL do registro.
+    const url = remote ?? local.local_url;
     const record = { ...local, remote_url: url };
     store.recordUpload(record);
     res.json({
       url,
-      remote_url: url,
+      remote_url: remote,
       local_url: local.local_url,
       upload_id: local.upload_id,
       media_type: local.media_type,

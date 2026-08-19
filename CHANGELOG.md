@@ -4,6 +4,28 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.6.2
+
+Duas correções no caminho da imagem de referência: uma que impedia usar
+referência sem chave do fal, outra que trocava o modelo sem avisar.
+
+### Corrigido
+- **Imagem para imagem funciona sem `FAL_KEY`.** A rota `/api/upload` chamava o
+  storage do fal para QUALQUER provider. Texto para imagem passava porque não
+  sobe arquivo; imagem para imagem morria com "fal rejected the current API
+  credentials" — a mesma mensagem de chave inválida, mesmo quando a chave
+  simplesmente não existia. O upload remoto virou opcional: sem chave (ou se ele
+  falhar) a referência canônica é a cópia local em `/inputs/`, que o
+  `resolveAssetForProvider` já entrega no formato de cada provider — caminho
+  local para o CLI do Kling, base64 para a Agnes.
+
+### Mudou
+- **Anexar imagem em modelo texto para X pergunta antes de trocar de raia.** O
+  atalho continua: o app oferece o modelo irmão que aceita referência. Mas a
+  troca era silenciosa — o modelo mudava sem o usuário mandar e ele só descobria
+  depois, no rodapé. Agora confirma. A aprovação vale para o lote inteiro de
+  arquivos do mesmo clique e é zerada quando o modelo é escolhido na mão.
+
 ## 1.5.2
 
 Vinte e três commits desde a 1.4.2. O fio que atravessa quase todos: a interface
