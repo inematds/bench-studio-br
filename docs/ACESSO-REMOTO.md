@@ -17,10 +17,19 @@ node -v                     # PRECISA ser 22.5+ — veja o passo 0 abaixo
 git clone git@github.com:inematds/bench-studio-br.git
 cd bench-studio-br
 npm install
+npm run doctor              # confere Node, npm, git, deps, .env, portas, repo
+cp .env.example .env        # apague as linhas de chave que você não tem
 npm run set-password        # antes de abrir a porta, não depois
 ./scripts/remote.sh open    # publica a interface + regra de firewall
-npm run dev
+setsid nohup npm run dev > ~/bench.log 2>&1 < /dev/null &
+sleep 15
+curl -s localhost:8787/api/health    # {"ok":true,...} ou authRequired = no ar
 ```
+
+Para atualizar depois, um comando só: **`npm run update`** — ele descarta os dois
+arquivos que a máquina regrava sozinha, avança sem merge, reinstala dependências
+só quando mudaram e termina rodando o `doctor`. Se houver qualquer outra
+alteração local, ele para e mostra quais, em vez de atropelar.
 
 ### Passo 0: a versão do Node, antes de tudo
 

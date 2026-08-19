@@ -92,10 +92,14 @@ For your own laptop or desktop. Nothing is published to the network: both ports
 answer only `127.0.0.1`.
 
 ```bash
+# 0. requirements, BEFORE anything else — Node 22.5+ is not optional
+node -v
+
 # 1. code and dependencies (node_modules does NOT come with the clone)
 git clone https://github.com/inematds/bench-studio-br.git
 cd bench-studio-br
 npm install
+npm run doctor          # Node, npm, git, deps, .env, ports, repo — all at once
 
 # 2. credentials file (.env is gitignored, so the clone has none)
 cp .env.example .env
@@ -137,28 +141,50 @@ Same first steps, plus three that only matter when someone other than you can
 reach the port. Run it top to bottom; nothing here is optional.
 
 ```bash
+# 0. NODE FIRST. A fresh Ubuntu ships Node 20, and the server cannot start on it.
+node -v                                   # 22.5+ required, 24 recommended
+#    If it is older, replace the system Node (simplest path, one version only):
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo bash -
+sudo apt install -y nodejs
+node -v && npm -v
+#    Need several versions side by side instead? nvm install 24 && nvm use 24
+#    (then read the systemd PATH note in "Keep it running")
+
 # 1. code and dependencies
 git clone https://github.com/inematds/bench-studio-br.git
 cd bench-studio-br
 npm install
 
-# 2. credentials
-cp .env.example .env      # fill in your keys
+# 2. check every requirement before going further — stops on what is wrong
+npm run doctor
 
-# 3. PASSWORD, before the port opens — this order matters, see below
+# 3. credentials
+cp .env.example .env      # fill in your keys; DELETE the lines you have no key
+                          # for — a declared-but-empty key fails as "invalid
+                          # credentials", which sends you hunting the wrong bug
+
+# 4. PASSWORD, before the port opens — this order matters, see below
 npm run set-password
 
-# 4. publish the interface + firewall rule
+# 5. publish the interface + firewall rule
 ./scripts/remote.sh open
 
-# 5. start it so it survives your SSH session ending
+# 6. start it so it survives your SSH session ending
 setsid nohup npm run dev > ~/bench.log 2>&1 < /dev/null &
-sleep 12
+sleep 15
 
-# 6. verify — from the machine, then from your browser
+# 7. verify — the machine first, the browser after
 ./scripts/remote.sh status
-ss -tlnp | grep 5200
+ss -tlnp | grep 5200                      # must read 0.0.0.0:5200
+curl -s localhost:8787/api/health         # {"ok":true,...} or authRequired
+grep -c "\[server\]" ~/bench.log          # zero = the server never started
 ```
+
+About step 7: `authRequired` is the **server working** — it is asking for the
+password you set in step 4. What is not fine is zero `[server]` lines in the
+log: that means only Vite came up, the interface will open and every `/api/`
+call will fail with `ECONNREFUSED`. Go to
+[When the interface opens but nothing loads](#when-the-interface-opens-but-nothing-loads).
 
 Step 6 must show `0.0.0.0:5200`. If it shows `127.0.0.1:5200`, the interface did
 not pick up `BENCH_WEB_HOST` — update first (see
@@ -226,14 +252,32 @@ behind it:
 
 ## Updating an existing install
 
-**Run these four, in this order. They are correct whichever way you start the
-studio** — you do not need to know which mode you are in:
+**One command, whichever way you start the studio:**
 
 ```bash
 cd bench-studio-br
+npm run update
+```
+
+It does the whole sequence and refuses to guess: discards the two files the
+machine rewrites by itself — `server/providers/kie.models.json` (the server
+rewrites `generated_at` on every boot) and `package-lock.json` (npm install) —
+fast-forwards only, reinstalls dependencies **only if** `package.json` changed,
+and finishes by running `npm run doctor`. If you have any other local change it
+**stops and shows you the files** instead of running them over: `git stash`,
+update, `git stash pop`.
+
+A plain `git pull` also works, but on a machine that has already run the studio
+it usually aborts with *"local changes would be overwritten"* on exactly those
+two files — which is what `npm run update` handles for you.
+
+```bash
+# the manual equivalent, if you prefer to see each step
+git checkout -- package-lock.json server/providers/kie.models.json
 git pull
 npm install       # no-op when nothing changed
 npm run build     # no-op in practice if you never serve dist/
+npm run doctor    # confirms the machine still meets the requirements
 ```
 
 Then restart it **the same way you started it**. This project installs no
@@ -479,14 +523,25 @@ Since 1.6.4 `npm run dev` refuses to start on an old Node and prints what to
 install, instead of dying with a stack trace. If you hit the silent version,
 upgrade Node as shown in [what you need](#before-anything-what-you-need).
 
-Other things worth checking in the same situation:
+### The failures we actually hit, by symptom
 
-| Symptom | Cause | Fix |
-| --- | --- | --- |
-| `authRequired` on `/api/health` | A password is set — this is the server working | Log in through the interface |
-| `git pull` refuses: local changes | The machine rewrote `kie.models.json` (boot) and `package-lock.json` (npm install) | `git checkout -- package-lock.json server/providers/kie.models.json`, then pull |
-| Upload fails naming fal credentials | Pre-1.6.4 build, or an empty `FAL_KEY=` line | Update, and delete the empty line rather than leaving it blank |
-| Port 5200 unreachable from outside | Firewall rule missing | `./scripts/remote.sh open` |
+Every line below cost real time on a real machine. `npm run doctor` now catches
+the first four before they bite.
+
+| Symptom | Real cause | Fix | Since |
+| --- | --- | --- | --- |
+| Interface opens, every `/api/` gives `ECONNREFUSED`, no `[server]` lines in the log | Node 20: the server dies importing `node:sqlite`, Vite comes up anyway | Node 22.5+ — `npm run dev` now refuses to start instead of dying silently | 1.6.4 |
+| `Upload failed: fal rejected the current API credentials` on image-to-image, while text-to-image works fine | The upload route sent **every** provider's reference through fal storage. No file is uploaded in text-to-image, so only the reference path broke | Reference now falls back to the local copy in `/inputs/`; fal upload is optional | 1.6.2 |
+| The same 401, worded `Invalid Authorization header format` | An `.env` line declaring `FAL_KEY=` with no value: the header went out as `Key ` | Delete the line instead of leaving it empty. `npm run doctor` flags this | 1.6.5 |
+| The model changed by itself after attaching an image | Deliberate shortcut — a text-to-X model handed the job to its image-capable sibling — but it happened silently | It asks first, in an in-app dialog | 1.6.3 |
+| `git pull`: *"local changes would be overwritten"* on files you never touched | The machine rewrites them: `kie.models.json` (boot) and `package-lock.json` (npm install) | `npm run update` discards exactly those two and nothing else | 1.7.5 |
+| A fix that "did not work" on the VPS | It was pulled on a **different machine** than the one serving | `hostname` first. Confirm the version through the running process — `curl -s localhost:8787/api/health` — not just the files | — |
+| `authRequired` on `/api/health` | A password is set — this is the server working | Log in through the interface | — |
+| Port 5200 unreachable from outside | Firewall rule missing | `./scripts/remote.sh open` | — |
+
+Two habits that would have caught most of them: read the version from the
+**running process**, not from the files on disk, and check `node -v` before
+suspecting the network.
 
 ## Maintenance
 
@@ -494,7 +549,8 @@ Routine care, in rough order of how often you will need it.
 
 | Task | Command |
 | --- | --- |
-| Update the install | `git pull && npm install && npm run build`, then restart |
+| Update the install | `npm run update`, then restart |
+| Check requirements (Node, deps, ports, keys) | `npm run doctor` |
 | Is it healthy? | `curl -s localhost:8787/api/health` |
 | Is it exposed, and how? | `./scripts/remote.sh status` |
 | Discover new provider endpoints | `npm run catalog:sync` |

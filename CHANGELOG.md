@@ -4,6 +4,33 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.7.5
+
+### Novo
+- **`npm run doctor` — os requisitos conferidos antes de culpar a rede.** Node,
+  npm, git, `node_modules`, `.env` (inclusive chaves declaradas mas vazias, que
+  falham como "credencial inválida" e mandam procurar no lugar errado),
+  permissão de escrita, as duas portas e o estado do repositório. Cada item
+  responde o que se esperava, o que se achou e o comando que resolve. Sai com
+  código 1 quando algo impede o estúdio de subir; avisos não travam nada. Não
+  escreve nada e nunca imprime valor de chave, só presença.
+- **`npm run update` — a atualização sem os tropeços conhecidos.** Descarta os
+  dois arquivos que a própria máquina reescreve (`kie.models.json` no boot,
+  `package-lock.json` no install), avança só em fast-forward, reinstala
+  dependências apenas quando `package.json` mudou, roda o `doctor` no fim e diz
+  como reiniciar. Qualquer outra alteração local **interrompe** o update e é
+  mostrada, em vez de atropelada.
+
+### Documentação
+- **As duas instalações viraram passo a passo numerado, com verificação em cada
+  ponto.** A da VPS começa no passo 0 (a versão do Node, com o caminho do
+  NodeSource e a alternativa do nvm) e termina com quatro checagens: `remote.sh
+  status`, `ss` mostrando `0.0.0.0:5200`, o `/api/health` e a contagem de linhas
+  `[server]` no log. O README explica que `authRequired` é o servidor
+  funcionando, e que zero linha `[server]` é o servidor que nunca subiu.
+- A seção de atualização passa a ser um comando só, com o equivalente manual ao
+  lado para quem quiser ver cada passo.
+
 ## 1.6.5
 
 ### Documentação

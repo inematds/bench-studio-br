@@ -1,13 +1,15 @@
 {
   "name": "bench-studio-public",
   "private": true,
-  "version": "1.6.5",
+  "version": "1.7.5",
   "engines": { "node": ">=22.5.0" },
   "type": "module",
   "scripts": {
     "dev": "node server/preflight_node.mjs && concurrently -n server,web -c magenta,cyan \"node server/server.mjs\" \"vite\"",
     "server": "node server/preflight_node.mjs && node server/server.mjs",
     "web": "vite",
+    "doctor": "node scripts/doctor.mjs",
+    "update": "node scripts/update.mjs",
     "registry": "node server/build_registry.mjs",
     "capabilities": "node server/build_capabilities.mjs",
     "catalog:sync": "node server/discover_catalog.mjs",
