@@ -4,6 +4,21 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.6.4
+
+### Corrigido
+- **Node antigo agora falha explicando, em vez de matar o servidor calado.** Em
+  uma VPS com Node 20 o servidor saía com código 1 num
+  `ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite` — o banco usa esse módulo interno,
+  que só existe a partir do Node 22.5. Como só o Vite subia, a tela abria e toda
+  chamada `/api/` dava `ECONNREFUSED`: o sintoma parecia rede ou proxy, e a
+  causa era versão. Agora `npm run dev` e `npm run server` passam antes por um
+  `server/preflight_node.mjs`, que confere a versão e imprime o que instalar
+  (apt ou nvm). A checagem mora num arquivo separado de propósito: import de ESM
+  é resolvido antes de qualquer linha rodar, então uma verificação dentro do
+  próprio `server.mjs` nunca chegaria a executar. O `package.json` também passa
+  a declarar `engines`.
+
 ## 1.6.3
 
 ### Mudou
