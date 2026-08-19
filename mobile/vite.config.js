@@ -51,6 +51,12 @@ export default defineConfig({
     host,
     port,
     strictPort: true,
+    // O Vite recusa requisicao cujo cabecalho Host ele nao conhece — protecao
+    // contra rebind de DNS. Numa VPS isso aparece como um 403 "Blocked request.
+    // This host is not allowed", SO quando se acessa pelo NOME: pelo IP funciona,
+    // o que faz parecer defeito de DNS ou de firewall. O desktop ja liberava
+    // (vite.config.js na raiz); aqui tinha ficado de fora.
+    allowedHosts: true,
     proxy: Object.fromEntries(
       proxied.map((path) => [path, { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true }]),
     ),
