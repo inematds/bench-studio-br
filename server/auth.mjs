@@ -10,7 +10,9 @@
 // igual para todos), mas sem sessão ela não recebe dado nenhum. Trancar também a
 // casca é trabalho de proxy reverso, não deste processo.
 
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 const ESQUEMA = "scrypt";
 const SESSION_COOKIE = "bench_session";
@@ -54,14 +56,72 @@ export function verifyPassword(plain, stored) {
   }
 }
 
+// O que vai para o disco é o SHA-256 do token, nunca o token. O cookie tem 256
+// bits de aleatório, então não há dicionário a percorrer: quem lê o arquivo tem
+// a impressão digital de uma sessão, não a sessão. Vale a mesma lógica do hash
+// de senha — o arquivo é backupeado, copiado e lido por engano.
+const digerir = (token) => createHash("sha256").update(String(token)).digest("hex");
+
 /**
- * Sessões vivem em memória: reiniciar o servidor desloga todo mundo. É o
- * comportamento certo para um estúdio de uma pessoa — não vale a pena persistir
- * sessão, e um restart limpando o estado é uma propriedade, não um defeito.
+ * Sessões em memória E em disco, quando `store` é dado.
+ *
+ * Em memória basta no notebook de uma pessoa: quem reinicia o estúdio é você, e
+ * relogar é trivial. Numa VPS a conta é outra — `./atualizar.sh` reinicia o
+ * serviço sozinho, e a sessão morria NO MEIO de uma geração. A tela mostrava
+ * "Something stopped this run / Authentication required.", que se parece com
+ * erro do provedor de imagem e manda procurar o problema no lugar errado.
+ *
+ * Sem `store`, nada é gravado e o comportamento é o de sempre.
  */
-export function createAuth({ hash = process.env.BENCH_PASSWORD ?? "" } = {}) {
+export function createAuth({ hash = process.env.BENCH_PASSWORD ?? "", store = null, sessionMs = SESSION_MS } = {}) {
   let senhaHash = String(hash ?? "").trim();
   const sessoes = new Map();
+
+  // Impressão digital da senha vigente. Sem isto, trocar a senha com o servidor
+  // PARADO (`npm run set-password`, o caminho normal numa VPS) devolveria as
+  // sessões antigas na volta — e trocar a senha deixaria de expulsar alguém,
+  // que é a única coisa que trocar a senha precisa fazer.
+  const marca = () => (senhaHash ? digerir(senhaHash).slice(0, 32) : "");
+
+  function carregar() {
+    if (!store) return;
+    let bruto;
+    try {
+      bruto = JSON.parse(readFileSync(store, "utf8"));
+    } catch {
+      // Arquivo ausente, truncado por queda de energia ou editado à mão não pode
+      // impedir o estúdio de subir: sem sessão só se reloga, com o servidor
+      // morto não se faz nada.
+      return;
+    }
+    if (!bruto || bruto.v !== 1 || bruto.pwd !== marca()) return;
+    const agora = Date.now();
+    for (const [digest, expira] of Object.entries(bruto.sessions ?? {})) {
+      if (typeof expira === "number" && expira > agora) sessoes.set(digest, expira);
+    }
+  }
+
+  function gravar() {
+    if (!store) return;
+    try {
+      if (!sessoes.size) {
+        rmSync(store, { force: true });
+        return;
+      }
+      mkdirSync(dirname(store), { recursive: true });
+      const corpo = JSON.stringify({ v: 1, pwd: marca(), sessions: Object.fromEntries(sessoes) });
+      // Grava e renomeia: um kill no meio do write deixaria um JSON pela metade,
+      // e aí o restart seguinte perderia TODAS as sessões — exatamente o que
+      // isto existe para evitar. O modo 0600 vale para o temporário também,
+      // senão há uma janela em que o arquivo nasce legível por todos.
+      const temp = `${store}.tmp`;
+      writeFileSync(temp, corpo, { mode: 0o600 });
+      renameSync(temp, store);
+    } catch {
+      // Disco cheio ou pasta somente-leitura não derrubam o login: a sessão vale
+      // nesta memória, e o preço é o de antes — cai no restart.
+    }
+  }
   // Atraso progressivo por origem. Não bloqueia ninguém para sempre (o dono
   // erraria a senha e ficaria de fora da própria máquina); só torna a tentativa
   // automática lenta demais para valer a pena.
@@ -71,7 +131,11 @@ export function createAuth({ hash = process.env.BENCH_PASSWORD ?? "" } = {}) {
 
   function limpar() {
     const agora = Date.now();
-    for (const [token, expira] of sessoes) if (expira <= agora) sessoes.delete(token);
+    let caiu = false;
+    for (const [digest, expira] of sessoes) if (expira <= agora) { sessoes.delete(digest); caiu = true; }
+    // So grava quando algo realmente expirou: `limpar()` roda a cada requisicao,
+    // e reescrever o arquivo a cada uma seria I/O por nada.
+    if (caiu) gravar();
   }
 
   function tokenDoPedido(req) {
@@ -90,24 +154,25 @@ export function createAuth({ hash = process.env.BENCH_PASSWORD ?? "" } = {}) {
     limpar();
     const token = tokenDoPedido(req);
     if (!token) return false;
-    const expira = sessoes.get(token);
+    const expira = sessoes.get(digerir(token));
     return Boolean(expira && expira > Date.now());
   }
 
   function abrirSessao(res) {
     const token = randomBytes(32).toString("hex");
-    sessoes.set(token, Date.now() + SESSION_MS);
+    sessoes.set(digerir(token), Date.now() + sessionMs);
+    gravar();
     // httpOnly: um XSS não consegue ler o cookie e levar a sessão embora.
     // SameSite=Lax: outro site não consegue usar a sua sessão por tabela.
     // Sem `Secure`: o estúdio roda em http na sua rede, e um cookie Secure
     // simplesmente não seria enviado — a senha pararia de funcionar.
-    res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSION_MS / 1000)}`);
+    res.setHeader("Set-Cookie", `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(sessionMs / 1000)}`);
     return token;
   }
 
   function fecharSessao(req, res) {
     const token = tokenDoPedido(req);
-    if (token) sessoes.delete(token);
+    if (token && sessoes.delete(digerir(token))) gravar();
     res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
   }
 
@@ -139,7 +204,10 @@ export function createAuth({ hash = process.env.BENCH_PASSWORD ?? "" } = {}) {
   function setHash(novo) {
     senhaHash = String(novo ?? "").trim();
     sessoes.clear();
+    gravar();
   }
+
+  carregar();
 
   return { required, authenticated, login, logout: fecharSessao, setHash, SESSION_COOKIE };
 }

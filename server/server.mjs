@@ -1501,7 +1501,10 @@ app.use(express.json({ limit: "25mb" }));
 // disto muda o comportamento de hoje. Com senha, a tranca cobre a API E os
 // estaticos: os arquivos gerados sao tao seus quanto o historico, e deixar
 // /media aberto entregaria as imagens a quem soubesse o caminho.
-const auth = createAuth();
+// A loja em disco fica em data/, junto do resto do estado. Sem ela, todo
+// `./atualizar.sh` — que reinicia o servico no fim — expulsava quem estava no
+// meio de uma geracao, e a tela culpava o provedor de imagem por isso.
+const auth = createAuth({ store: join(DATA, "sessions.json") });
 
 app.get("/api/auth", (req, res) => {
   res.json({ required: auth.required(), authenticated: auth.authenticated(req), local: isLoopback(req) });

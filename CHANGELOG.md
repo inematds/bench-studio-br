@@ -4,6 +4,25 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.20.14
+
+### Mudou
+- **A sessão sobrevive ao restart do estúdio.** Antes as sessões viviam só na
+  memória, e todo `./atualizar.sh` — que reinicia o serviço no fim — expulsava
+  quem estava trabalhando. Pior: a tela mostrava "Something stopped this run /
+  Authentication required." no meio de uma geração, que parece erro do provedor
+  de imagem e manda procurar o problema no lugar errado. Agora as sessões vão
+  para `data/sessions.json`, e quem estava logado continua logado do outro lado
+  do restart.
+- O que vai para o disco é o **SHA-256 do token**, nunca o token: quem ler o
+  arquivo tem a impressão digital de uma sessão, não a sessão. Arquivo em 0600,
+  gravado por `write`+`rename` (um kill no meio não deixa JSON pela metade), e
+  arquivo corrompido não impede o estúdio de subir — só custa um login.
+- **Trocar a senha continua expulsando todo mundo**, inclusive quando a troca
+  acontece com o servidor parado (`npm run set-password` numa VPS): o arquivo
+  guarda a impressão digital da senha vigente e é descartado quando ela muda.
+  Sessão expirada também não ressuscita.
+
 ## 1.19.14
 
 ### Novo
