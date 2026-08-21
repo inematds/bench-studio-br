@@ -4,6 +4,22 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.19.14
+
+### Novo
+- **`scripts/fix-sandbox.sh` — o motor Codex volta a construir numa máquina
+  nova.** No Ubuntu 24.04 o AppArmor bloqueia o `bwrap`, e a build morre
+  dizendo "o ambiente recusou todas as gravações no diretório do projeto" —
+  com o disco gravável o tempo todo. A mensagem manda procurar o problema em
+  permissão de pasta, que é o lugar errado. O script diagnostica (`--check`),
+  grava um perfil AppArmor só para o binário do bwrap, confere que passou, e
+  em VPS de container (LXC/Docker) diz que não há conserto por dentro em vez
+  de mandar rodar comando de root que não muda nada.
+- **`npm run doctor` testa o sandbox.** Como o doctor roda dentro do
+  `./install.sh` e de todo `./atualizar.sh`, toda máquina passa a avisar
+  sozinha — aviso, não falha: sem bwrap o estúdio sobe e constrói pelos
+  motores `claude` e `ollama`. Detalhes em `docs/SANDBOX-CODEX.md`.
+
 ## 1.13.7
 
 ### Mudou

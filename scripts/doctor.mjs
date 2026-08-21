@@ -92,6 +92,29 @@ try {
   fail("Escrita no projeto", "sem permissão de escrita na pasta", "confira o dono: chown -R $USER .");
 }
 
+// ---------------------------------------------------------------- sandbox
+
+// Aviso, nao FALHA: sem bwrap o estudio sobe e constroi normalmente pelos
+// motores `claude` e `ollama` — quem para e so o `codex`. E a falha nao se
+// parece com sandbox nenhum: a build morre dizendo que "o ambiente recusou
+// todas as gravacoes no diretorio do projeto", com o disco gravavel o tempo
+// todo. Sem esta linha, o motivo real nunca aparece.
+const bwrap = shLine("bash", ["-c", "command -v bwrap"]);
+if (!bwrap) {
+  warn("Sandbox (motor codex)", "bwrap não instalado — o motor codex não constrói", "apt install -y bubblewrap && sudo ./scripts/fix-sandbox.sh");
+} else if (sh("bash", ["-c", `${bwrap} --dev-bind / / --unshare-net true`]) !== null) {
+  ok("Sandbox (motor codex)", "bwrap funcional");
+} else {
+  // `systemd-detect-virt` sai com 1 justamente no caso mais comum (maquina
+  // fisica ou KVM: imprime "none"), e o sh() engole tudo que sai nao-zero.
+  const virt = shLine("bash", ["-c", "systemd-detect-virt || true"]) || "desconhecido";
+  warn(
+    "Sandbox (motor codex)",
+    `bwrap bloqueado (virt=${virt}) — builds do codex falham dizendo que não conseguiram gravar; claude e ollama seguem funcionando`,
+    "sudo ./scripts/fix-sandbox.sh"
+  );
+}
+
 // ------------------------------------------------------------------ portas
 
 const portState = (port) =>
