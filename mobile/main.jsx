@@ -622,7 +622,12 @@ function App() {
   const carregar = useCallback(() => {
     api("/api/models")
       .then((c) => {
-        setModels((c?.models ?? []).filter((m) => m.kind === "image" || m.kind === "video"));
+        // Os mesmos dois filtros que o desktop aplica antes de oferecer um
+        // modelo (`src/PromptBar.jsx`): `enabled` e o que VOCE escolheu ver na
+        // parede de modelos, `available` e se a rota tem chave e responde. Sem
+        // eles o celular listava o catalogo inteiro — inclusive o que foi
+        // desligado no desktop e o que iria falhar por falta de credencial.
+        setModels((c?.models ?? []).filter((m) => (m.kind === "image" || m.kind === "video") && m.enabled !== false && m.available !== false));
         if (c?.formats?.length) setFormats(c.formats);
       })
       .catch((e) => setErro(String(e.message ?? e)));

@@ -4,6 +4,17 @@ Versionamento `X.XX.YY`: dentro do mesmo major, o `YY` nunca volta a zero —
 correção incrementa `YY`, mudança de comportamento incrementa `XX` carregando o
 `YY`, e só a virada de major zera o resto.
 
+## 1.20.15
+
+### Corrigido
+- **O celular mostrava o catálogo inteiro, não os modelos que você deixou
+  ligados.** Ele filtrava só por tipo (imagem/vídeo) e ignorava os dois estados
+  que o desktop respeita: `enabled` (o que você escolheu ver na parede de
+  modelos) e `available` (a rota tem chave e responde). Resultado: modelo
+  desligado no desktop continuava aparecendo no telefone, e modelo sem
+  credencial só falhava na hora de gerar. Agora o celular aplica o mesmo filtro
+  do `src/PromptBar.jsx`.
+
 ## 1.20.14
 
 ### Mudou
