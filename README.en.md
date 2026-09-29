@@ -14,17 +14,17 @@ A local-first creative studio for images, videos, websites, designed PDFs, and A
 ![5 providers](https://img.shields.io/badge/providers-5-6D7CFF.svg)
 ![MCP ready](https://img.shields.io/badge/MCP-ready-171A21.svg)
 
-**This README installs, runs and maintains the studio.** What it is and why it
+**This README installs, runs, and maintains the studio.** What it is and why it
 works this way lives in **[docs/ABOUT.md](docs/ABOUT.md)**; the internals are in
 **[docs/COMO-FUNCIONA.md](docs/COMO-FUNCIONA.md)**.
 
-**[Install local](#install-a--local-machine)** · **[Install on a VPS](#install-b--vps-reachable-from-outside)** · **[Keep it running](#keep-it-running-systemd)** · **[Update](#updating-an-existing-install)** · **[API keys](#api-keys-what-is-required-and-how-to-change-them)** · **[Passwords](#passwords)** · **[Modes](#creation-modes-and-their-sub-controls)** · **[Maintenance](#maintenance)** · **[Remote access](#remote-access-reference-remotesh)** · **[Security](#security-and-privacy)**
+**[Install locally](#install-a--local-machine)** · **[Install on a VPS](#install-b--vps-reachable-from-outside)** · **[Keep it running](#keep-it-running-systemd)** · **[Update](#updating-an-existing-install)** · **[API keys](#api-keys-what-is-required-and-how-to-change-them)** · **[Passwords](#passwords)** · **[Modes](#creation-modes-and-their-sub-controls)** · **[Maintenance](#maintenance)** · **[Remote access](#remote-access-reference-remotesh)** · **[Security](#security-and-privacy)**
 
 </div>
 
-## 📖 Guia de uso
+## 📖 User guide
 
-Guia completo em português (landing + passo a passo): **https://inematds.github.io/bench-studio-br/guia/**
+Complete guide in Portuguese (landing page + step-by-step): **https://inematds.github.io/bench-studio-br/guia/en/**
 
 ![Bench Studio model catalog](docs/bench-studio-models.png)
 
@@ -44,7 +44,7 @@ units instead of disappearing into mystery credits.
 
 ## The five verbs
 
-Everything you normally need is a script at the root. No flags to memorise, no
+Everything you normally need is a script at the root. No flags to memorize, no
 sequence to get right.
 
 | Verb | What it does |
@@ -58,7 +58,7 @@ sequence to get right.
 Plus `./mobile.sh [subir|parar|status]` when only the phone interface matters —
 it is a separate process from the desktop one and can be handled on its own.
 
-**Why `./atualizar.sh` and not just `npm run update`.** The update logic that
+**Why `./atualizar.sh` instead of just `npm run update`.** The update logic that
 runs is the copy **on disk** — the old one. An improvement to the updater only
 takes effect the *next* time you update. That is how a VPS once updated its
 files and did not restart: the version installed there did not yet know how to.
@@ -80,7 +80,7 @@ rm -f nohup.out
 
 From then on, updating that machine is `./atualizar.sh` and nothing else.
 
-If it refuses and names files you do not recognise, that is the point: it will
+If it refuses and names files you do not recognize, that is the point: it will
 not overwrite work. Discard them (`git checkout -- <file>`) if you did not touch
 them on purpose, or `git stash` if you did.
 
@@ -118,9 +118,9 @@ What each one guarantees:
 - **`./instalar.sh`** refuses to continue on Node older than 22.5 — where the
   server cannot start at all — and prints exactly how to upgrade.
 - **`./start.sh`** writes to `~/bench.log` (`BENCH_LOG` overrides), waits for the
-  port, and shows `/api/health`. `authRequired` there is the server **working**,
-  asking for the password you set.
-- **`./atualizar.sh`** fetches, installs, rebuilds, verifies and restarts. It
+  port, and shows `/api/health`. `authRequired` there means the server is
+  **working** and asking for the password you set.
+- **`./atualizar.sh`** fetches, installs, rebuilds, verifies, and restarts. It
   fetches *before* running the update logic, on purpose — see
   [The five verbs](#the-five-verbs).
 - **`./resolver.sh`** checks in the order things actually break, and stops at
@@ -173,7 +173,7 @@ npm run set-password        # the password comes BEFORE the port opens
 | [kie.ai](https://kie.ai/api-key) | 4 | credits | `KIE_API_KEY` |
 | [inemaimg](https://github.com/inematds/inemaimg) | 2 | zero (your GPU) | a running local server |
 
-Optional but worth it: a [Google AI Studio](https://aistudio.google.com/apikey)
+Optional but worthwhile: a [Google AI Studio](https://aistudio.google.com/apikey)
 or [OpenRouter](https://openrouter.ai/keys) key for prompt refinement (without
 one your prompt is sent raw, and Agnes rejects anything not in English); Google
 Chrome for PDF printing; a signed-in Codex or Claude Code for agent-driven
@@ -282,8 +282,8 @@ curl -s localhost:8787/api/health         # {"ok":true,...} or authRequired
 grep -c "\[server\]" ~/bench.log          # zero = the server never started
 ```
 
-About step 7: `authRequired` is the **server working** — it is asking for the
-password you set in step 4. What is not fine is zero `[server]` lines in the
+About step 7: `authRequired` means the **server is working** — it is asking for
+the password you set in step 4. What is not fine is zero `[server]` lines in the
 log: that means only Vite came up, the interface will open and every `/api/`
 call will fail with `ECONNREFUSED`. Go to
 [When the interface opens but nothing loads](#when-the-interface-opens-but-nothing-loads).
@@ -455,8 +455,8 @@ stays trapped behind yesterday's service worker; and the phone shares the
 desktop's certificate and API, so there is no second port to open. Two values in that config are deliberate: uploads
 are allowed up to 128 MB (nginx defaults to 1 MB, which would reject an ordinary
 reference image with a 413 that looks like a studio bug), and the proxy waits up
-to 15 minutes (the 60s default would cut a healthy video generation short with a
-504). Read it first with `--print`, which writes nothing.
+to 15 minutes (the 60s default would cut a healthy video generation short with
+a 504). Read it first with `--print`, which writes nothing.
 
 **What step 2 actually buys, in order of importance:**
 
@@ -467,7 +467,7 @@ to 15 minutes (the 60s default would cut a healthy video generation short with a
    build serves a minified bundle. Less surface, and less memory sitting idle.
 3. **Faster pages.** One hashed bundle, compressed and cached by nginx, instead
    of modules served one by one.
-4. **Predictable behaviour.** What is live is a fixed artifact that changes only
+4. **Predictable behavior.** What is live is a fixed artifact that changes only
    when you say so, rather than a server watching your files.
 
 **What it costs.** Every update now needs a rebuild — `npm run update` does it
@@ -808,7 +808,7 @@ that already works.
 
 ### The phone interface is not answering
 
-It is a **separate process** from the desktop one. Updating, restarting or
+It is a **separate process** from the desktop one. Updating, restarting, or
 opening the desktop says nothing about it.
 
 ```bash
@@ -867,7 +867,7 @@ suspecting the network.
 
 ## Maintenance
 
-Routine care, in rough order of how often you will need it.
+Routine care, roughly in order of how often you will need it.
 
 | Task | Command |
 | --- | --- |
@@ -888,7 +888,7 @@ Need it to survive a reboot? See [Keep it running](#keep-it-running-systemd).
 **Where your data lives.** Everything is under `data/`, which is gitignored:
 `data/outputs` (generated media, mirrored locally because provider URLs expire),
 `data/inputs` (what you attached), `data/previews`, `data/projects` (website and
-document builds) and `data/bench.db` (history, spend and capability checks). Back
+document builds), and `data/bench.db` (history, spend, and capability checks). Back
 up that folder and you have backed up the studio; `BENCH_DATA_DIR` moves it
 elsewhere, e.g. to a larger disk.
 
@@ -985,8 +985,8 @@ In rough order of what actually protects you:
 |---|---|
 | [`docs/ABOUT.md`](docs/ABOUT.md) | What the studio is, the reasoning behind each choice, and what it deliberately does not do — everything this README used to carry between the install steps |
 | [`docs/COMO-FUNCIONA.md`](docs/COMO-FUNCIONA.md) | How the system works inside: the provider contract, the traps measured per provider, cost classes, availability vs curation, the refine chain, the builder, and the security model |
-| [`docs/ACESSO-REMOTO.md`](docs/ACESSO-REMOTO.md) | Acesso remoto e VPS: por que a senha vem antes da porta, o que o `remote.sh` toca, a ordem de endurecimento e o que ficou em aberto |
-| [`docs/KIE-MODELOS.md`](docs/KIE-MODELOS.md) | Levantamento do catálogo do kie.ai (169 modelos): ids reais da API, entradas de cada um, quais têm quadro inicial e final, e por que só quatro estão registrados |
+| [`docs/ACESSO-REMOTO.md`](docs/ACESSO-REMOTO.md) | Remote access and VPS: why the password comes before the port, what `remote.sh` touches, the hardening order, and what remains open |
+| [`docs/KIE-MODELOS.md`](docs/KIE-MODELOS.md) | Survey of the kie.ai catalog (169 models): actual API IDs, each model's inputs, which have first and last frames, and why only four are registered |
 | [`docs/HISTORICO.md`](docs/HISTORICO.md) | Everything built on top of the original kit, and every bug found — separating the ones that were already there from the ones introduced along the way |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version by version |
 | [`.env.example`](.env.example) | All 16 settings, what each unlocks, and where to get the key |
@@ -1015,7 +1015,7 @@ talking to your own machine should not require one. Nothing leaves your machine
 except the calls you make to the providers you configured.
 
 **Keys.** Read server-side, never returned to the UI. The Config screen shows
-presence, origin and the last 4 characters — never the value. `.env` is written
+presence, origin, and the last 4 characters — never the value. `.env` is written
 with owner-only permissions (`600`) and is gitignored.
 
 **Optional password.** Set `BENCH_PASSWORD` and the API requires a session. It
@@ -1051,21 +1051,21 @@ in this order: `?lang=pt-BR` in the URL → the choice stored in this browser �
 your browser's language → pt-BR. Use the **PT/EN** button on the right of the
 top bar to switch at any time; the choice sticks.
 
-A interface é **bilíngue (pt-BR / en)**, com o português como padrão. Quem chega
-com o navegador em outro idioma cai em inglês sozinho. O botão **PT/EN** no
-canto direito da barra do topo troca a qualquer momento.
+The interface is **bilingual (pt-BR / en)**, with Portuguese as the default. If
+your browser is set to another language, it automatically switches to English.
+The **PT/EN** button on the right side of the top bar switches at any time.
 
-Jargão como *prompt*, *seed*, *upscale*, *engine* e *provider* fica em inglês de
-propósito — é o vocabulário que você vai reencontrar em qualquer outra
-ferramenta — mas com a explicação disponível ao passar o mouse.
+Jargon such as *prompt*, *seed*, *upscale*, *engine*, and *provider* stays in
+English on purpose — it is the vocabulary you will encounter in any other
+tool — but explanations are available on hover.
 
-O que **não** muda de idioma: os valores enviados aos modelos. Os submodos de
-cena, os enums de parâmetro e o prompt final saem sempre em inglês, que é onde
-esses modelos rendem melhor.
+What **does not** change language: the values sent to the models. Scene
+sub-modes, parameter enums, and the final prompt always come out in English,
+which is where these models perform best.
 
-Traduções vivem em `src/i18n/pt-BR.js` e `src/i18n/en.js` — nenhuma frase é
-escrita dentro do JSX. Para acrescentar um idioma, copie um dos dois arquivos,
-registre-o em `src/i18n/index.jsx` e pronto.
+Translations live in `src/i18n/pt-BR.js` and `src/i18n/en.js` — no sentence is
+written inside JSX. To add a language, copy one of the two files, register it in
+`src/i18n/index.jsx`, and you are done.
 
 ## Known issues
 
@@ -1074,12 +1074,12 @@ when `npm run test:release` is not all green:
 
 | Test | Status |
 | --- | --- |
-| `an attachment follows compatible models…` (desktop + mobile) | Fails. Pre-dates this fork's i18n work; the model it reaches for is not offered when your catalog differs. |
+| `an attachment follows compatible models…` (desktop + mobile) | Fails. Predates this fork's i18n work; the model it reaches for is not offered when your catalog differs. |
 | `creator visual contract stays stable` (mobile) | Fails. The committed baseline was captured on macOS; a Linux run renders different type. |
 | `invalid generation and project requests…` (`tests/api.test.mjs`) | Needs a working `FAL_KEY`; without one the model it probes reports "unavailable" before the case under test. |
 | `every workspace has no serious accessibility violations` | Passes with providers reachable. With most models unavailable, the dimmed cards drop below the AA contrast threshold. |
 
-`npm run test:contracts`, `npm run test:mcp` and the remaining 25 end-to-end
+`npm run test:contracts`, `npm run test:mcp`, and the remaining 25 end-to-end
 tests pass. Fixes welcome.
 
 Three product-side gaps, stated rather than hidden:
@@ -1089,7 +1089,7 @@ Three product-side gaps, stated rather than hidden:
   known only after the run. Guessing a total is how it used to advertise
   $0.0214 for both a 5-second and a 30-second clip.
 - **kie.ai ships four models.** Its list is hand-written because kie publishes no
-  per-model price API; Veo 3.1, Sora 2, Wan and Suno exist there and are not
+  per-model price API; Veo 3.1, Sora 2, Wan, and Suno exist there and are not
   registered here. Adding one is an entry in `kie.models.json` plus a price in
   `PRICE`.
 - **The read-only Config screen is half done** — see the table in
@@ -1101,7 +1101,7 @@ This is a fork of **[promptadvisers/bench-studio-public](https://github.com/prom
 What this fork adds on top of upstream:
 
 - Four extra providers beyond fal — **Agnes AI** (zero cost), **kie.ai**,
-  **Kling** (official CLI / OAuth) and **inemaimg** (your own local GPU).
+  **Kling** (official CLI / OAuth), and **inemaimg** (your own local GPU).
 - An optional **studio password** (scrypt hash) and a LAN-exposure warning.
 - The **Config** screen: which keys are present, where each came from, and what
   it enables — without ever sending a secret to the browser.

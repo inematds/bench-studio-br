@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<!-- Landing + guia do Bench Studio BR. CSS do padrao INEMA (projetos-landing-guia), conteudo proprio. -->
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Bench Studio BR — el estudio creativo que funciona en tu máquina</title>
+<meta content="Bench Studio BR: 73 rutas de imagen y video en 5 proveedores, refino de prompts, archivos locales y un libro de cuentas que muestra el costo real. Guía de uso completa en portugués." name="description"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#0c0c10; --bg2:#14141b; --card:#16161e; --line:#272730;
+    --txt:#e9e9ee; --mut:#9a9aa6; --amb:#E2A23B; --amb2:#f0c070; --sky:#38bdf8; --pro:#cbd5e1;
+    color-scheme:dark;
+  }
+  body.light{
+    --bg:#f6f7f9; --bg2:#eceef2; --card:#ffffff; --line:#e1e3ea;
+    --txt:#1a1a22; --mut:#5b5b68; --amb:#b9791d; --amb2:#a16207; --sky:#0369a1; --pro:#b45309;
+    color-scheme:light;
+  }
+  body.light .hero .glow{opacity:.5}
+  body.light pre{background:#0e0e14;color:#d6d6e0}
+  body.light pre .c{color:#8a8a98}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.65 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:Sora,sans-serif;line-height:1.15;margin:0}
+  a{color:var(--amb);text-decoration:none}
+  code,pre{font-family:"JetBrains Mono",monospace}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 22px}
+  .mut{color:var(--mut)} .amb{color:var(--amb)}
+  .chip{display:inline-block;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--amb);font-weight:600;font-family:Sora}
+  nav{position:sticky;top:0;z-index:30;backdrop-filter:blur(12px);background:rgba(12,12,16,.78);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:22px;height:60px}
+  nav .brand{display:flex;align-items:center;gap:8px;font-family:Sora;font-weight:800;letter-spacing:-.02em;color:var(--amb)}
+  nav .brand .emoji{font-size:1.25rem}
+  nav .sep{color:var(--mut);opacity:.45}
+  nav .inema{color:var(--sky);font-weight:600;font-size:.88rem;font-family:Sora}
+  nav .inema:hover{filter:brightness(1.15)}
+  nav .pro{color:var(--pro);font-weight:600;font-size:.88rem;font-family:Sora}
+  nav .pro:hover{filter:brightness(1.15)}
+  nav .clubpro{display:inline-flex;align-items:center;gap:6px}
+  nav .links{margin-left:auto;display:flex;align-items:center;gap:20px;font-size:.92rem}
+  nav .links a.sec{color:var(--mut)} nav .links a.sec:hover{color:var(--txt)}
+  .tgl{background:var(--bg2);border:1px solid var(--line);color:var(--txt);width:38px;height:38px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem}
+  .tgl:hover{border-color:var(--amb)}
+  .btn{display:inline-block;background:var(--amb);color:#1a1206;font-weight:600;padding:.6em 1.05em;border-radius:10px;font-family:Sora}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line)}
+  @media(max-width:760px){nav .links a.sec{display:none}}
+  .hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+  .hero .glow{position:absolute;inset:-40% -20% auto auto;width:70%;height:600px;background:radial-gradient(closest-side,rgba(226,162,59,.22),transparent 70%);pointer-events:none}
+  .hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:74px 22px}
+  .hero h1{font-size:clamp(2.2rem,5vw,3.5rem);font-weight:800;letter-spacing:-.025em}
+  .hero p.lead{font-size:1.18rem;color:var(--mut);margin:1.1em 0 1.6em;max-width:34ch}
+  .hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .hero figure{margin:0;border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 30px 80px -30px #000}
+  .hero figure img{width:100%;display:block}
+  @media(max-width:780px){.hero .wrap{grid-template-columns:1fr;padding:48px 22px}}
+  section{padding:62px 0;border-bottom:1px solid var(--line)}
+  section h2{font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:800;letter-spacing:-.02em}
+  section .sub{color:var(--mut);margin:.6em 0 2em;max-width:62ch}
+  .grid{display:grid;gap:16px}
+  .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:820px){.g3,.g4{grid-template-columns:1fr 1fr}}
+  @media(max-width:540px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h3{font-size:1.05rem;margin-bottom:.4em}
+  .card p{color:var(--mut);font-size:.92rem;margin:0}
+  .num{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:8px;background:rgba(226,162,59,.14);color:var(--amb);font-family:Sora;font-weight:800;font-size:.9rem;margin-bottom:.7em}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  .flow span{background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:.45em .9em;font-size:.85rem;font-family:Sora;font-weight:600}
+  .flow .arr{color:var(--amb);border:none;background:none;padding:0 .1em}
+  pre{background:#0a0a0e;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow:auto;font-size:.86rem;line-height:1.6;color:#d6d6e0}
+  pre .c{color:#6f6f7c} pre .k{color:var(--amb2)} pre .s{color:#9ece6a}
+  .step{display:grid;grid-template-columns:46px 1fr;gap:16px;margin-bottom:26px}
+  .step .b{width:46px;height:46px;border-radius:12px;background:var(--amb);color:#1a1206;font-family:Sora;font-weight:800;font-size:1.25rem;display:flex;align-items:center;justify-content:center}
+  .step h3{font-size:1.12rem;margin-bottom:.3em}
+  .step p{color:var(--mut);margin:.2em 0 .7em}
+  .ex{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:680px){.ex{grid-template-columns:1fr}}
+  .ex figure{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+  .ex figure img{width:100%;display:block}
+  .ex figcaption{padding:12px 14px;font-size:.88rem;color:var(--mut);background:var(--card)}
+  .phase{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .phase:last-child{border:none}
+  .phase .tag{flex:0 0 92px;font-family:Sora;font-weight:800;color:var(--amb)}
+  .phase .d strong{display:block;margin-bottom:.2em}
+  .phase .d span{color:var(--mut);font-size:.92rem}
+  footer{padding:46px 0;text-align:center;color:var(--mut);font-size:.9rem}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:.3em .8em;font-size:.78rem;color:var(--mut);margin:0 4px}
+</style>
+<link href="https://inematds.github.io/bench-studio-br/guia/" hreflang="pt-BR" rel="alternate"/><link href="https://inematds.github.io/bench-studio-br/guia/en/" hreflang="en" rel="alternate"/><link href="https://inematds.github.io/bench-studio-br/guia/es/" hreflang="es" rel="alternate"/></head>
+<body><div class="inema-lang" style="position:fixed;right:14px;bottom:14px;z-index:9999;display:flex;gap:2px;padding:4px;border-radius:10px;background:rgba(12,12,16,.82);border:1px solid rgba(226,162,59,.45);font:600 12px/1 Sora,Inter,system-ui,sans-serif;backdrop-filter:blur(8px)" translate="no"><a href="../" hreflang="pt-BR" style="padding:6px 8px;border-radius:7px;text-decoration:none;color:#e9e9ee">PT</a><a href="../en/" hreflang="en" style="padding:6px 8px;border-radius:7px;text-decoration:none;color:#e9e9ee">EN</a><a href="./" hreflang="es" style="padding:6px 8px;border-radius:7px;text-decoration:none;color:#1a1206;background:#E2A23B">ES</a></div>
+<nav><div class="wrap">
+<a class="brand" href="#top"><span class="emoji">🎛️</span> Bench Studio BR</a>
+<span class="sep">|</span>
+<span class="clubpro">
+<a class="inema" href="https://inema.club" rel="noopener" target="_blank">INEMA.CLUB</a>
+<span class="sep">-</span>
+<a class="pro" href="https://inema.pro" rel="noopener" target="_blank">PRO</a>
+</span>
+<div class="links">
+<a class="sec" href="#oque">Qué es</a>
+<a class="sec" href="#fluxo">Cómo funciona</a>
+<a class="sec" href="#pre">Requisitos previos</a>
+<a class="sec" href="#guia">Guía de uso</a>
+<a class="sec" href="#exemplos">Ejemplos</a>
+<a class="sec" href="#roadmap">Roadmap</a>
+<button aria-label="Cambiar tema" class="tgl" id="themeToggle" title="Cambiar tema">🌙</button>
+<a class="btn" href="https://github.com/inematds/bench-studio-br" rel="noopener" target="_blank">GitHub</a>
+</div>
+</div></nav>
+<header class="hero" id="top">
+<div class="glow"></div>
+<div class="wrap">
+<div>
+<span class="chip">Estudio creativo local · MIT</span>
+<h1>Deja de alquilar la carcasa. Ten la <span class="amb">capa creativa</span>.</h1>
+<p class="lead">73 rutas de imagen y video en 5 proveedores, refino de prompts, controles derivados del
+      schema de cada endpoint, archivos guardados en tu máquina y un libro de cuentas que muestra el costo en
+      unidades reales, no en créditos misteriosos. Tus claves nunca salen del servidor local.</p>
+<div class="cta">
+<a class="btn" href="#guia">Empezar la guía</a>
+<a class="btn ghost" href="https://github.com/inematds/bench-studio-br" rel="noopener" target="_blank">Ver en GitHub</a>
+</div>
+</div>
+<figure><img alt="Mesa con un monitor que muestra una cuadrícula oscura de miniaturas generadas por IA" src="../assets/hero.png"/></figure>
+</div>
+</header>
+<section id="oque"><div class="wrap">
+<span class="chip">Qué es</span>
+<h2>Una sola interfaz, con las costuras a la vista</h2>
+<p class="sub">La mayoría de los productos creativos de IA reúne cinco piezas útiles — acceso a modelos, refino de
+  prompts, enrutamiento, almacenamiento y facturación — y oculta las uniones detrás de una mensualidad. Bench
+  mantiene la comodidad y permite inspeccionar cada unión.</p>
+<div class="grid g3">
+<div class="card"><h3>🔑 Las claves son tuyas</h3><p>Se guardan en el servidor de tu máquina; nunca llegan al
+    navegador. Los proveedores sin clave aparecen como no disponibles, con el motivo y cómo resolverlo: el estudio se inicia
+    de todos modos.</p></div>
+<div class="card"><h3>🎚️ Controles que vienen del schema</h3><p>Cada modelo muestra lo que realmente
+    acepta: cuántas imágenes de referencia, si tiene cuadro inicial y final, y qué duraciones y resoluciones
+    están disponibles. Nada de cuadros de carga genéricos.</p></div>
+<div class="card"><h3>💸 Costo en unidad real</h3><p>Estimación antes de ejecutar y gasto registrado
+    después. Cuando la unidad no es predecible, lo indica en vez de inventar un total; el consumo real
+    se mide con el saldo de la cuenta.</p></div>
+</div>
+</div></section>
+<section id="fluxo"><div class="wrap">
+<span class="chip">Cómo funciona</span>
+<h2>De la idea al archivo en tu carpeta</h2>
+<p class="sub">El mismo flujo funciona desde la interfaz y desde MCP: lo que hace un cliente de agente (Claude Code,
+  Codex, Cursor) es entrar por otra puerta al mismo motor.</p>
+<div class="flow">
+<span>idea</span><span class="arr">→</span>
+<span>refinamiento del prompt</span><span class="arr">→</span>
+<span>elección del modelo</span><span class="arr">→</span>
+<span>presupuesto</span><span class="arr">→</span>
+<span>generación</span><span class="arr">→</span>
+<span>espejo local</span><span class="arr">→</span>
+<span>libro de caja</span>
+</div>
+<div class="grid g3" style="margin-top:26px">
+<div class="card"><h3>✍️ Prompt editable</h3><p>El borrador se reescribe para el modelo elegido y queda
+    visible antes de gastar. Lo apruebas, editas o descartas: nada se envía a tus espaldas.</p></div>
+<div class="card"><h3>🗂️ Custodia local</h3><p>Toda salida se refleja en <code>data/outputs</code>. Las
+    URL de los proveedores vencen; tus archivos no.</p></div>
+<div class="card"><h3>🔌 MCP en el mismo motor</h3><p><code>npm run mcp</code> expone el catálogo y la generación
+    a clientes compatibles, con las mismas reglas de costos y custodia.</p></div>
+</div>
+</div></section>
+<section id="pre"><div class="wrap">
+<span class="chip">Requisitos previos</span>
+<h2>Node y una clave; lo demás es opcional</h2>
+<p class="sub">Todos los proveedores fallan por su cuenta: si falta una clave, el estudio no se cae; solo marca esos
+  modelos como no disponibles. Configura al menos uno para generar algo.</p>
+<div class="grid g3">
+<div class="card"><h3>Node 22.5+</h3><p>Node 24 recomendado — Bench usa <code>node:sqlite</code>.
+    Más npm, y nada más.</p><pre><span class="c"># comprueba la versión</span>
+<span class="k">node --version</span></pre></div>
+<div class="card"><h3>fal.ai · 37 modelos</h3><p>Cobra en dólares, con precios en vivo por endpoint.</p>
+<pre><span class="c"># .env</span>
+FAL_KEY=<span class="s">sua-chave</span></pre></div>
+<div class="card"><h3>Kling · 26 modelos</h3><p>Consume créditos del plan. Se autentica por OAuth en el CLI
+    oficial, no con una clave.</p><pre><span class="k">npm i -g @klingai/cli-global</span>
+<span class="k">kling login</span></pre></div>
+<div class="card"><h3>Agnes AI · 4 modelos</h3><p>Generación sin costo. Requiere un prompt en inglés; por eso
+    el refinador es importante.</p><pre><span class="c"># .env</span>
+AGNES_API_KEY=<span class="s">sua-chave</span></pre></div>
+<div class="card"><h3>kie.ai · 4 modelos</h3><p>Cobra en créditos. Sin API de precios por modelo: la
+    estimación es offline y está identificada como estimada.</p><pre><span class="c"># .env</span>
+KIE_API_KEY=<span class="s">sua-chave</span></pre></div>
+<div class="card"><h3>Refinador de prompts</h3><p>Opcional, pero vale la pena: sin esto, el prompt va tal cual. Google AI
+    Studio u OpenRouter.</p><pre><span class="c"># .env — cualquiera de los dos</span>
+GOOGLE_API_KEY=<span class="s">sua-chave</span>
+OPENROUTER_API_KEY=<span class="s">sua-chave</span></pre></div>
+</div>
+</div></section>
+<section id="guia"><div class="wrap">
+<span class="chip">Guía de uso · paso a paso</span>
+<h2>De cero al primer archivo generado</h2>
+<p class="sub">Comandos reales del repositorio. Desde clonar hasta generar, puedes hacerlo en tres minutos.</p>
+<div class="step"><div class="b">1</div><div>
+<h3>Clonar e instalar</h3>
+<p>Una sola dependencia del sistema: Node.</p>
+<pre><span class="k">git clone https://github.com/inematds/bench-studio-br.git</span>
+<span class="k">cd bench-studio-br</span>
+<span class="k">npm install</span></pre>
+</div></div>
+<div class="step"><div class="b">2</div><div>
+<h3>Agregar las credenciales</h3>
+<p>O <code>.env.example</code> documenta las 16 variables: qué habilita cada una, cuánto cuesta y dónde crear
+    la clave. Completa solo lo que tengas. El orden de lectura es: exportado en el shell &gt; <code>.env</code> del
+    proyecto &gt; <code>~/.env</code>.</p>
+<pre><span class="k">cp .env.example .env</span>  <span class="c"># luego edita lo que tengas</span></pre>
+</div></div>
+<div class="step"><div class="b">3</div><div>
+<h3>Iniciar el estudio</h3>
+<p>El servidor y la interfaz se inician juntos. La interfaz queda en <span class="amb">http://localhost:5200</span>
+    y la API, en loopback, en el puerto 8787.</p>
+<pre><span class="k">npm run dev</span>  <span class="c"># http://localhost:5200</span></pre>
+</div></div>
+<div class="step"><div class="b">4</div><div>
+<h3>O configúralo desde la pantalla, sin tocar ningún archivo</h3>
+<p>El botón <strong>Config</strong> muestra cada ajuste — presente o faltante, de dónde vino el valor y los 4
+    últimos caracteres —, prueba cada proveedor y escribe el <code>.env</code> para ti. Por seguridad, solo
+    acepta escrituras desde la propia máquina: por la red es de solo lectura.</p>
+<pre><span class="c"># el valor de la clave nunca aparece en pantalla, solo los últimos 4 caracteres</span></pre>
+</div></div>
+<div class="step"><div class="b">5</div><div>
+<h3>Elegir el modelo según lo que acepta</h3>
+<p>En el selector, filtra por salida (imagen o video) y por proveedor, y busca por nombre: los tres criterios
+    se combinan. Cada modelo indica qué tipo de referencia acepta: <em>1 imagen</em>, <em>hasta 10 imágenes</em> o
+    <em>cuadro inicial + final</em>.</p>
+<pre><span class="c"># 10 modelos aceptan el primer y el último cuadro; obtienen dos</span>
+<span class="c"># selectores numerados, ① abre y ② cierra el video</span></pre>
+</div></div>
+<div class="step"><div class="b">6</div><div>
+<h3>Ver el precio antes de gastar</h3>
+<p>La barra muestra la estimación cuando se puede calcular (<code>10 segundos × $0,14</code>). Cuando la
+    unidad no permite prever la cantidad, muestra el precio unitario y dice que el valor exacto se conocerá después
+    de la generación, en lugar de mostrar un total inventado.</p>
+<pre><span class="c"># después de ejecutarlo, el gasto real queda registrado en el libro de cuentas</span></pre>
+</div></div>
+<div class="step"><div class="b">7</div><div>
+<h3>Proteger, si vas a salir de la máquina</h3>
+<p>El estudio se inicia <strong>sin contraseña</strong>, a propósito. Antes de dejarlo accesible desde la red, define
+    una — y solo se puede definir desde la propia máquina, lo que impide que un desconocido deje al dueño fuera.</p>
+<pre><span class="k">npm run set-password</span>            <span class="c"># define o cambia; se aplica de inmediato</span>
+<span class="k">npm run set-password -- --remove</span>  <span class="c"># elimina</span></pre>
+<p>Para acceder al estudio desde otra máquina, esta es toda la secuencia, de arriba hacia abajo:</p>
+<pre><span class="k">npm run set-password</span>                        <span class="c"># 1. contraseña ANTES de abrir el puerto</span>
+<span class="k">./scripts/remote.sh open</span>                    <span class="c"># 2. publica la interfaz + la regla del firewall</span>
+<span class="c"># 3. reinicia el estudio, de la forma en que lo mantienes en línea</span>
+<span class="k">./scripts/remote.sh status</span>                  <span class="c"># 4. comprueba: qué está abierto y con qué protección</span>
+<span class="c"># ...usa...</span>
+<span class="k">./scripts/remote.sh close</span>                   <span class="c"># 5. al terminar</span>
+<span class="c"># 6. reinicia de nuevo para cerrar el socket abierto</span></pre>
+<p>Los reinicios no son un trámite: el <code>open</code> e o <code>close</code> escriben en el
+    <code>.env</code>, y el proceso lee al iniciarse en qué interfaz va a escuchar. Sin reiniciar, el archivo dice
+    una cosa y el socket en ejecución hace otra — y eso es <code>status</code> que te lo cuenta. El
+    <code>open</code> todavía solicita la contraseña antes de abrir cualquier cosa y nunca publica la API: el puerto 8787
+    queda en loopback.</p>
+</div></div>
+<div class="step"><div class="b">8</div><div>
+<h3>Usar por medio del agente, vía MCP</h3>
+<p>El mismo catálogo y la misma generación, disponibles para Claude Code, Codex, Cursor y otros clientes
+    compatibles.</p>
+<pre><span class="k">npm run mcp</span>       <span class="c"># servidor MCP</span>
+<span class="k">npm run test:mcp</span>  <span class="c"># comprobación rápida del contrato</span></pre>
+</div></div>
+<div class="step"><div class="b">9</div><div>
+<h3>Mantener el catálogo actualizado</h3>
+<p>El catálogo activo permite descubrir los modelos de fal; los de Kling se obtienen del propio CLI. Puedes sincronizarlo
+    manualmente o dejarlo en automático (el selector <em>auto</em> queda en la línea del título del catálogo).</p>
+<pre><span class="k">npm run catalog:sync</span>   <span class="c"># descubre endpoints nuevos</span>
+<span class="k">npm run registry</span>       <span class="c"># reconstruye el registro</span>
+<span class="k">npm run capabilities</span>   <span class="c"># reconstruye el manifiesto de entradas</span></pre>
+</div></div>
+<div class="step"><div class="b">10</div><div>
+<h3>Actualizar una instalación existente</h3>
+<p>Ejecuta los cuatro comandos de abajo, en este orden. Son válidos <strong>sin importar cómo inicies el
+    estudio</strong> — no necesitas saber en qué modo estás.</p>
+<pre><span class="k">cd bench-studio-br</span>
+<span class="k">git pull</span>
+<span class="k">npm install</span>      <span class="c"># no hace nada cuando nada cambió</span>
+<span class="k">npm run build</span>    <span class="c"># en la práctica, es inofensivo si nunca sirves el dist/</span></pre>
+<p>Después, reinicia <strong>de la misma forma que lo iniciaste</strong>. El proyecto no instala ningún servicio: <code>systemctl restart bench-studio</code> solo funciona si tú mismo creaste esa unit (el README
+    trae el modelo listo). Si lo iniciaste manualmente: <code>pkill -f 'server/server.mjs'</code> e
+    <code>npm run dev</code> de nuevo.</p>
+<p>Por qué el <code>npm run build</code> está en la lista aunque la mayoría use <code>npm run dev</code>:
+    o <code>dist/</code> no se versiona, así que el <code>git pull</code> nunca actualiza un sitio servido
+    ya listo. Hacer el build sin necesidad cuesta tres segundos y deja una carpeta sin uso; <strong>no</strong> Hacer el build
+    cuando hacía falta deja la pantalla congelada en la versión antigua mientras el servidor se actualiza por debajo, lo que
+    parece un error, pero no lo es. Hacer el build siempre es el error menos costoso.</p>
+<p>Un detalle que afecta a las instalaciones antiguas: ahora la API escucha en <strong>loopback de forma predeterminada</strong>
+    (<code>BENCH_API_HOST</code>). Antes se iniciaba en todas las interfaces, así que publicar la interfaz
+    también publicaba el puerto 8787, el que escribe archivos y gasta dinero. Un proxy en la misma máquina que apunta
+    a <code>127.0.0.1:8787</code> sigue igual; quien se comunicaba con la 8787 desde otra máquina necesita la opción consciente para desactivarlo <code>BENCH_API_HOST=0.0.0.0</code>.</p>
+</div></div>
+</div></section>
+<section id="exemplos"><div class="wrap">
+<span class="chip">Ejemplos</span>
+<h2>Las dos pantallas que más vas a usar</h2>
+<p class="sub">Crear y catalogar. Una es donde la idea se convierte en archivo; la otra es donde decides qué
+  modelos merecen estar a mano.</p>
+<div class="ex">
+<figure><img alt="Pantalla de creación de Bench Studio, con prompt, controles del modelo y estimación de costos" src="../assets/ex1.jpg"/><figcaption>Crear: prompt editable, controles derivados del schema y la estimación antes de enviar.</figcaption></figure>
+<figure><img alt="Catálogo de modelos de Bench Studio, agrupados por ruta" src="../assets/ex2.jpg"/><figcaption>Catálogo: 73 rutas agrupadas por flujo — texto→imagen, imagen→video y demás —, cada una con precio y los datos de entrada que acepta.</figcaption></figure>
+</div>
+</div></section>
+<section id="roadmap"><div class="wrap">
+<span class="chip">Roadmap</span>
+<h2>Lo que ya está listo y lo que viene</h2>
+<p class="sub">Nada de esto es una promesa de marketing: lo que está listo está en el repositorio y lo que falta
+  está descrito como pendiente.</p>
+<div class="phase"><div class="tag">Listo</div><div class="d"><strong>Cinco proveedores, una interfaz</strong><span>73 rutas, controles derivados del schema, refino de prompts, custodia local de los archivos y un libro de cuentas con el gasto registrado.</span></div></div>
+<div class="phase"><div class="tag">Listo</div><div class="d"><strong>Fotograma inicial y final</strong><span>Diez modelos aceptan el primer y el último cuadro, con dos selectores numerados; conviven con el campo de lista cuando el modelo tiene ambas opciones.</span></div></div>
+<div class="phase"><div class="tag">Listo</div><div class="d"><strong>MCP</strong><span>El mismo motor disponible para clientes de agente, con las mismas reglas de costos y archivos.</span></div></div>
+<div class="phase"><div class="tag">Listo</div><div class="d"><strong>Sitios y documentos</strong><span>Pestañas propias que crean páginas y PDF con Claude Code, Codex o un modelo local, con selector de motor.</span></div></div>
+<div class="phase"><div class="tag">Pendiente</div><div class="d"><strong>Presupuesto de Seedance 2.5</strong><span>Se cobra en «1000 tokens» según una fórmula que fal no publica. Por ahora aparece como no presupuestable, con el precio unitario a la vista; para obtener un total confiable, primero hay que medir el consumo real.</span></div></div>
+<div class="phase"><div class="tag">Pendiente</div><div class="d"><strong>Más modelos de kie.ai</strong><span>La lista de kie está escrita a mano porque no publica precios por modelo. Veo 3.1, Sora 2, Wan y Suno están disponibles allí y todavía no están registrados aquí.</span></div></div>
+<div class="phase"><div class="tag">Pendiente</div><div class="d"><strong>Fallar de forma segura detrás de un proxy</strong><span>El bloqueo de «solo escribe quien está en la máquina» confía en el <code>X-Forwarded-For</code>. Con nginx al frente, el encabezado debe configurarse: el servidor debería exigirlo, no confiar.</span></div></div>
+</div></section>
+<footer>
+<div class="wrap">
+<div class="pill">Node 22.5+</div><div class="pill">React + Vite</div><div class="pill">node:sqlite</div><div class="pill">MCP</div><div class="pill">MIT</div>
+<p style="margin-top:18px">Bench Studio BR · tus claves, tus archivos, tus costos a la vista ·
+      <a href="https://github.com/inematds/bench-studio-br">inematds/bench-studio-br</a> ·
+      <a href="https://inema.club">INEMA.CLUB</a></p>
+</div>
+</footer>
+<script>
+  (function(){
+    var KEY='bench-studio-theme';
+    var b=document.body, t=document.getElementById('themeToggle');
+    if(localStorage.getItem(KEY)==='light'){ b.classList.add('light'); t.textContent='☀️'; }
+    t.addEventListener('click',function(){
+      var light=b.classList.toggle('light');
+      t.textContent=light?'☀️':'🌙';
+      localStorage.setItem(KEY, light?'light':'dark');
+    });
+  })();
+</script>
+</body>
+</html>
